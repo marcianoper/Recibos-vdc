@@ -79,7 +79,6 @@
     }
     input::placeholder{color:rgba(233,238,252,.55)}
     .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-    .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
     .hr{height:1px;background:var(--line);margin:12px 0}
     .btns{display:flex;gap:10px;flex-wrap:wrap}
     button{
@@ -99,9 +98,6 @@
     button:disabled{opacity:.45;cursor:not-allowed}
     .pill{font-size:12px;padding:6px 10px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
     .hint{font-size:12px;color:var(--muted);line-height:1.35}
-    .ok{color:#86efac}
-    .warn{color:#fcd34d}
-    .bad{color:#fca5a5}
 
     table{
       width:100%;
@@ -131,10 +127,10 @@
     }
     .mono{font-family:var(--mono)}
     .right{text-align:right}
-    .muted{color:var(--muted)}
     .small{font-size:11px}
   </style>
 </head>
+
 <body>
 <header>
   <div class="row">
@@ -222,7 +218,7 @@
 
         <div class="hr"></div>
 
-        <b style="font-size:13px">3) Mapear columnas (elige en tus encabezados)</b>
+        <b style="font-size:13px">3) Mapear columnas</b>
         <div class="hint" style="margin-top:8px">
           ✅ Si tu Excel trae columnas diferentes, no pasa nada: aquí las asignas.
         </div>
@@ -266,7 +262,7 @@
             <select id="colNeto"></select>
           </div>
           <div>
-            <label>Notas/Observaciones (opcional)</label>
+            <label>Observaciones (opcional)</label>
             <select id="colObs"></select>
           </div>
         </div>
@@ -275,9 +271,6 @@
           <div>
             <label>Columna con desglose (opcional)</label>
             <select id="colDetalle"></select>
-            <div class="hint small" style="margin-top:6px">
-              Si tienes una columna tipo “detalle” (ej. “Bono: 200, Prestamo: -150”), se imprime abajo.
-            </div>
           </div>
           <div>
             <label>Filtrar empleado (opcional)</label>
@@ -294,7 +287,7 @@
         </div>
 
         <div class="hint" style="margin-top:12px">
-          Tip: cuando ya tengas el Excel, si el “Neto” no existe, puedo hacer que se calcule automáticamente (Percepciones - Deducciones).
+          Tip: si no existe “Neto”, se puede calcular (Percepciones - Deducciones).
         </div>
       </div>
     </section>
@@ -310,10 +303,6 @@
             <thead><tr id="thead"></tr></thead>
             <tbody id="tbody"></tbody>
           </table>
-        </div>
-        <div class="hint" style="margin-top:10px">
-          Si tu Excel trae varias tablas en una hoja, lo ideal es que la tabla de sueldos tenga una fila de encabezados clara.  
-          Con el “Fila de encabezados” puedes indicarle dónde empieza.
         </div>
       </div>
     </section>
@@ -360,8 +349,8 @@
 
   let wb = null;
   let currentSheetName = "";
-  let dataRows = [];     // array of objects by header
-  let headers = [];      // header names
+  let dataRows = [];
+  let headers = [];
 
   function setStatus(text, tone="muted"){
     statusPill.textContent = text;
@@ -418,6 +407,12 @@
     }
   }
 
+  function escapeHtml(s){
+    return String(s ?? "")
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+      .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+  }
+
   function buildMappingOptions(){
     const opts = ["(vacío)"].concat(headers);
     Object.values(mapSelects).forEach(sel=>{
@@ -430,7 +425,6 @@
       });
     });
 
-    // Intentar auto-detectar por nombres comunes
     const pick = (sel, candidates)=>{
       const found = headers.find(h => candidates.some(c => h.toLowerCase().includes(c)));
       if(found) sel.value = found;
@@ -448,11 +442,8 @@
 
   function renderPreview(maxRows=40){
     clearTable();
-
-    // header
     tblHead.innerHTML = headers.map(h=>`<th>${escapeHtml(h)}</th>`).join("");
 
-    // body
     const show = dataRows.slice(0, maxRows);
     tblBody.innerHTML = show.map(r=>{
       return `<tr>${
@@ -467,12 +458,6 @@
     rowsInfo.textContent = `${dataRows.length} filas`;
   }
 
-  function escapeHtml(s){
-    return String(s ?? "")
-      .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
-      .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
-  }
-
   function readSheet(){
     if(!wb) return;
 
@@ -480,7 +465,7 @@
     const ws = wb.Sheets[currentSheetName];
     if(!ws){ setStatus("Hoja no encontrada", "bad"); return; }
 
-    const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" }); // array of arrays
+    const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
     const headerRowIndex = Math.max(1, parseInt(headerRowInp.value || "1", 10)) - 1;
 
     if(raw.length === 0){
@@ -497,12 +482,10 @@
     }
 
     const headerArr = raw[headerRowIndex].map(x=>safeText(x) || "");
-    // Normalizar encabezados vacíos
     const normHeaders = headerArr.map((h,i)=> h ? h : `COL_${i+1}`);
 
-    // Filas posteriores
     const body = raw.slice(headerRowIndex+1)
-      .filter(row => row.some(cell => safeText(cell) !== "")); // eliminar vacías
+      .filter(row => row.some(cell => safeText(cell) !== ""));
 
     headers = normHeaders;
     dataRows = body.map(row=>{
@@ -569,27 +552,48 @@
     };
   }
 
+  function getFilteredRows(mapped){
+    const q = safeText(filterInp.value).toLowerCase();
+
+    const rows = dataRows.map(r=>({
+      nombre: mapped.nombre ? r[mapped.nombre] : "",
+      puesto: mapped.puesto ? r[mapped.puesto] : "",
+      dias: mapped.dias ? r[mapped.dias] : "",
+      base: mapped.base ? r[mapped.base] : "",
+      perc: mapped.perc ? r[mapped.perc] : "",
+      dedu: mapped.dedu ? r[mapped.dedu] : "",
+      neto: mapped.neto ? r[mapped.neto] : "",
+      obs: mapped.obs ? r[mapped.obs] : "",
+      detalle: mapped.detalle ? r[mapped.detalle] : "",
+      __raw: r
+    }));
+
+    if(!q) return rows;
+    return rows.filter(x => safeText(x.nombre).toLowerCase().includes(q));
+  }
+
   function buildSlipHTML(rows, opts){
-    const width = opts.paper === "80" ? "80mm" : "58mm";
+    const width = (opts.paper === "80") ? "80mm" : "58mm";
     const fontSize = Number(opts.fontSize || 12);
     const gap = Number(opts.gap || 10);
 
     const empresa = safeText(opts.empresa);
     const periodo = safeText(opts.periodo);
-    const showFirma = opts.firma === "1";
+    const showFirma = (opts.firma === "1");
 
-    const slips = rows.map((r, idx)=>{
+    const slips = rows.map((r)=>{
       const nombre = safeText(r.nombre) || "(Sin nombre)";
       const puesto = safeText(r.puesto);
       const dias = safeText(r.dias);
+
       const base = parseNumber(r.base);
       const perc = parseNumber(r.perc);
       const dedu = parseNumber(r.dedu);
       const neto = parseNumber(r.neto);
+
       const obs = safeText(r.obs);
       const detalle = safeText(r.detalle);
 
-      // Si no hay neto pero sí perc/dedu, intenta calcularlo
       const netoCalc = (neto===null && perc!==null && dedu!==null) ? (perc - dedu) : neto;
 
       return `
@@ -610,7 +614,7 @@
               ${base!==null ? `<tr><td>Sueldo base</td><td class="right">${escapeHtml(money(base))}</td></tr>` : ``}
               ${perc!==null ? `<tr><td>Percepciones</td><td class="right">${escapeHtml(money(perc))}</td></tr>` : ``}
               ${dedu!==null ? `<tr><td>Deducciones</td><td class="right">${escapeHtml(money(dedu))}</td></tr>` : ``}
-              ${(netoCalc!==null) ? `<tr class="total"><td><b>Neto a pagar</b></td><td class="right"><b>${escapeHtml(money(netoCalc))}</b></td></tr>` : ``}
+              ${netoCalc!==null ? `<tr class="total"><td><b>Neto a pagar</b></td><td class="right"><b>${escapeHtml(money(netoCalc))}</b></td></tr>` : ``}
             </tbody>
           </table>
 
@@ -673,9 +677,7 @@
             border-top:1px dashed #000;
             margin:8px 0;
           }
-          .row{
-            display:flex; gap:8px;
-          }
+          .row{display:flex; gap:8px;}
           .lbl{min-width:78px; opacity:.8}
           .val{flex:1}
           table{width:100%; border-collapse:collapse; margin-top:2px}
@@ -684,10 +686,7 @@
           .pre{white-space:pre-wrap}
           .firma{margin-top:6px}
           .line{border-top:1px solid #000; margin:18px 10px 6px}
-          .cut{
-            margin-top:10px;
-            border-top: 2px dotted #000;
-          }
+          .cut{margin-top:10px; border-top: 2px dotted #000;}
           .gap{width:${width}}
           @media print{
             body{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -698,31 +697,11 @@
       <body>
         ${slips}
         <script>
-          // auto imprimir al abrir
           setTimeout(()=>{ window.print(); }, 300);
         </script>
       </body>
       </html>
     `;
-  }
-
-  function getFilteredRows(mapped){
-    const q = safeText(filterInp.value).toLowerCase();
-    const rows = dataRows.map(r=>({
-      nombre: mapped.nombre ? r[mapped.nombre] : "",
-      puesto: mapped.puesto ? r[mapped.puesto] : "",
-      dias: mapped.dias ? r[mapped.dias] : "",
-      base: mapped.base ? r[mapped.base] : "",
-      perc: mapped.perc ? r[mapped.perc] : "",
-      dedu: mapped.dedu ? r[mapped.dedu] : "",
-      neto: mapped.neto ? r[mapped.neto] : "",
-      obs: mapped.obs ? r[mapped.obs] : "",
-      detalle: mapped.detalle ? r[mapped.detalle] : "",
-      __raw: r
-    }));
-
-    if(!q) return rows;
-    return rows.filter(x => safeText(x.nombre).toLowerCase().includes(q));
   }
 
   function openPrint(html){
@@ -767,7 +746,6 @@
       alert("No hay filas para imprimir (revisa filtro).");
       return;
     }
-    // Aviso si neto no está mapeado
     if(!mapped.neto && (!mapped.perc || !mapped.dedu)){
       const ok = confirm("No mapeaste 'Neto' ni (Percepciones y Deducciones). El ticket saldrá sin Neto. ¿Continuar?");
       if(!ok) return;
@@ -782,13 +760,6 @@
       gap: gapSel.value,
     });
     openPrint(html);
-  });
-
-  // si cambian columnas, no pasa nada. (auto)
-  Object.values(mapSelects).forEach(sel=>{
-    sel.addEventListener("change", ()=>{
-      // nada, pero sirve por si quieres validar luego
-    });
   });
 </script>
 </body>
