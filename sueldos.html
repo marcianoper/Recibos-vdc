@@ -3,55 +3,41 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Nómina — Impresión Térmica (Excel tipo cuadros)</title>
+  <title>Nómina — Impresión Térmica (Turbo)</title>
 
-  <!-- SheetJS -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.19.3/dist/xlsx.full.min.js"></script>
 
   <style>
     :root{
-      --bg:#0b1220;
-      --card:#0f1b33;
-      --line:rgba(255,255,255,.12);
-      --ink:#e9eefc;
-      --muted:rgba(233,238,252,.72);
-      --brand:#22c55e;
-      --warn:#f59e0b;
-      --bad:#ef4444;
-      --r:18px;
-      --shadow: 0 18px 60px rgba(0,0,0,.45);
+      --bg:#0b1220; --card:#0f1b33; --line:rgba(255,255,255,.12);
+      --ink:#e9eefc; --muted:rgba(233,238,252,.72);
+      --brand:#22c55e; --warn:#f59e0b; --bad:#ef4444;
+      --r:18px; --shadow: 0 18px 60px rgba(0,0,0,.45);
       --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
       --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
     }
     *{box-sizing:border-box}
     body{
-      margin:0;
-      font-family:var(--sans);
+      margin:0; font-family:var(--sans); color:var(--ink);
       background:
         radial-gradient(900px 380px at 18% -10%, rgba(34,197,94,.18), transparent 55%),
         radial-gradient(900px 380px at 82% -10%, rgba(245,158,11,.16), transparent 55%),
         linear-gradient(180deg, #070b14, var(--bg));
-      color:var(--ink);
     }
     header{
-      padding:18px 18px 10px;
-      border-bottom:1px solid var(--line);
-      position:sticky; top:0;
-      background:rgba(11,18,32,.75);
-      backdrop-filter: blur(10px);
-      z-index:5;
+      padding:18px 18px 10px; border-bottom:1px solid var(--line);
+      position:sticky; top:0; background:rgba(11,18,32,.75);
+      backdrop-filter: blur(10px); z-index:5;
     }
     header .row{
       max-width:1240px;margin:0 auto;
-      display:flex;align-items:center;justify-content:space-between;gap:12px;
-      flex-wrap:wrap;
+      display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
     }
     h1{margin:0;font-size:18px;letter-spacing:.2px}
     .sub{color:var(--muted);font-size:13px;margin-top:4px}
     main{max-width:1240px;margin:0 auto;padding:16px;display:grid;gap:14px}
     .grid{display:grid;grid-template-columns: 460px 1fr;gap:14px}
     @media (max-width: 980px){ .grid{grid-template-columns:1fr} }
-
     .card{
       background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
       border:1px solid var(--line);
@@ -68,13 +54,9 @@
     .card .bd{padding:14px}
     label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
     input[type="file"], select, input[type="text"], input[type="number"]{
-      width:100%;
-      padding:10px 11px;
-      border-radius:12px;
-      border:1px solid var(--line);
-      background:rgba(255,255,255,.06);
-      color:var(--ink);
-      outline:none;
+      width:100%; padding:10px 11px;
+      border-radius:12px; border:1px solid var(--line);
+      background:rgba(255,255,255,.06); color:var(--ink); outline:none;
     }
     input::placeholder{color:rgba(233,238,252,.55)}
     .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -85,17 +67,14 @@
       background:rgba(255,255,255,.08);
       color:var(--ink);
       padding:10px 12px;border-radius:12px;
-      cursor:pointer;
-      font-weight:800;
+      cursor:pointer; font-weight:900;
     }
     button.primary{
       background:linear-gradient(180deg, rgba(34,197,94,.95), rgba(16,185,129,.9));
-      border-color: rgba(34,197,94,.35);
-      color:#062012;
+      border-color: rgba(34,197,94,.35); color:#062012;
     }
     button.danger{background:rgba(239,68,68,.18);border-color:rgba(239,68,68,.35)}
     button:disabled{opacity:.45;cursor:not-allowed}
-
     .pill{font-size:12px;padding:6px 10px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
     .hint{font-size:12px;color:var(--muted);line-height:1.35}
     .mono{font-family:var(--mono)}
@@ -106,7 +85,6 @@
       padding:8px 10px; border-radius:12px;
       background:rgba(0,0,0,.18);
     }
-
     .scroll{
       max-height:620px; overflow:auto;
       border-radius:16px;
@@ -132,8 +110,8 @@
 <header>
   <div class="row">
     <div>
-      <h1>Nómina — Impresión Térmica (Excel tipo cuadros)</h1>
-      <div class="sub">Sube tu Excel como el de tus “cuadritos” → detecta empleados → imprime tickets 58mm/80mm.</div>
+      <h1>Nómina — Impresión Térmica (Turbo)</h1>
+      <div class="sub">Lee tu Excel tipo “cuadros” sin convertirse en tabla. Optimizado para no quedarse “Leyendo…”</div>
     </div>
     <span class="pill" id="statusPill">Sin archivo</span>
   </div>
@@ -241,13 +219,16 @@
           <span class="badge" id="countBadge" style="display:none">
             Detectados: <b class="mono" id="countText">0</b>
           </span>
+          <span class="badge" id="scanBadge" style="display:none">
+            Escaneo: <b class="mono" id="scanText">0%</b>
+          </span>
           <span class="badge" id="progressBadge" style="display:none">
             Progreso: <b class="mono" id="progressText">0/0</b>
           </span>
         </div>
 
         <div class="hint" style="margin-top:10px">
-          Este modo “inteligente” funciona con tu Excel de cuadros. Solo asegúrate de que los nombres estén arriba y los conceptos debajo (SUELDO/EXT/TOTAL/IMSS/ISR/INFONAVIT/A CTA/DEPOSITO…).
+          Si tu Excel trae mucho formato, este modo Turbo evita “sheet_to_json” completo y escanea directo el rango usado (más rápido).
         </div>
       </div>
     </section>
@@ -293,13 +274,13 @@
 
   const countBadge = $("#countBadge");
   const countText = $("#countText");
+  const scanBadge = $("#scanBadge");
+  const scanText = $("#scanText");
   const progressBadge = $("#progressBadge");
   const progressText = $("#progressText");
 
   let wb = null;
-  let currentSheetName = "";
-  let matrix = [];         // 2D array
-  let employees = [];      // parsed
+  let employees = [];
   let printQueue = [];
   let printIndex = 0;
   let printWin = null;
@@ -329,10 +310,7 @@
   function parseNumber(v){
     if(v===null || v===undefined) return null;
     if(typeof v === "number") return isFinite(v) ? v : null;
-    const s = String(v)
-      .replace(/[$,\s]/g,"")
-      .replace("—","")
-      .trim();
+    const s = String(v).replace(/[$,\s]/g,"").replace("—","").trim();
     if(!s) return null;
     const n = Number(s);
     return isFinite(n) ? n : null;
@@ -353,34 +331,18 @@
       .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
   }
 
-  // ====== PARSER INTELIGENTE PARA "CUADROS" ======
+  // ====== LECTURA TURBO (sin sheet_to_json completo) ======
+  function cellValue(ws, r, c){
+    // r,c son 0-based
+    const addr = XLSX.utils.encode_cell({r,c});
+    const cell = ws[addr];
+    return cell ? (cell.v ?? "") : "";
+  }
+
   const LABELS = new Set([
     "SUELDO","EXT","TOTAL","IMSS","ISR","INFONAVIT","A CTA","ACTA","DEPOSITO","DEPÓSITO",
     "FALTA 1 DIA","FALTA 1 DÍA","EXT DIA FEST","EXT DÍA FEST","MENOS"
   ]);
-
-  function looksLikeNameCell(v){
-    const s = safeText(v);
-    if(!s) return false;
-
-    const u = s.toUpperCase();
-    if(LABELS.has(u)) return false;
-
-    // No números sueltos / no $
-    if(/^\$/.test(s)) return false;
-    if(/^\d+(\.\d+)?$/.test(s)) return false;
-
-    // Debe tener letras
-    if(!/[A-ZÁÉÍÓÚÑa-záéíóúñ]/.test(s)) return false;
-
-    // Muchos nombres vienen en mayúsculas; si no lo están, igual lo aceptamos
-    // pero evitamos textos genéricos
-    const bad = ["SEMANA","NOMINA","NÓMINA","PAGO","RECIBO","TOTAL GENERAL"];
-    if(bad.some(x => u.includes(x))) return false;
-
-    // Suelen tener espacio (nombre + apellido) pero no siempre; no obligamos.
-    return true;
-  }
 
   function isLabel(v){
     const u = safeText(v).toUpperCase();
@@ -397,50 +359,53 @@
     return u;
   }
 
-  function findAmountNear(r, c){
-    // En tu formato: [label] [monto] [MENOS]
-    // el monto casi siempre está en c+1, si no, buscamos a la derecha en 3 columnas.
+  function looksLikeNameCell(v){
+    const s = safeText(v);
+    if(!s) return false;
+    const u = s.toUpperCase();
+    if(isLabel(u)) return false;
+    if(/^\$/.test(s)) return false;
+    if(/^\d+(\.\d+)?$/.test(s)) return false;
+    if(!/[A-ZÁÉÍÓÚÑa-záéíóúñ]/.test(s)) return false;
+    const bad = ["SEMANA","NOMINA","NÓMINA","PAGO","RECIBO","TOTAL GENERAL"];
+    if(bad.some(x => u.includes(x))) return false;
+    return true;
+  }
+
+  function findAmountNear(ws, r, c, maxC){
     for(let k=1;k<=3;k++){
-      const n = parseNumber(matrix[r]?.[c+k]);
+      if(c+k>maxC) break;
+      const n = parseNumber(cellValue(ws, r, c+k));
       if(n!==null) return n;
     }
-    // a veces el monto está en la misma celda (raro)
-    const n0 = parseNumber(matrix[r]?.[c]);
+    const n0 = parseNumber(cellValue(ws, r, c));
     return n0!==null ? n0 : null;
   }
 
-  function parseEmployeeAt(r, c){
-    const name = safeText(matrix[r][c]);
+  function parseEmployeeAt(ws, r, c, maxR, maxC){
+    const name = safeText(cellValue(ws, r, c));
     const fields = {};
-    const order = []; // para imprimir en el orden que salieron
-
     let blankStreak = 0;
 
-    // escaneamos hacia abajo (máximo 28 filas por seguridad)
-    for(let i=r+1;i<Math.min(matrix.length, r+29);i++){
-      const cell = safeText(matrix[i]?.[c]);
+    for(let i=r+1;i<=Math.min(maxR, r+28);i++){
+      const cell = safeText(cellValue(ws, i, c));
       if(!cell){
         blankStreak++;
-        if(blankStreak>=3) break; // fin del bloque
+        if(blankStreak>=3) break;
         continue;
       }
       blankStreak = 0;
 
-      // si encontramos otro nombre en la misma columna, termina bloque
+      // si aparece otro nombre en la misma columna, termina bloque
       if(looksLikeNameCell(cell) && !isLabel(cell)) break;
 
       if(isLabel(cell)){
         const lab = normLabel(cell);
-        const amt = findAmountNear(i, c);
-        if(amt!==null){
-          // si se repite una etiqueta, guardamos el último (o podrías acumular)
-          fields[lab] = amt;
-          if(!order.includes(lab)) order.push(lab);
-        }
+        const amt = findAmountNear(ws, i, c, maxC);
+        if(amt!==null) fields[lab] = amt;
       }
     }
 
-    // Heurística para neto: si hay DEPOSITO úsalo; si no, intenta TOTAL - (IMSS+ISR+INFONAVIT+A CTA+FALTA 1 DIA)
     const total = fields["TOTAL"] ?? null;
     const deposito = fields["DEPOSITO"] ?? null;
 
@@ -457,7 +422,6 @@
     return {
       name,
       fields,
-      order,
       total,
       deposito,
       deducciones: ded || 0,
@@ -466,46 +430,62 @@
     };
   }
 
-  function parseEmployeesFromMatrix(){
+  async function parseEmployeesTurbo(ws){
+    const ref = ws["!ref"];
+    if(!ref) return [];
+
+    const range = XLSX.utils.decode_range(ref);
+
+    // Topes para evitar que un excel enorme con formato se tarde:
+    const maxRowsScan = 220;   // ajustable
+    const maxColsScan = 40;    // ajustable
+
+    const r0 = range.s.r;
+    const c0 = range.s.c;
+    const r1 = Math.min(range.e.r, r0 + maxRowsScan);
+    const c1 = Math.min(range.e.c, c0 + maxColsScan);
+
+    scanBadge.style.display = "inline-flex";
+    scanText.textContent = "0%";
+
     const found = [];
+    const seen = new Set();
+    const totalCells = (r1-r0+1) * (c1-c0+1);
+    let processed = 0;
 
-    const rows = matrix.length;
-    const cols = Math.max(...matrix.map(r=>r.length || 0), 0);
+    for(let r=r0; r<=r1; r++){
+      for(let c=c0; c<=c1; c++){
+        const v = cellValue(ws, r, c);
+        processed++;
 
-    for(let r=0;r<rows;r++){
-      for(let c=0;c<cols;c++){
-        const v = matrix[r]?.[c];
+        // actualiza % cada X celdas
+        if(processed % 250 === 0){
+          const pct = Math.round((processed/totalCells)*100);
+          scanText.textContent = pct + "%";
+          await new Promise(requestAnimationFrame);
+        }
+
         if(!looksLikeNameCell(v)) continue;
 
-        // Si justo abajo está "SUELDO" o "EXT" o "TOTAL", es muy probable que sea encabezado de bloque
-        const below = safeText(matrix[r+1]?.[c]).toUpperCase();
-        const below2 = safeText(matrix[r+2]?.[c]).toUpperCase();
+        const below = safeText(cellValue(ws, r+1, c)).toUpperCase();
+        const below2 = safeText(cellValue(ws, r+2, c)).toUpperCase();
         const likelyBlock = (below==="SUELDO" || below==="EXT" || below==="TOTAL" || below2==="SUELDO" || below2==="EXT" || below2==="TOTAL");
         if(!likelyBlock) continue;
 
-        const emp = parseEmployeeAt(r,c);
-
-        // Debe tener por lo menos TOTAL o DEPOSITO o SUELDO para considerarlo válido
+        const emp = parseEmployeeAt(ws, r, c, r1, c1);
         const hasSomething = (emp.fields["TOTAL"]!=null) || (emp.fields["DEPOSITO"]!=null) || (emp.fields["SUELDO"]!=null);
         if(!hasSomething) continue;
 
+        const key = emp.name+"@@"+emp._pos.r+"@@"+emp._pos.c;
+        if(seen.has(key)) continue;
+        seen.add(key);
         found.push(emp);
       }
     }
 
-    // Deduplicar por (name + row + col) primero, y por name si se repite igual
-    const seen = new Set();
-    const out = [];
-    for(const e of found){
-      const key = `${e.name}@@${e._pos.r}@@${e._pos.c}`;
-      if(seen.has(key)) continue;
-      seen.add(key);
-      out.push(e);
-    }
-
-    // Orden por nombre
-    out.sort((a,b)=> a.name.localeCompare(b.name, "es"));
-    return out;
+    scanText.textContent = "100%";
+    found.sort((a,b)=> a.name.localeCompare(b.name, "es"));
+    return found;
   }
 
   // ====== UI LIST ======
@@ -518,6 +498,7 @@
   function renderList(){
     const arr = getFilteredEmployees();
     rowsInfo.textContent = String(arr.length);
+
     listDiv.innerHTML = arr.map(e=>{
       const net = e.neto;
       const t = e.total;
@@ -575,8 +556,6 @@
 
     const slips = empList.map(e=>{
       const f = e.fields;
-
-      // Orden bonito
       const sueldo = f["SUELDO"] ?? null;
       const ext = f["EXT"] ?? null;
       const extFest = f["EXT DIA FEST"] ?? null;
@@ -649,48 +628,21 @@
         <title>Impresión Nómina</title>
         <style>
           @page { margin: 0; }
-          body{
-            margin:0;
-            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-            background:#fff;
-            color:#000;
-          }
-          .ticket{
-            width:${width};
-            padding: 8px 8px 0;
-            font-size:${fontSize}px;
-            line-height:1.25;
-          }
-          .center{text-align:center}
-          .right{text-align:right}
-          .bold{font-weight:900}
-          .muted{opacity:.75}
-          .title{font-size:${fontSize+2}px}
+          body{ margin:0; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; background:#fff; color:#000; }
+          .ticket{ width:${width}; padding: 8px 8px 0; font-size:${fontSize}px; line-height:1.25; }
+          .center{text-align:center} .right{text-align:right} .bold{font-weight:900}
+          .muted{opacity:.75} .title{font-size:${fontSize+2}px}
           .small{font-size:${Math.max(9, fontSize-2)}px}
-          .hr{
-            border-top:1px dashed #000;
-            margin:8px 0;
-          }
-          .row{display:flex; gap:8px;}
-          .lbl{min-width:78px; opacity:.8}
-          .val{flex:1}
+          .hr{ border-top:1px dashed #000; margin:8px 0; }
+          .row{display:flex; gap:8px;} .lbl{min-width:78px; opacity:.8} .val{flex:1}
           table{width:100%; border-collapse:collapse; margin-top:2px}
           td{padding:2px 0; vertical-align:top}
           tr.total td{padding-top:6px}
-          .sep{
-            margin:8px 0 4px;
-            font-weight:900;
-            border-top:1px dashed #000;
-            padding-top:6px;
-          }
-          .firma{margin-top:6px}
-          .line{border-top:1px solid #000; margin:18px 10px 6px}
+          .sep{ margin:8px 0 4px; font-weight:900; border-top:1px dashed #000; padding-top:6px; }
+          .firma{margin-top:6px} .line{border-top:1px solid #000; margin:18px 10px 6px}
           .cut{margin-top:10px; border-top: 2px dotted #000;}
           .gap{width:${width}}
-          @media print{
-            body{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            .gap{display:block}
-          }
+          @media print{ body{ -webkit-print-color-adjust: exact; print-color-adjust: exact; } .gap{display:block} }
         </style>
       </head>
       <body>
@@ -705,13 +657,8 @@
 
   function openPrint(html){
     const w = window.open("", "_blank");
-    if(!w){
-      alert("Bloqueo de popups: permite popups para imprimir.");
-      return null;
-    }
-    w.document.open();
-    w.document.write(html);
-    w.document.close();
+    if(!w){ alert("Bloqueo de popups: permite popups para imprimir."); return null; }
+    w.document.open(); w.document.write(html); w.document.close();
     return w;
   }
 
@@ -723,7 +670,6 @@
 
   function printOneTicket(emp){
     const html = buildSlipHTML([emp], getOpts());
-
     if(!printWin || printWin.closed){
       printWin = openPrint(html);
       return;
@@ -757,18 +703,15 @@
     }
     const delay = Math.max(200, parseInt(delayMsInp.value || "800", 10));
     await new Promise(r=>setTimeout(r, delay));
-
     printOneTicket(printQueue[printIndex]);
     printIndex++;
     updateProgress();
-
     if(printIndex >= printQueue.length){
       setStatus("Impresión 1×1 terminada", "ok");
       btnSiguiente.disabled = true;
     }
   });
 
-  // ====== EVENTS ======
   function fillSheetList(){
     sheetSel.innerHTML = "";
     (wb.SheetNames || []).forEach(n=>{
@@ -776,21 +719,16 @@
       opt.value = n; opt.textContent = n;
       sheetSel.appendChild(opt);
     });
-    currentSheetName = wb.SheetNames?.[0] || "";
-    sheetSel.value = currentSheetName;
+    sheetSel.value = wb.SheetNames?.[0] || "";
   }
 
-  function readSheet(){
+  async function readSheet(){
     if(!wb) return;
-    currentSheetName = sheetSel.value;
-    const ws = wb.Sheets[currentSheetName];
+    const ws = wb.Sheets[sheetSel.value];
     if(!ws){ setStatus("Hoja no encontrada", "bad"); return; }
 
-    const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
-    matrix = raw;
-
-    setStatus("Detectando empleados...", "warn");
-    employees = parseEmployeesFromMatrix();
+    setStatus("Escaneando hoja (turbo)...", "warn");
+    employees = await parseEmployeesTurbo(ws);
 
     countBadge.style.display = "inline-flex";
     countText.textContent = String(employees.length);
@@ -809,27 +747,40 @@
       listDiv.innerHTML = "";
       rowsInfo.textContent = "0";
       countBadge.style.display = "none";
+      scanBadge.style.display = "none";
       return;
     }
+
     fileInfo.textContent = `${f.name} (${Math.round(f.size/1024)} KB)`;
     setStatus("Leyendo Excel...", "warn");
 
-    const buf = await f.arrayBuffer();
-    wb = XLSX.read(buf, { type: "array" });
-    fillSheetList();
-    readSheet();
+    try{
+      const buf = await f.arrayBuffer();
+
+      // Opciones rápidas: evita cosas pesadas
+      wb = XLSX.read(buf, {
+        type: "array",
+        cellStyles: false,
+        cellNF: false,
+        cellText: false,
+        bookVBA: false
+      });
+
+      fillSheetList();
+      await readSheet();
+    }catch(err){
+      console.error(err);
+      setStatus("Error leyendo el Excel", "bad");
+      alert("No se pudo leer el archivo. Si está protegido/dañado, guarda como .xlsx nuevo e intenta otra vez.");
+    }
   });
 
   sheetSel.addEventListener("change", readSheet);
 
-  filterInp.addEventListener("input", ()=>{
-    renderList();
-  });
+  filterInp.addEventListener("input", ()=> renderList());
 
   btnReset.addEventListener("click", ()=>{
     wb = null;
-    currentSheetName = "";
-    matrix = [];
     employees = [];
     fileInput.value = "";
     sheetSel.innerHTML = "";
@@ -839,6 +790,7 @@
     setStatus("Sin archivo");
     enableUI(false);
     countBadge.style.display = "none";
+    scanBadge.style.display = "none";
 
     printQueue = [];
     printIndex = 0;
@@ -849,8 +801,7 @@
   btnVista.addEventListener("click", ()=>{
     const list = getFilteredEmployees();
     if(!list.length){ alert("No hay empleados para el filtro."); return; }
-    const html = buildSlipHTML([list[0]], getOpts());
-    openPrint(html);
+    openPrint(buildSlipHTML([list[0]], getOpts()));
   });
 
   btnImprimir1x1.addEventListener("click", async ()=>{
@@ -862,17 +813,14 @@
   btnImprimir.addEventListener("click", async ()=>{
     const list = getFilteredEmployees();
     if(!list.length){ alert("No hay empleados para el filtro."); return; }
-
     const mode = printModeSel.value;
     if(mode === "batch"){
-      const html = buildSlipHTML(list, getOpts());
-      openPrint(html);
+      openPrint(buildSlipHTML(list, getOpts()));
       return;
     }
     await startPrintOneByOne(list);
   });
 
-  // init
   setStatus("Sin archivo");
 </script>
 </body>
