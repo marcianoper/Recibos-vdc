@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Nómina — Ticket desde Excel</title>
+  <title>Nómina — Ticket desde Excel (VDC360°)</title>
 
   <!-- SheetJS (leer Excel en el navegador) -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.19.3/dist/xlsx.full.min.js"></script>
@@ -16,7 +16,7 @@
       --r:18px; --shadow: 0 18px 60px rgba(0,0,0,.45);
       --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
       --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
-      --paperW: 80mm; /* <- cambia a 58mm si tu impresora es 58 */
+      --paperW: 80mm; /* cambia a 58mm si ocupas */
     }
     *{box-sizing:border-box}
     body{
@@ -86,10 +86,7 @@
     }
 
     /* ===== Ticket Preview ===== */
-    .ticketWrap{
-      display:grid;gap:12px;
-      align-content:start;
-    }
+    .ticketWrap{display:grid;gap:12px;align-content:start}
     .ticket{
       width: min(420px, 100%);
       margin: 0 auto;
@@ -103,11 +100,11 @@
     .ticket .center{text-align:center}
     .ticket .muted{color:#444}
     .ticket .line{border-top:1px dashed rgba(0,0,0,.55);margin:8px 0}
-    .ticket .row{
+    .ticket .r{
       display:flex;justify-content:space-between;gap:10px;
       font-size:13px;
     }
-    .ticket .row strong{font-weight:900}
+    .ticket .r strong{font-weight:900}
     .ticket h2{margin:0;font-size:14px;letter-spacing:.4px}
     .ticket .mini{font-size:11px}
     .ticket .big{font-size:15px;font-weight:900}
@@ -128,11 +125,7 @@
         padding:0 !important;
       }
     }
-    @page{
-      /* Ticket térmico: ancho fijo, alto automático */
-      size: var(--paperW) auto;
-      margin: 0;
-    }
+    @page{ size: var(--paperW) auto; margin: 0; }
 
     .danger{color:#ffb4b4}
     .ok{color:#b8ffd0}
@@ -177,12 +170,12 @@
 
         <div class="row">
           <button class="btn" id="btnPrint" disabled>IMPRIMIR RECIBO</button>
-          <button class="btn secondary" id="btnRefresh" disabled>RECARGAR LISTA</button>
+          <button class="btn secondary" id="btnReload" disabled>RECARGAR LISTA</button>
         </div>
 
         <div class="hint">
-          ✅ Esta página “lee directo el Excel” desde tu compu (por seguridad del navegador, siempre se selecciona el archivo con el botón).<br>
-          Tip: si tu ticket sale cortado, cambia 80mm → 58mm o viceversa.
+          ✅ Lee el Excel directo desde tu compu (por seguridad del navegador, siempre se selecciona con el botón).<br>
+          Tip: si sale cortado, cambia 80mm ↔ 58mm.
         </div>
 
         <div class="hint danger" id="warn" style="display:none"></div>
@@ -203,13 +196,13 @@
 
           <div class="line"></div>
 
-          <div class="row"><span>Empleado</span><strong id="tNombre">—</strong></div>
-          <div class="row"><span>Fecha</span><span id="tFecha" class="muted">—</span></div>
+          <div class="r"><span>Empleado</span><strong id="tNombre">—</strong></div>
+          <div class="r"><span>Fecha</span><span id="tFecha" class="muted">—</span></div>
 
           <div class="line"></div>
 
           <div id="tBody">
-            <div class="row"><span class="muted">Carga el Excel…</span><span class="muted">—</span></div>
+            <div class="r"><span class="muted">Carga el Excel…</span><span class="muted">—</span></div>
           </div>
 
           <div class="sig">
@@ -227,130 +220,16 @@
 <script>
   // ===== Utilidades =====
   const $ = (s)=>document.querySelector(s);
+  const cleanStr = (s)=> (s??"").toString().replace(/\s+/g," ").trim();
+  const u = (s)=> cleanStr(s).toUpperCase();
+
   const money = (n)=>{
-    if(n === null || n === undefined || n === "") return "";
+    if(n === null || n === undefined || n === "") return "0.00";
     const x = Number(n);
-    if(Number.isNaN(x)) return String(n);
+    if(Number.isNaN(x)) return "0.00";
     return x.toLocaleString("es-MX",{minimumFractionDigits:2, maximumFractionDigits:2});
   };
   const isNum = (v)=> typeof v === "number" && isFinite(v);
-  const isStr = (v)=> typeof v === "string";
-  const cleanStr = (s)=> (s||"").toString().replace(/\s+/g," ").trim();
-
-  // En tu Excel, los trabajadores vienen en 4 bloques (col 2,6,11,15)
-  // SheetJS lo trae en arreglo 0-index:
-  // Bloque 1: name/label col=1, value col=2
-  // Bloque 2: col=5, value=6
-  // Bloque 3: col=10, value=11
-  // Bloque 4: col=14, value=15
-  const GROUPS = [
-    { nameCol:1, labelCol:1, valCol:2 },
-    { nameCol:5, labelCol:5, valCol:6 },
-    { nameCol:10,labelCol:10,valCol:11},
-    { nameCol:14,labelCol:14,valCol:15}
-  ];
-
-  const KNOWN_LABELS = new Set([
-    "SUELDO","EXT","TOTAL","IMSS","ISR","INFONAVIT","A CTA","DEPOSITO","DEPÓSITO"
-  ]);
-
-  function looksLikeName(v){
-    if(!isStr(v)) return false;
-    const s = cleanStr(v);
-    if(!s) return false;
-    // Evitar que etiquetas se detecten como nombre
-    if(KNOWN_LABELS.has(s.toUpperCase())) return false;
-    if(s.toUpperCase() === "MENOS") return false;
-    // En tu Excel hay celdas con espacios
-    if(/^\s+$/.test(v)) return false;
-    return true;
-  }
-
-  function parseEmployeesFromAOA(aoa){
-    const employees = [];
-
-    for(const g of GROUPS){
-      let r = 0;
-      while(r < aoa.length){
-        const nameCell = aoa[r]?.[g.nameCol];
-        if(looksLikeName(nameCell)){
-          const nombre = cleanStr(nameCell);
-          const emp = {
-            id: `${nombre}_${g.nameCol}_${r}`,
-            nombre,
-            lines: {}, // label -> value
-            notes: []
-          };
-
-          // Leer líneas hacia abajo hasta que aparezca otro nombre en ese grupo o se acabe
-          let k = r + 1;
-          let sawDeductions = false;
-
-          while(k < aoa.length){
-            const nextName = aoa[k]?.[g.nameCol];
-            if(looksLikeName(nextName)) break;
-
-            const labelRaw = aoa[k]?.[g.labelCol];
-            const valRaw   = aoa[k]?.[g.valCol];
-
-            const label = isStr(labelRaw) ? cleanStr(labelRaw) : "";
-            const labelU = label.toUpperCase();
-
-            // Notas (ej: FALTA 1 DIA)
-            if(label && !KNOWN_LABELS.has(labelU) && !["MENOS"].includes(labelU)){
-              // si el valor es 0 o vacío lo tomamos como nota
-              if(!isNum(valRaw)) emp.notes.push(label);
-            }
-
-            if(KNOWN_LABELS.has(labelU)){
-              // Guardar etiqueta + valor numérico si existe
-              if(isNum(valRaw)) emp.lines[labelU] = valRaw;
-              else if(valRaw === 0) emp.lines[labelU] = 0;
-              else emp.lines[labelU] = (valRaw ?? "");
-              if(["IMSS","ISR","INFONAVIT"].includes(labelU)) sawDeductions = true;
-            } else {
-              // En tu Excel el NETO a veces viene sin etiqueta (celda vacía en label, número en value)
-              if(!label && isNum(valRaw) && sawDeductions && emp.lines["NETO"] === undefined){
-                emp.lines["NETO"] = valRaw;
-              }
-            }
-
-            k++;
-          }
-
-          // Cálculos por si faltan
-          const sueldo = isNum(emp.lines["SUELDO"]) ? emp.lines["SUELDO"] : 0;
-          const ext    = isNum(emp.lines["EXT"]) ? emp.lines["EXT"] : 0;
-          const total  = isNum(emp.lines["TOTAL"]) ? emp.lines["TOTAL"] : (sueldo + ext);
-          const imss   = isNum(emp.lines["IMSS"]) ? emp.lines["IMSS"] : 0;
-          const isr    = isNum(emp.lines["ISR"]) ? emp.lines["ISR"] : 0;
-          const info   = isNum(emp.lines["INFONAVIT"]) ? emp.lines["INFONAVIT"] : 0;
-          const acta   = isNum(emp.lines["A CTA"]) ? emp.lines["A CTA"] : 0;
-
-          if(emp.lines["TOTAL"] === undefined) emp.lines["TOTAL"] = total;
-
-          // Neto “real” que se paga: TOTAL - deducciones - A CTA (si existe)
-          const netoCalc = total - imss - isr - info - acta;
-
-          // Si el Excel no traía NETO, ponlo calculado
-          if(!isNum(emp.lines["NETO"])) emp.lines["NETO"] = netoCalc;
-
-          employees.push(emp);
-          r = k; // continuar desde el final del bloque
-        } else {
-          r++;
-        }
-      }
-    }
-
-    // Ordenar por nombre
-    employees.sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
-    return employees;
-  }
-
-  // ===== Estado =====
-  let EMP = [];
-  let EMP_BY_ID = {};
 
   function setStatus(text, good=true){
     const pill = $("#statusPill");
@@ -359,7 +238,6 @@
     pill.style.background   = good ? "rgba(34,197,94,.10)" : "rgba(239,68,68,.10)";
     pill.style.color        = good ? "rgba(233,238,252,.92)" : "rgba(255,200,200,.95)";
   }
-
   function showWarn(msg){
     const w = $("#warn");
     w.style.display = "block";
@@ -369,6 +247,147 @@
     const w = $("#warn");
     w.style.display = "none";
     w.textContent = "";
+  }
+
+  // ===== PARSER ROBUSTO PARA TU EXCEL (bloques por columnas) =====
+  // Estrategia:
+  // 1) Detecta la celda donde aparece "SUELDO" (eso marca la columna de conceptos y la fila de conceptos).
+  // 2) Busca nombres en la fila de arriba (o dos arriba) para cada columna de valores.
+  // 3) Recorre hacia abajo leyendo: concepto (colConceptos) + valor (colEmpleado).
+  // 4) Normaliza etiquetas: SUELDO, EXT, TOTAL, IMSS, ISR, INFONAVIT, A CTA, NETO, DEPOSITO/DEPÓSITO.
+  function parseEmployeesFromAOA(aoa){
+    const labels = new Set(["SUELDO","EXT","TOTAL","MENOS","IMSS","ISR","INFONAVIT","A CTA","NETO","DEPOSITO","DEPÓSITO","DEPOSITO "]);
+
+    // 1) Encontrar "SUELDO"
+    let labelRow = -1, labelCol = -1;
+    outer:
+    for(let r=0;r<Math.min(aoa.length, 40);r++){
+      const row = aoa[r] || [];
+      for(let c=0;c<Math.min(row.length, 40);c++){
+        if(u(row[c]) === "SUELDO"){
+          labelRow = r;
+          labelCol = c;
+          break outer;
+        }
+      }
+    }
+    if(labelRow === -1) throw new Error("No encontré la celda 'SUELDO' en el Excel.");
+
+    // 2) Detectar columnas de empleados (donde hay valores numéricos) y sus nombres en filas superiores
+    const nameRowsToTry = [labelRow-1, labelRow-2, labelRow-3].filter(x=>x>=0);
+    const conceptRows = aoa.slice(labelRow, Math.min(aoa.length, labelRow+40));
+
+    // columnas candidatas: donde en la fila de SUELDO haya un número (o algo) a la derecha
+    const sueldoRow = aoa[labelRow] || [];
+    const maxC = Math.max(sueldoRow.length, 30);
+
+    const employeeCols = [];
+    for(let c=labelCol+1; c<maxC; c++){
+      const valAtSueldo = sueldoRow[c];
+
+      // si no hay nada en sueldo, probablemente no es una columna de empleado
+      if(valAtSueldo === null || valAtSueldo === undefined || valAtSueldo === "") continue;
+
+      // nombre arriba
+      let name = "";
+      for(const nr of nameRowsToTry){
+        const candidate = cleanStr(aoa[nr]?.[c]);
+        // evitar que agarre etiquetas como nombre
+        if(candidate && !labels.has(u(candidate))) { name = candidate; break; }
+      }
+      if(!name) continue;
+
+      employeeCols.push({ col:c, name });
+    }
+
+    if(!employeeCols.length){
+      throw new Error("Detecté 'SUELDO' pero no pude detectar columnas de trabajadores. Revisa que los nombres estén arriba de los valores.");
+    }
+
+    // 3) Construir empleados leyendo filas hacia abajo
+    const employees = employeeCols.map(ec=>({
+      id: `${ec.name}__c${ec.col}`,
+      nombre: ec.name,
+      lines: {},
+      notes: []
+    }));
+
+    for(let r=labelRow; r<aoa.length; r++){
+      const conceptRaw = aoa[r]?.[labelCol];
+      const concept = u(conceptRaw);
+
+      if(!concept) continue;
+
+      // notas tipo "FALTA 1 DIA" en la columna de conceptos
+      if(!labels.has(concept) && concept.length){
+        // si no es un concepto conocido y no tiene números al lado, lo guardamos como nota
+        let anyNumber = false;
+        for(const ec of employeeCols){
+          if(isNum(aoa[r]?.[ec.col])) { anyNumber = true; break; }
+        }
+        if(!anyNumber){
+          for(const emp of employees) emp.notes.push(cleanStr(conceptRaw));
+        }
+        continue;
+      }
+
+      // normalizar DEPOSITO/DEPÓSITO
+      let key = concept;
+      if(key === "DEPÓSITO") key = "DEPOSITO";
+      if(key === "DEPOSITO ") key = "DEPOSITO";
+
+      // MENOS solo es separador
+      if(key === "MENOS") continue;
+
+      // leer valores por empleado
+      employees.forEach((emp, i)=>{
+        const c = employeeCols[i].col;
+        const v = aoa[r]?.[c];
+
+        // solo guardamos si es numérico (o si viene algo pero no número, lo ignoramos)
+        if(isNum(v)) emp.lines[key] = v;
+      });
+    }
+
+    // 4) Completar TOTAL/NETO si faltan
+    for(const emp of employees){
+      const sueldo = isNum(emp.lines["SUELDO"]) ? emp.lines["SUELDO"] : 0;
+      const ext    = isNum(emp.lines["EXT"]) ? emp.lines["EXT"] : 0;
+      const total  = isNum(emp.lines["TOTAL"]) ? emp.lines["TOTAL"] : (sueldo + ext);
+
+      const imss = isNum(emp.lines["IMSS"]) ? emp.lines["IMSS"] : 0;
+      const isr  = isNum(emp.lines["ISR"]) ? emp.lines["ISR"] : 0;
+      const info = isNum(emp.lines["INFONAVIT"]) ? emp.lines["INFONAVIT"] : 0;
+      const acta = isNum(emp.lines["A CTA"]) ? emp.lines["A CTA"] : 0;
+
+      if(!isNum(emp.lines["TOTAL"])) emp.lines["TOTAL"] = total;
+
+      const netoCalc = total - imss - isr - info - acta;
+      if(!isNum(emp.lines["NETO"])) emp.lines["NETO"] = netoCalc;
+    }
+
+    // ordenar
+    employees.sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
+    return employees;
+  }
+
+  // ===== Estado =====
+  let EMP = [];
+  let EMP_BY_ID = {};
+
+  function refreshWorkerSelect(){
+    const sel = $("#worker");
+    sel.innerHTML = `<option value="">— Selecciona —</option>`;
+    for(const e of EMP){
+      const opt = document.createElement("option");
+      opt.value = e.id;
+      opt.textContent = e.nombre;
+      sel.appendChild(opt);
+    }
+    const ok = EMP.length > 0;
+    sel.disabled = !ok;
+    $("#btnPrint").disabled = !ok;
+    $("#btnReload").disabled = !ok;
   }
 
   function renderTicket(emp){
@@ -386,53 +405,37 @@
     const info   = isNum(L("INFONAVIT")) ? L("INFONAVIT") : 0;
     const acta   = isNum(L("A CTA")) ? L("A CTA") : 0;
     const neto   = isNum(L("NETO")) ? L("NETO") : (total - imss - isr - info - acta);
-    const depo   = isNum(L("DEPOSITO")) ? L("DEPOSITO") : (isNum(L("DEPÓSITO")) ? L("DEPÓSITO") : null);
+    const depo   = isNum(L("DEPOSITO")) ? L("DEPOSITO") : null;
 
-    // Armar cuerpo
     const lines = [];
-
-    lines.push(`<div class="row"><span>SUELDO</span><strong>$${money(sueldo)}</strong></div>`);
-    lines.push(`<div class="row"><span>EXT</span><strong>$${money(ext)}</strong></div>`);
-    lines.push(`<div class="row"><span class="muted">TOTAL</span><strong>$${money(total)}</strong></div>`);
+    lines.push(`<div class="r"><span>SUELDO</span><strong>$${money(sueldo)}</strong></div>`);
+    lines.push(`<div class="r"><span>EXT</span><strong>$${money(ext)}</strong></div>`);
+    lines.push(`<div class="r"><span class="muted">TOTAL</span><strong>$${money(total)}</strong></div>`);
 
     lines.push(`<div class="line"></div>`);
-    lines.push(`<div class="row"><span class="muted">MENOS IMSS</span><span>$${money(imss)}</span></div>`);
-    lines.push(`<div class="row"><span class="muted">MENOS ISR</span><span>$${money(isr)}</span></div>`);
-    lines.push(`<div class="row"><span class="muted">MENOS INFONAVIT</span><span>$${money(info)}</span></div>`);
+    lines.push(`<div class="r"><span class="muted">MENOS IMSS</span><span>$${money(imss)}</span></div>`);
+    lines.push(`<div class="r"><span class="muted">MENOS ISR</span><span>$${money(isr)}</span></div>`);
+    lines.push(`<div class="r"><span class="muted">MENOS INFONAVIT</span><span>$${money(info)}</span></div>`);
 
     if(acta){
-      lines.push(`<div class="row"><span class="muted">A CTA</span><span>$${money(acta)}</span></div>`);
+      lines.push(`<div class="r"><span class="muted">A CTA</span><span>$${money(acta)}</span></div>`);
     }
 
     lines.push(`<div class="line"></div>`);
-    lines.push(`<div class="row"><span class="big">NETO A PAGAR</span><strong class="big">$${money(neto)}</strong></div>`);
+    lines.push(`<div class="r"><span class="big">NETO A PAGAR</span><strong class="big">$${money(neto)}</strong></div>`);
 
     if(depo !== null){
-      lines.push(`<div class="row"><span class="muted">DEPÓSITO</span><span>$${money(depo)}</span></div>`);
+      lines.push(`<div class="r"><span class="muted">DEPÓSITO</span><span>$${money(depo)}</span></div>`);
     }
 
     if(emp?.notes?.length){
       lines.push(`<div class="line"></div>`);
       for(const n of emp.notes.slice(0,4)){
-        lines.push(`<div class="row"><span class="muted">${n}</span><span class="muted"> </span></div>`);
+        lines.push(`<div class="r"><span class="muted">${cleanStr(n)}</span><span class="muted"></span></div>`);
       }
     }
 
     $("#tBody").innerHTML = lines.join("");
-  }
-
-  function refreshWorkerSelect(){
-    const sel = $("#worker");
-    sel.innerHTML = `<option value="">— Selecciona —</option>`;
-    for(const e of EMP){
-      const opt = document.createElement("option");
-      opt.value = e.id;
-      opt.textContent = e.nombre;
-      sel.appendChild(opt);
-    }
-    sel.disabled = EMP.length === 0;
-    $("#btnPrint").disabled = EMP.length === 0;
-    $("#btnRefresh").disabled = EMP.length === 0;
   }
 
   async function readExcel(file){
@@ -440,22 +443,20 @@
     const wb = XLSX.read(data, {type:"array"});
     const sheetName = wb.SheetNames[0];
     const ws = wb.Sheets[sheetName];
+
+    // raw:true para que no "formatee raro" los números
     const aoa = XLSX.utils.sheet_to_json(ws, {header:1, raw:true, defval:null});
 
     EMP = parseEmployeesFromAOA(aoa);
     EMP_BY_ID = Object.fromEntries(EMP.map(e=>[e.id,e]));
 
     refreshWorkerSelect();
-
     setStatus(`Cargado: ${EMP.length} trabajadores`, true);
     hideWarn();
 
-    // Auto seleccionar primero
     if(EMP.length){
       $("#worker").value = EMP[0].id;
       renderTicket(EMP[0]);
-    } else {
-      showWarn("No pude detectar trabajadores. Revisa que el Excel tenga el mismo formato (nombres en columnas 2,6,11,15).");
     }
   }
 
@@ -463,13 +464,14 @@
   $("#file").addEventListener("change", async (e)=>{
     const f = e.target.files?.[0];
     if(!f) return;
+
     try{
       setStatus("Leyendo Excel…", true);
       await readExcel(f);
     }catch(err){
       console.error(err);
       setStatus("Error al leer Excel", false);
-      showWarn("Error leyendo el archivo. Asegúrate que sea .xlsx (no .csv) y vuelve a intentar.");
+      showWarn("No pude leer el formato de este Excel. Tip: asegúrate que exista la palabra 'SUELDO' en la hoja y que arriba estén los nombres. Detalle: " + (err?.message || err));
     }
   });
 
@@ -482,20 +484,16 @@
   $("#empresa").addEventListener("input", ()=>{
     const id = $("#worker").value;
     const emp = EMP_BY_ID[id];
-    if(emp) renderTicket(emp);
+    renderTicket(emp || null);
   });
 
   $("#paper").addEventListener("change", ()=>{
-    // Cambiar el ancho de página (80mm / 58mm)
     document.documentElement.style.setProperty("--paperW", $("#paper").value);
   });
 
-  $("#btnPrint").addEventListener("click", ()=>{
-    // Para evitar “hoja extra”: imprimir SOLO el ticket usando CSS @page y @media print
-    window.print();
-  });
+  $("#btnPrint").addEventListener("click", ()=> window.print());
 
-  $("#btnRefresh").addEventListener("click", ()=>{
+  $("#btnReload").addEventListener("click", ()=>{
     refreshWorkerSelect();
     const id = $("#worker").value;
     const emp = EMP_BY_ID[id];
