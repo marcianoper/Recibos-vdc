@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Nómina — Click en Excel → Ticket térmico</title>
+  <title>Nómina — Click en Excel → Ticket térmico (V2)</title>
 
   <!-- SheetJS -->
   <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
@@ -221,8 +221,8 @@
 <body>
 <header class="noPrint">
   <div class="left">
-    <h1>Nómina — Click en Excel → Ticket térmico</h1>
-    <p>1) Carga Excel 2) Click en el <b>nombre</b> 3) Se captura el bloque 4) Si algo falla, click en el <b>número</b> para corregir 5) Imprimir.</p>
+    <h1>Nómina — Click en Excel → Ticket térmico (V2)</h1>
+    <p>1) Carga Excel 2) Click en el <b>nombre</b> 3) Se captura el bloque (más estricto) 4) Si algo falla, click en el <b>número</b> para corregir 5) Imprimir.</p>
   </div>
   <div class="pill" id="statusPill">Sin archivo</div>
 </header>
@@ -270,10 +270,10 @@
           <b>Uso rápido:</b><br>
           1) Carga el Excel.<br>
           2) En la tabla del centro, haz <b>click en el nombre</b> (ej. “MARTIN PITAYO”).<br>
-          3) El sistema intenta leer SUELDO/EXT/TOTAL/IMSS/ISR/INFONAVIT/A CTA/NETO/DEPOSITO del bloque.<br>
-          4) Si algo quedó mal, haz <b>click en el número</b> (ej. 2170). Se asigna al concepto de esa fila (leyendo “SUELDO/EXT/…” a la izquierda).<br>
+          3) El sistema captura SUELDO/EXT/TOTAL/IMSS/ISR/INFONAVIT/A CTA/NETO/DEPOSITO del bloque, y se detiene cuando detecta otro nombre.<br>
+          4) Si algo quedó mal, haz <b>click en el número</b>. Se asigna al concepto de esa fila (busca “SUELDO/EXT/…” a la izquierda).<br>
           5) Imprime.<br><br>
-          <span class="warn">Tip:</span> Tu Excel tiene columna de “$”. Por eso el sistema busca el primer número a la derecha del concepto.
+          <span class="warn">Tip:</span> Tu Excel tiene columna “$”. Por eso el sistema busca el primer número a la derecha del concepto (estricto y cercano).
         </div>
 
         <div class="hint danger" id="warn" style="display:none"></div>
@@ -373,7 +373,7 @@
     w.textContent="";
   }
 
-  // ===== Config / concepts =====
+  // ===== Concepts =====
   const CONCEPTS = [
     "SUELDO","EXT","TOTAL","IMSS","ISR","INFONAVIT","A CTA","NETO","DEPOSITO"
   ];
@@ -383,7 +383,6 @@
     ["A_CTA","A CTA"],
     ["ACTA","A CTA"],
   ]);
-
   function normConcept(s){
     const u = upper(s);
     if(CONCEPT_ALIASES.has(u)) return CONCEPT_ALIASES.get(u);
@@ -392,9 +391,9 @@
 
   // ===== State =====
   let wb=null, aoa=null, sheetName=null;
-  let selected = { r:null, c:null };       // clicked cell
-  let currentWorker = null;                // {name, anchor:{r,c}, values:{concept->number}}
-  const workersByAnchor = new Map();       // "r,c" -> worker object
+  let selected = { r:null, c:null };
+  let currentWorker = null;                // {name, anchor:{r,c}, values:{}}
+  const workersByAnchor = new Map();       // "r,c" -> worker
 
   // ===== UI: fields list =====
   function renderFields(){
@@ -416,7 +415,7 @@
   }
 
   // ===== Ticket render =====
-  function renderTicket(){
+  function renderTicketBase(){
     $("#tEmpresa").textContent = clean($("#empresa").value) || "—";
     $("#tFecha").textContent = new Date().toISOString().slice(0,10);
 
@@ -461,9 +460,11 @@
     $("#tBody").innerHTML = rows.join("");
     $("#btnPrint").disabled = false;
   }
+  // wrapper to also toggle print button
+  function renderTicket(){ renderTicketBase(); }
 
-  // ===== Excel viewer render =====
-  function buildExcelTable(aoa, maxRows=60, maxCols=24){
+  // ===== Excel viewer =====
+  function buildExcelTable(aoa, maxRows=80, maxCols=22){
     const rows = Math.min(aoa.length, maxRows);
     let cols = 0;
     for(let r=0;r<rows;r++) cols = Math.max(cols, (aoa[r]||[]).length);
@@ -475,14 +476,12 @@
     const table = document.createElement("table");
     table.className = "excel";
 
-    // header row
     const thead = document.createElement("thead");
     const hr = document.createElement("tr");
     const corner = document.createElement("th");
     corner.className="corner";
     corner.textContent = "";
     hr.appendChild(corner);
-
     for(let c=0;c<cols;c++){
       const th = document.createElement("th");
       th.textContent = colLetter(c);
@@ -491,7 +490,6 @@
     thead.appendChild(hr);
     table.appendChild(thead);
 
-    // body
     const tbody = document.createElement("tbody");
     for(let r=0;r<rows;r++){
       const tr = document.createElement("tr");
@@ -526,37 +524,48 @@
       td.classList.remove("selected","nameCell");
     });
 
-    // selected cell
     if(selected.r!=null){
       const td = table.querySelector(`td.cell[data-r="${selected.r}"][data-c="${selected.c}"]`);
       if(td) td.classList.add("selected");
     }
 
-    // name anchors
-    for(const [key, w] of workersByAnchor){
+    for(const [key] of workersByAnchor){
       const [r,c] = key.split(",").map(Number);
       const td = table.querySelector(`td.cell[data-r="${r}"][data-c="${c}"]`);
       if(td) td.classList.add("nameCell");
     }
   }
 
-  // ===== Logic: determine if cell is a "name" =====
+  // ===== Name heuristics =====
   function looksLikeNameCell(v){
     if(v==null) return false;
     if(isNum(v)) return false;
     const s = clean(v);
     if(!s) return false;
     const u = upper(s);
-    // avoid concepts
     if(CONCEPTS.includes(normConcept(u))) return false;
-    // many names in your sheet are uppercase and short-ish
-    if(u.length >= 3 && u.length <= 30) return true;
+    // avoid "MENOS" etc
+    if(u === "MENOS") return false;
+    // common: names uppercase and short
+    if(u.length >= 3 && u.length <= 35) return true;
     return false;
   }
 
-  // ===== Logic: find concept on same row by scanning left =====
+  // ===== Parsing helpers =====
+  function parseMexNumber(s){
+    const t = clean(s).replace(/\$/g,"");
+    if(!t) return null;
+    let x = t.replace(/\s/g,"");
+    if(x.includes(".") && x.includes(",") && x.lastIndexOf(",") > x.lastIndexOf(".")){
+      x = x.replace(/\./g,"").replace(",",".");
+    } else {
+      x = x.replace(/,/g,"");
+    }
+    const n = Number(x);
+    return isFinite(n) ? n : null;
+  }
+
   function findConceptAt(r,c){
-    // scan up to 6 columns to the left to find a known concept label
     for(let j=c; j>=Math.max(0,c-6); j--){
       const v = aoa?.[r]?.[j];
       const s = clean(v);
@@ -567,13 +576,11 @@
     return null;
   }
 
-  // ===== Logic: get number value in row by scanning right from concept column =====
-  function findNumberRight(r, startCol){
-    // scan up to 6 cols right to find first numeric
-    for(let j=startCol+1; j<=startCol+6; j++){
+  // NEW: strict number search (close to the concept, avoids grabbing far totals)
+  function findNumberRightStrict(r, startCol){
+    for(let j=startCol+1; j<=startCol+3; j++){
       const v = aoa?.[r]?.[j];
       if(isNum(v)) return { value:v, valueCol:j };
-      // sometimes numbers come as strings like "2,170.00"
       const s = clean(v);
       if(s){
         const num = parseMexNumber(s);
@@ -583,46 +590,35 @@
     return null;
   }
 
-  function parseMexNumber(s){
-    // accepts "2,170.00" or "2.170,00" etc; keep it simple for mx: commas as thousands, dot as decimal
-    const t = clean(s).replace(/\$/g,"");
-    if(!t) return null;
-    // remove spaces
-    let x = t.replace(/\s/g,"");
-    // if it has both "." and "," and comma appears after dot -> maybe "2.170,00"
-    if(x.includes(".") && x.includes(",") && x.lastIndexOf(",") > x.lastIndexOf(".")){
-      x = x.replace(/\./g,"").replace(",",".");
-    } else {
-      x = x.replace(/,/g,"");
-    }
-    const n = Number(x);
-    return isFinite(n) ? n : null;
-  }
-
-  // ===== Auto-capture: scan block below name anchor =====
+  // ===== NEW: auto-capture strict block (stops at next name) =====
   function autoCaptureFromAnchor(w){
     if(!w?.anchor) return;
     const ar = w.anchor.r, ac = w.anchor.c;
 
-    // in your excel: concepts are under the name, in same column as name (ac)
-    // scan next 50 rows
-    for(let r=ar+1; r<Math.min(aoa.length, ar+55); r++){
-      const label = clean(aoa[r]?.[ac]);
+    w.values = w.values || {};
+
+    for(let r=ar+1; r<Math.min(aoa.length, ar+80); r++){
+      const cellHere = aoa[r]?.[ac];
+
+      // stop if next worker name encountered in same column
+      if(looksLikeNameCell(cellHere)) break;
+
+      const label = clean(cellHere);
       if(!label) continue;
+
       const k = normConcept(label);
       if(!CONCEPTS.includes(k)) continue;
 
-      const num = findNumberRight(r, ac);
+      const num = findNumberRightStrict(r, ac);
       if(num) w.values[k] = num.value;
     }
 
-    // if TOTAL missing try compute from sueldo/ext
+    // Calculations
     if(!isFinite(Number(w.values["TOTAL"]))){
       const s = Number(w.values["SUELDO"]||0);
       const e = Number(w.values["EXT"]||0);
       w.values["TOTAL"] = s + e;
     }
-    // if NETO missing compute
     if(!isFinite(Number(w.values["NETO"]))){
       const total = Number(w.values["TOTAL"]||0);
       const imss = Number(w.values["IMSS"]||0);
@@ -647,7 +643,7 @@
     const v = aoa?.[r]?.[c];
     $("#cellInfo").textContent = `Celda: ${colLetter(c)}${r+1} = ${clean(v) || "—"}`;
 
-    // If clicked a name-like cell, set worker
+    // Click on name => select worker + auto capture strict
     if(looksLikeNameCell(v)){
       const name = upper(v);
       const key = `${r},${c}`;
@@ -658,13 +654,13 @@
         workersByAnchor.set(key, w);
       } else {
         w.name = name;
+        w.anchor = {r,c};
+        w.values = w.values || {};
       }
       currentWorker = w;
 
-      // auto capture block
       autoCaptureFromAnchor(currentWorker);
 
-      // enable buttons
       $("#btnAuto").disabled = false;
       $("#btnClear").disabled = false;
 
@@ -674,14 +670,13 @@
       return;
     }
 
-    // Otherwise: treat as correction click (assign to concept of that row)
+    // Correction click: assign clicked numeric to concept in row
     if(!currentWorker){
       showWarn("Primero haz click en el NOMBRE del trabajador.");
       paintSelections();
       return;
     }
 
-    // Determine concept from row by scanning left
     const found = findConceptAt(r,c);
     if(!found){
       showWarn("No encontré el concepto en esa fila. Haz click en el número en la misma fila de SUELDO/EXT/TOTAL/...");
@@ -689,15 +684,16 @@
       return;
     }
 
-    // Determine value: if clicked cell numeric use it; else try parse; else scan right from concept
     let val = null;
     if(isNum(v)) val = v;
     else {
       const p = parseMexNumber(clean(v));
       if(p!=null) val = p;
     }
+
+    // if clicked cell is not a number, try strict scan from concept
     if(val==null){
-      const right = findNumberRight(r, found.conceptCol);
+      const right = findNumberRightStrict(r, found.conceptCol);
       if(right) val = right.value;
     }
 
@@ -713,7 +709,7 @@
     if(found.concept === "SUELDO" || found.concept === "EXT"){
       const s = Number(currentWorker.values["SUELDO"]||0);
       const e2 = Number(currentWorker.values["EXT"]||0);
-      if(!isFinite(Number(currentWorker.values["TOTAL"]))) currentWorker.values["TOTAL"] = s + e2;
+      currentWorker.values["TOTAL"] = s + e2;
     }
     if(["TOTAL","IMSS","ISR","INFONAVIT","A CTA","SUELDO","EXT"].includes(found.concept)){
       const total = Number(currentWorker.values["TOTAL"]||0);
@@ -743,7 +739,6 @@
     await loadSheet(sheetName);
     setStatus(`Excel cargado: ${names.length} hoja(s)`, true);
 
-    // enable print only after selecting worker
     $("#btnPrint").disabled = true;
     $("#btnAuto").disabled = true;
     $("#btnClear").disabled = true;
@@ -754,12 +749,11 @@
     const ws = wb.Sheets[name];
     aoa = XLSX.utils.sheet_to_json(ws, {header:1, raw:true, defval:null});
 
-    // reset selections on sheet change
     selected = {r:null,c:null};
     currentWorker = null;
     workersByAnchor.clear();
 
-    buildExcelTable(aoa, 80, 22); // you can increase if you want
+    buildExcelTable(aoa, 80, 22);
     renderFields();
     renderTicket();
   }
@@ -827,17 +821,10 @@
     }
   });
 
-  // initial
+  // init
   setStatus("Sin archivo", true);
   renderFields();
   renderTicket();
-
-  // enable print when worker selected
-  const origRenderTicket = renderTicket;
-  renderTicket = function(){
-    origRenderTicket();
-    $("#btnPrint").disabled = !currentWorker;
-  };
 </script>
 </body>
 </html>
