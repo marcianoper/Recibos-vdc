@@ -2,11 +2,11 @@
 <html lang="es">
 <head>
   <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Nómina PDF (Texto) — Impresión Térmica</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Nómina — Ticket desde Excel</title>
 
-  <!-- PDF.js -->
-  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.min.js"></script>
+  <!-- SheetJS (leer Excel en el navegador) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.19.3/dist/xlsx.full.min.js"></script>
 
   <style>
     :root{
@@ -16,31 +16,29 @@
       --r:18px; --shadow: 0 18px 60px rgba(0,0,0,.45);
       --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
       --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      --paperW: 80mm; /* <- cambia a 58mm si tu impresora es 58 */
     }
     *{box-sizing:border-box}
     body{
       margin:0; font-family:var(--sans); color:var(--ink);
-      background:
-        radial-gradient(900px 380px at 18% -10%, rgba(34,197,94,.18), transparent 55%),
-        radial-gradient(900px 380px at 82% -10%, rgba(245,158,11,.16), transparent 55%),
-        linear-gradient(180deg, #070b14, var(--bg));
+      background: radial-gradient(1100px 600px at 20% -10%, rgba(34,197,94,.22), transparent 65%),
+                  radial-gradient(900px 600px at 80% 0%, rgba(59,130,246,.18), transparent 60%),
+                  var(--bg);
     }
     header{
-      padding:18px 18px 10px; border-bottom:1px solid var(--line);
-      position:sticky; top:0; background:rgba(11,18,32,.75);
-      backdrop-filter: blur(10px); z-index:5;
+      padding:16px 18px;
+      border-bottom:1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255,255,255,.06), transparent);
     }
-    header .row{
-      max-width:1240px;margin:0 auto;
-      display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
-    }
-    h1{margin:0;font-size:18px;letter-spacing:.2px}
-    .sub{color:var(--muted);font-size:13px;margin-top:4px}
-    main{max-width:1240px;margin:0 auto;padding:16px;display:grid;gap:14px}
-    .grid{display:grid;grid-template-columns: 480px 1fr;gap:14px}
-    @media (max-width: 980px){ .grid{grid-template-columns:1fr} }
+    header h1{margin:0;font-size:18px;letter-spacing:.2px}
+    header p{margin:6px 0 0;color:var(--muted);font-size:13px}
+
+    main{max-width:1100px;margin:0 auto;padding:16px;display:grid;gap:16px}
+    .grid{display:grid;grid-template-columns:1.2fr .8fr;gap:16px}
+    @media (max-width:980px){ .grid{grid-template-columns:1fr} }
+
     .card{
-      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      background:rgba(255,255,255,.04);
       border:1px solid var(--line);
       border-radius:var(--r);
       box-shadow:var(--shadow);
@@ -51,888 +49,462 @@
       border-bottom:1px solid var(--line);
       display:flex;align-items:center;justify-content:space-between;gap:10px;
     }
-    .card .hd b{font-size:14px}
+    .card .hd .t{font-weight:800}
     .card .bd{padding:14px}
-    label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
-    input[type="file"], select, input[type="text"], input[type="number"]{
-      width:100%; padding:10px 11px;
+    label{display:block;font-size:12px;color:var(--muted);margin:10px 0 6px}
+    input, select, button{
+      width:100%; padding:11px 12px;
       border-radius:12px; border:1px solid var(--line);
-      background:rgba(255,255,255,.06); color:var(--ink); outline:none;
+      background:rgba(0,0,0,.20); color:var(--ink);
+      outline:none;
     }
-    input::placeholder{color:rgba(233,238,252,.55)}
-    .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-    .hr{height:1px;background:var(--line);margin:12px 0}
-    .btns{display:flex;gap:10px;flex-wrap:wrap}
-    button{
+    input::file-selector-button{
       border:1px solid var(--line);
-      background:rgba(255,255,255,.08);
+      background:rgba(255,255,255,.06);
       color:var(--ink);
-      padding:10px 12px;border-radius:12px;
-      cursor:pointer; font-weight:900;
+      padding:8px 10px; border-radius:10px;
+      margin-right:10px; cursor:pointer;
     }
-    button.primary{
-      background:linear-gradient(180deg, rgba(34,197,94,.95), rgba(16,185,129,.9));
-      border-color: rgba(34,197,94,.35); color:#062012;
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .btn{
+      background: linear-gradient(180deg, rgba(34,197,94,.95), rgba(34,197,94,.75));
+      border:none; cursor:pointer; font-weight:900;
+      box-shadow: 0 12px 28px rgba(34,197,94,.22);
     }
-    button.danger{background:rgba(239,68,68,.18);border-color:rgba(239,68,68,.35)}
-    button:disabled{opacity:.45;cursor:not-allowed}
-    .pill{font-size:12px;padding:6px 10px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
-    .hint{font-size:12px;color:var(--muted);line-height:1.35}
-    .mono{font-family:var(--mono)}
-    .badge{
-      display:inline-flex; align-items:center; gap:8px;
-      font-size:12px; color:var(--muted);
+    .btn.secondary{
+      background: rgba(255,255,255,.08);
       border:1px solid var(--line);
-      padding:8px 10px; border-radius:12px;
-      background:rgba(0,0,0,.18);
+      box-shadow:none;
     }
-    .scroll{
-      max-height:620px; overflow:auto;
-      border-radius:16px;
-      border:1px solid var(--line);
-      background:rgba(0,0,0,.18);
-      padding:10px;
+    .hint{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.35}
+    .pill{
+      display:inline-flex;align-items:center;gap:8px;
+      padding:7px 10px;border:1px solid var(--line);
+      border-radius:999px;background:rgba(255,255,255,.06);
+      font-size:12px;color:var(--muted);
+      white-space:nowrap;
     }
-    .emp{
-      display:flex; justify-content:space-between; gap:10px;
-      padding:10px 10px;
-      border-bottom:1px solid rgba(255,255,255,.06);
-      align-items:flex-start;
+
+    /* ===== Ticket Preview ===== */
+    .ticketWrap{
+      display:grid;gap:12px;
+      align-content:start;
     }
-    .emp:last-child{border-bottom:none}
-    .emp b{font-size:13px}
-    .emp .meta{font-size:12px;color:var(--muted);margin-top:2px}
-    .emp .amt{font-weight:900}
-    .right{text-align:right}
-    .log{
-      margin-top:10px;
-      padding:10px 12px;
-      border:1px solid var(--line);
-      border-radius:12px;
-      background:rgba(0,0,0,.22);
-      font-family:var(--mono);
-      font-size:11px;
-      color:rgba(233,238,252,.85);
-      white-space:pre-wrap;
-      max-height:220px;
-      overflow:auto;
-      display:none;
+    .ticket{
+      width: min(420px, 100%);
+      margin: 0 auto;
+      background:#fff;
+      color:#111;
+      border-radius:14px;
+      border:1px dashed rgba(0,0,0,.25);
+      padding:12px 12px 10px;
+      font-family: var(--mono);
     }
+    .ticket .center{text-align:center}
+    .ticket .muted{color:#444}
+    .ticket .line{border-top:1px dashed rgba(0,0,0,.55);margin:8px 0}
+    .ticket .row{
+      display:flex;justify-content:space-between;gap:10px;
+      font-size:13px;
+    }
+    .ticket .row strong{font-weight:900}
+    .ticket h2{margin:0;font-size:14px;letter-spacing:.4px}
+    .ticket .mini{font-size:11px}
+    .ticket .big{font-size:15px;font-weight:900}
+    .ticket .sig{margin-top:12px}
+    .ticket .sig .mini{margin-bottom:4px}
+    .ticket .sig .box{border-top:1px solid #000;padding-top:6px}
+
+    /* ===== Print (térmica) ===== */
+    @media print{
+      body{background:#fff}
+      header, .noPrint{display:none !important}
+      main{padding:0}
+      .ticket{
+        width: var(--paperW);
+        border:none !important;
+        border-radius:0 !important;
+        margin:0 !important;
+        padding:0 !important;
+      }
+    }
+    @page{
+      /* Ticket térmico: ancho fijo, alto automático */
+      size: var(--paperW) auto;
+      margin: 0;
+    }
+
+    .danger{color:#ffb4b4}
+    .ok{color:#b8ffd0}
   </style>
 </head>
 
 <body>
-<header>
-  <div class="row">
-    <div>
-      <h1>Nómina PDF (Texto) — Impresión Térmica</h1>
-      <div class="sub">PDF con texto (copiable) → extrae conceptos → imprime tickets 58/80mm.</div>
-    </div>
-    <span class="pill" id="statusPill">Sin archivo</span>
-  </div>
+<header class="noPrint">
+  <h1>Nómina — Ticket desde Excel</h1>
+  <p>Sube tu Excel, selecciona trabajador y imprime en térmica (80mm / 58mm).</p>
 </header>
 
 <main>
   <div class="grid">
-    <section class="card">
+    <section class="card noPrint">
       <div class="hd">
-        <b>1) Cargar PDF</b>
-        <span class="pill mono" id="fileInfo">—</span>
+        <div class="t">Cargar Excel</div>
+        <div class="pill" id="statusPill">Sin archivo</div>
       </div>
       <div class="bd">
-        <label>Archivo .pdf</label>
-        <input id="file" type="file" accept=".pdf"/>
+        <label>Archivo de nómina (.xlsx)</label>
+        <input id="file" type="file" accept=".xlsx,.xls" />
 
-        <div class="hr"></div>
-
-        <div class="row2">
+        <div class="row">
           <div>
-            <label>Páginas (opcional)</label>
-            <input id="pages" type="text" placeholder="Ej. 1-2 o 1,3,4 (vacío=todo)"/>
-          </div>
-          <div>
-            <label>Filtrar por nombre (opcional)</label>
-            <input id="filter" type="text" placeholder="Ej. juan, martin..."/>
-          </div>
-        </div>
-
-        <div class="hr"></div>
-
-        <b style="font-size:13px">2) Ticket</b>
-        <div class="row2" style="margin-top:10px">
-          <div>
-            <label>Ancho impresora</label>
+            <label>Impresora</label>
             <select id="paper">
-              <option value="58">58mm</option>
-              <option value="80">80mm</option>
+              <option value="80mm" selected>80 mm (POS-80 / JK-8002P)</option>
+              <option value="58mm">58 mm</option>
             </select>
           </div>
           <div>
-            <label>Tamaño letra</label>
-            <select id="fontSize">
-              <option value="11">Compacto</option>
-              <option value="12" selected>Normal</option>
-              <option value="13">Grande</option>
-            </select>
+            <label>Empresa (sale en el ticket)</label>
+            <input id="empresa" value="CARNES Y VÍSCERAS DEL CENTRO" />
           </div>
         </div>
 
-        <div class="row2" style="margin-top:10px">
-          <div>
-            <label>Empresa (opcional)</label>
-            <input id="empresa" type="text" placeholder="Carnes y Vísceras del Centro"/>
-          </div>
-          <div>
-            <label>Periodo (opcional)</label>
-            <input id="periodo" type="text" placeholder="Semana XX / fechas"/>
-          </div>
+        <label>Trabajador</label>
+        <select id="worker" disabled>
+          <option value="">— Carga el Excel primero —</option>
+        </select>
+
+        <div class="row">
+          <button class="btn" id="btnPrint" disabled>IMPRIMIR RECIBO</button>
+          <button class="btn secondary" id="btnRefresh" disabled>RECARGAR LISTA</button>
         </div>
 
-        <div class="row2" style="margin-top:10px">
-          <div>
-            <label>Mostrar firma</label>
-            <select id="firma">
-              <option value="1" selected>Sí</option>
-              <option value="0">No</option>
-            </select>
-          </div>
-          <div>
-            <label>Separación entre notas</label>
-            <select id="gap">
-              <option value="10" selected>Normal</option>
-              <option value="18">Grande</option>
-              <option value="0">Sin espacio</option>
-            </select>
-          </div>
+        <div class="hint">
+          ✅ Esta página “lee directo el Excel” desde tu compu (por seguridad del navegador, siempre se selecciona el archivo con el botón).<br>
+          Tip: si tu ticket sale cortado, cambia 80mm → 58mm o viceversa.
         </div>
 
-        <div class="row2" style="margin-top:10px">
-          <div>
-            <label>Modo</label>
-            <select id="printMode">
-              <option value="batch" selected>Lote (una impresión)</option>
-              <option value="onebyone">Uno por uno (nota por nota)</option>
-            </select>
-          </div>
-          <div>
-            <label>Delay 1×1 (ms)</label>
-            <input id="delayMs" type="number" min="200" value="800"/>
-          </div>
-        </div>
-
-        <div class="hr"></div>
-
-        <div class="btns">
-          <button class="primary" id="btnParse" disabled>Leer PDF</button>
-          <button class="primary" id="btnVista" disabled>Vista previa (1)</button>
-          <button class="primary" id="btnImprimir" disabled>Imprimir (según modo)</button>
-          <button id="btnImprimir1x1" disabled>Imprimir 1×1</button>
-          <button id="btnSiguiente" disabled>Imprimir siguiente</button>
-          <button class="danger" id="btnReset" disabled>Limpiar</button>
-        </div>
-
-        <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-          <span class="badge" id="countBadge" style="display:none">
-            Detectados: <b class="mono" id="countText">0</b>
-          </span>
-          <span class="badge" id="progressBadge" style="display:none">
-            Progreso 1×1: <b class="mono" id="progressText">0/0</b>
-          </span>
-        </div>
-
-        <div class="log" id="logBox"></div>
-
-        <div class="hint" style="margin-top:10px">
-          Este modo funciona cuando el PDF trae texto (como el tuyo). Si fuera escaneado, ahí sí se necesitaría OCR.
-        </div>
+        <div class="hint danger" id="warn" style="display:none"></div>
       </div>
     </section>
 
     <section class="card">
       <div class="hd">
-        <b>Empleados detectados</b>
-        <span class="pill" id="rowsInfo">0</span>
+        <div class="t">Vista previa del ticket</div>
+        <div class="pill"><span class="ok">●</span> listo para imprimir</div>
       </div>
-      <div class="bd">
-        <div class="scroll" id="list"></div>
+      <div class="bd ticketWrap">
+        <div class="ticket" id="ticket">
+          <div class="center">
+            <h2 id="tEmpresa">CARNES Y VÍSCERAS DEL CENTRO</h2>
+            <div class="mini muted">RECIBO DE SUELDO</div>
+          </div>
+
+          <div class="line"></div>
+
+          <div class="row"><span>Empleado</span><strong id="tNombre">—</strong></div>
+          <div class="row"><span>Fecha</span><span id="tFecha" class="muted">—</span></div>
+
+          <div class="line"></div>
+
+          <div id="tBody">
+            <div class="row"><span class="muted">Carga el Excel…</span><span class="muted">—</span></div>
+          </div>
+
+          <div class="sig">
+            <div class="mini muted">Firma del trabajador</div>
+            <div class="box"></div>
+          </div>
+
+          <div class="center mini muted" style="margin-top:10px">Gracias</div>
+        </div>
       </div>
     </section>
   </div>
 </main>
 
 <script>
-  // PDF.js worker
-  pdfjsLib.GlobalWorkerOptions.workerSrc =
-    "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.js";
+  // ===== Utilidades =====
+  const $ = (s)=>document.querySelector(s);
+  const money = (n)=>{
+    if(n === null || n === undefined || n === "") return "";
+    const x = Number(n);
+    if(Number.isNaN(x)) return String(n);
+    return x.toLocaleString("es-MX",{minimumFractionDigits:2, maximumFractionDigits:2});
+  };
+  const isNum = (v)=> typeof v === "number" && isFinite(v);
+  const isStr = (v)=> typeof v === "string";
+  const cleanStr = (s)=> (s||"").toString().replace(/\s+/g," ").trim();
 
-  const $ = s => document.querySelector(s);
-
-  const statusPill = $("#statusPill");
-  const fileInfo = $("#fileInfo");
-  const rowsInfo = $("#rowsInfo");
-  const listDiv = $("#list");
-  const logBox = $("#logBox");
-
-  const fileInput = $("#file");
-  const filterInp = $("#filter");
-  const pagesInp = $("#pages");
-
-  const btnParse = $("#btnParse");
-  const btnVista = $("#btnVista");
-  const btnImprimir = $("#btnImprimir");
-  const btnImprimir1x1 = $("#btnImprimir1x1");
-  const btnSiguiente = $("#btnSiguiente");
-  const btnReset = $("#btnReset");
-
-  const paperSel = $("#paper");
-  const fontSizeSel = $("#fontSize");
-  const empresaInp = $("#empresa");
-  const periodoInp = $("#periodo");
-  const firmaSel = $("#firma");
-  const gapSel = $("#gap");
-  const printModeSel = $("#printMode");
-  const delayMsInp = $("#delayMs");
-
-  const countBadge = $("#countBadge");
-  const countText = $("#countText");
-  const progressBadge = $("#progressBadge");
-  const progressText = $("#progressText");
-
-  let pdfBytes = null;
-  let pdfDoc = null;
-  let employees = [];
-  let printQueue = [];
-  let printIndex = 0;
-  let printWin = null;
-
-  function setStatus(text, tone="muted"){
-    statusPill.textContent = text;
-    statusPill.style.color = "rgba(233,238,252,.75)";
-    if(tone==="ok") statusPill.style.color = "#86efac";
-    if(tone==="warn") statusPill.style.color = "#fcd34d";
-    if(tone==="bad") statusPill.style.color = "#fca5a5";
-  }
-
-  function showLog(msg){
-    logBox.style.display = "block";
-    logBox.textContent = String(msg || "");
-  }
-  function clearLog(){
-    logBox.style.display = "none";
-    logBox.textContent = "";
-  }
-
-  function safeText(v){
-    return String(v ?? "").replace(/\s+/g," ").trim();
-  }
-
-  function escapeHtml(s){
-    return String(s ?? "")
-      .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
-      .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
-  }
-
-  // Parsea número con formatos:
-  // "2.170,00" -> 2170.00
-  // "3,125.00" -> 3125.00 (por si viene raro)
-  // "$ 56,20" -> 56.20
-  function parseMoneyAny(s){
-    const raw = String(s ?? "")
-      .replace(/\$/g," ")
-      .replace(/MXN/gi," ")
-      .replace(/[^\d.,\- ]/g," ")
-      .replace(/\s+/g," ")
-      .trim();
-
-    if(!raw) return null;
-
-    // toma el primer token que parezca número
-    const m = raw.match(/-?\d[\d.,]*/);
-    if(!m) return null;
-    let t = m[0];
-
-    // Si contiene coma y punto:
-    // asumimos que el separador decimal es el último símbolo (coma o punto)
-    const lastComma = t.lastIndexOf(",");
-    const lastDot = t.lastIndexOf(".");
-    const decPos = Math.max(lastComma, lastDot);
-
-    if(decPos >= 0){
-      const decChar = t[decPos];
-      const intPart = t.slice(0, decPos).replace(/[.,]/g,"");
-      const decPart = t.slice(decPos+1).replace(/[.,]/g,"");
-      t = intPart + "." + decPart; // normaliza
-      if(t === ".") return null;
-      const n = Number(t);
-      return isFinite(n) ? n : null;
-    }
-
-    // sin separador, directo
-    const n = Number(t.replace(/[.,]/g,""));
-    return isFinite(n) ? n : null;
-  }
-
-  function money(n){
-    if(n===null || n===undefined || !isFinite(n)) return "";
-    try{ return n.toLocaleString("es-MX",{style:"currency",currency:"MXN"}); }
-    catch(e){ return "$"+(Math.round(n*100)/100).toFixed(2); }
-  }
-
-  const LABELS = [
-    "SUELDO","EXT","TOTAL","IMSS","ISR","INFONAVIT","A CTA","ACTA",
-    "DEPOSITO","DEPÓSITO","FALTA 1 DIA","FALTA 1 DÍA","FALTA 2 DIA","FALTA 2 DÍA",
-    "EXT DIA FEST","EXT DÍA FEST",
-    "SUBTOTAL","AGUINALDO","SEPTIMO DIA","SÉPTIMO DÍA","PRESTAMO","PRÉSTAMO","VACACIONES","30 DIAS VACACIONES","25%"
+  // En tu Excel, los trabajadores vienen en 4 bloques (col 2,6,11,15)
+  // SheetJS lo trae en arreglo 0-index:
+  // Bloque 1: name/label col=1, value col=2
+  // Bloque 2: col=5, value=6
+  // Bloque 3: col=10, value=11
+  // Bloque 4: col=14, value=15
+  const GROUPS = [
+    { nameCol:1, labelCol:1, valCol:2 },
+    { nameCol:5, labelCol:5, valCol:6 },
+    { nameCol:10,labelCol:10,valCol:11},
+    { nameCol:14,labelCol:14,valCol:15}
   ];
 
-  function normLabel(s){
-    const u = safeText(s).toUpperCase();
-    if(u==="ACTA") return "A CTA";
-    if(u==="DEPÓSITO") return "DEPOSITO";
-    if(u==="FALTA 1 DÍA") return "FALTA 1 DIA";
-    if(u==="FALTA 2 DÍA") return "FALTA 2 DIA";
-    if(u==="EXT DÍA FEST") return "EXT DIA FEST";
-    if(u==="SÉPTIMO DÍA") return "SEPTIMO DIA";
-    if(u==="PRÉSTAMO") return "PRESTAMO";
-    return u;
-  }
+  const KNOWN_LABELS = new Set([
+    "SUELDO","EXT","TOTAL","IMSS","ISR","INFONAVIT","A CTA","DEPOSITO","DEPÓSITO"
+  ]);
 
-  function isLabelLine(line){
-    const u = normLabel(line);
-    return LABELS.some(l => u.startsWith(l) || u.includes(l));
-  }
-
-  function looksLikeName(line){
-    const s = safeText(line);
+  function looksLikeName(v){
+    if(!isStr(v)) return false;
+    const s = cleanStr(v);
     if(!s) return false;
-    const u = s.toUpperCase();
-
-    if(u.includes("NÓMINA") || u.includes("NOMINA") || u.includes("SEMANA")) return false;
-    if(LABELS.some(l => u.includes(l))) return false;
-
-    // muchos nombres vienen en mayúsculas con espacio
-    const onlyLetters = s.replace(/[^A-ZÁÉÍÓÚÑ ]/gi,"").trim();
-    if(onlyLetters.length < 4) return false;
-
-    // descarta línea solo números
-    if(/^\d+([.,]\d+)?$/.test(s)) return false;
-
+    // Evitar que etiquetas se detecten como nombre
+    if(KNOWN_LABELS.has(s.toUpperCase())) return false;
+    if(s.toUpperCase() === "MENOS") return false;
+    // En tu Excel hay celdas con espacios
+    if(/^\s+$/.test(v)) return false;
     return true;
   }
 
-  // Extrae texto de una página como líneas "razonables"
-  async function extractPageLines(pageNum){
-    const page = await pdfDoc.getPage(pageNum);
-    const tc = await page.getTextContent();
+  function parseEmployeesFromAOA(aoa){
+    const employees = [];
 
-    // items tienen transform [a,b,c,d,e,f]; e=x f=y
-    const items = (tc.items || []).map(it => ({
-      str: safeText(it.str),
-      x: it.transform?.[4] ?? 0,
-      y: it.transform?.[5] ?? 0
-    })).filter(it => it.str);
+    for(const g of GROUPS){
+      let r = 0;
+      while(r < aoa.length){
+        const nameCell = aoa[r]?.[g.nameCol];
+        if(looksLikeName(nameCell)){
+          const nombre = cleanStr(nameCell);
+          const emp = {
+            id: `${nombre}_${g.nameCol}_${r}`,
+            nombre,
+            lines: {}, // label -> value
+            notes: []
+          };
 
-    // agrupa por renglón según y (tolerancia)
-    items.sort((a,b)=> (b.y - a.y) || (a.x - b.x));
+          // Leer líneas hacia abajo hasta que aparezca otro nombre en ese grupo o se acabe
+          let k = r + 1;
+          let sawDeductions = false;
 
+          while(k < aoa.length){
+            const nextName = aoa[k]?.[g.nameCol];
+            if(looksLikeName(nextName)) break;
+
+            const labelRaw = aoa[k]?.[g.labelCol];
+            const valRaw   = aoa[k]?.[g.valCol];
+
+            const label = isStr(labelRaw) ? cleanStr(labelRaw) : "";
+            const labelU = label.toUpperCase();
+
+            // Notas (ej: FALTA 1 DIA)
+            if(label && !KNOWN_LABELS.has(labelU) && !["MENOS"].includes(labelU)){
+              // si el valor es 0 o vacío lo tomamos como nota
+              if(!isNum(valRaw)) emp.notes.push(label);
+            }
+
+            if(KNOWN_LABELS.has(labelU)){
+              // Guardar etiqueta + valor numérico si existe
+              if(isNum(valRaw)) emp.lines[labelU] = valRaw;
+              else if(valRaw === 0) emp.lines[labelU] = 0;
+              else emp.lines[labelU] = (valRaw ?? "");
+              if(["IMSS","ISR","INFONAVIT"].includes(labelU)) sawDeductions = true;
+            } else {
+              // En tu Excel el NETO a veces viene sin etiqueta (celda vacía en label, número en value)
+              if(!label && isNum(valRaw) && sawDeductions && emp.lines["NETO"] === undefined){
+                emp.lines["NETO"] = valRaw;
+              }
+            }
+
+            k++;
+          }
+
+          // Cálculos por si faltan
+          const sueldo = isNum(emp.lines["SUELDO"]) ? emp.lines["SUELDO"] : 0;
+          const ext    = isNum(emp.lines["EXT"]) ? emp.lines["EXT"] : 0;
+          const total  = isNum(emp.lines["TOTAL"]) ? emp.lines["TOTAL"] : (sueldo + ext);
+          const imss   = isNum(emp.lines["IMSS"]) ? emp.lines["IMSS"] : 0;
+          const isr    = isNum(emp.lines["ISR"]) ? emp.lines["ISR"] : 0;
+          const info   = isNum(emp.lines["INFONAVIT"]) ? emp.lines["INFONAVIT"] : 0;
+          const acta   = isNum(emp.lines["A CTA"]) ? emp.lines["A CTA"] : 0;
+
+          if(emp.lines["TOTAL"] === undefined) emp.lines["TOTAL"] = total;
+
+          // Neto “real” que se paga: TOTAL - deducciones - A CTA (si existe)
+          const netoCalc = total - imss - isr - info - acta;
+
+          // Si el Excel no traía NETO, ponlo calculado
+          if(!isNum(emp.lines["NETO"])) emp.lines["NETO"] = netoCalc;
+
+          employees.push(emp);
+          r = k; // continuar desde el final del bloque
+        } else {
+          r++;
+        }
+      }
+    }
+
+    // Ordenar por nombre
+    employees.sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
+    return employees;
+  }
+
+  // ===== Estado =====
+  let EMP = [];
+  let EMP_BY_ID = {};
+
+  function setStatus(text, good=true){
+    const pill = $("#statusPill");
+    pill.textContent = text;
+    pill.style.borderColor = good ? "rgba(34,197,94,.45)" : "rgba(239,68,68,.55)";
+    pill.style.background   = good ? "rgba(34,197,94,.10)" : "rgba(239,68,68,.10)";
+    pill.style.color        = good ? "rgba(233,238,252,.92)" : "rgba(255,200,200,.95)";
+  }
+
+  function showWarn(msg){
+    const w = $("#warn");
+    w.style.display = "block";
+    w.textContent = msg;
+  }
+  function hideWarn(){
+    const w = $("#warn");
+    w.style.display = "none";
+    w.textContent = "";
+  }
+
+  function renderTicket(emp){
+    $("#tEmpresa").textContent = cleanStr($("#empresa").value) || "—";
+    $("#tNombre").textContent = emp?.nombre || "—";
+    $("#tFecha").textContent  = new Date().toISOString().slice(0,10);
+
+    const L = (k)=> emp?.lines?.[k];
+
+    const sueldo = isNum(L("SUELDO")) ? L("SUELDO") : 0;
+    const ext    = isNum(L("EXT")) ? L("EXT") : 0;
+    const total  = isNum(L("TOTAL")) ? L("TOTAL") : (sueldo + ext);
+    const imss   = isNum(L("IMSS")) ? L("IMSS") : 0;
+    const isr    = isNum(L("ISR")) ? L("ISR") : 0;
+    const info   = isNum(L("INFONAVIT")) ? L("INFONAVIT") : 0;
+    const acta   = isNum(L("A CTA")) ? L("A CTA") : 0;
+    const neto   = isNum(L("NETO")) ? L("NETO") : (total - imss - isr - info - acta);
+    const depo   = isNum(L("DEPOSITO")) ? L("DEPOSITO") : (isNum(L("DEPÓSITO")) ? L("DEPÓSITO") : null);
+
+    // Armar cuerpo
     const lines = [];
-    const tol = 2.0;
 
-    for(const it of items){
-      let line = lines.find(l => Math.abs(l.y - it.y) <= tol);
-      if(!line){
-        line = { y: it.y, parts: [] };
-        lines.push(line);
-      }
-      line.parts.push(it);
+    lines.push(`<div class="row"><span>SUELDO</span><strong>$${money(sueldo)}</strong></div>`);
+    lines.push(`<div class="row"><span>EXT</span><strong>$${money(ext)}</strong></div>`);
+    lines.push(`<div class="row"><span class="muted">TOTAL</span><strong>$${money(total)}</strong></div>`);
+
+    lines.push(`<div class="line"></div>`);
+    lines.push(`<div class="row"><span class="muted">MENOS IMSS</span><span>$${money(imss)}</span></div>`);
+    lines.push(`<div class="row"><span class="muted">MENOS ISR</span><span>$${money(isr)}</span></div>`);
+    lines.push(`<div class="row"><span class="muted">MENOS INFONAVIT</span><span>$${money(info)}</span></div>`);
+
+    if(acta){
+      lines.push(`<div class="row"><span class="muted">A CTA</span><span>$${money(acta)}</span></div>`);
     }
 
-    // ordena partes por x y construye string
-    const out = lines
-      .sort((a,b)=> b.y - a.y)
-      .map(l => l.parts.sort((a,b)=>a.x-b.x).map(p=>p.str).join(" ").replace(/\s+/g," ").trim())
-      .filter(Boolean);
+    lines.push(`<div class="line"></div>`);
+    lines.push(`<div class="row"><span class="big">NETO A PAGAR</span><strong class="big">$${money(neto)}</strong></div>`);
 
-    return out;
-  }
-
-  function parseLinesToEmployees(allLines){
-    const lines = allLines.map(safeText).filter(Boolean);
-
-    const result = [];
-    let cur = null;
-
-    function pushCur(){
-      if(!cur) return;
-
-      // Neto preferido: DEPOSITO
-      const f = cur.fields;
-
-      const total = f["TOTAL"] ?? null;
-      const deposito = f["DEPOSITO"] ?? null;
-
-      let ded = 0;
-      ["IMSS","ISR","INFONAVIT","A CTA","FALTA 1 DIA","FALTA 2 DIA","PRESTAMO"].forEach(k=>{
-        const v = f[k];
-        if(v!=null) ded += Number(v)||0;
-      });
-
-      let neto = null;
-      if(deposito!=null) neto = deposito;
-      else if(total!=null) neto = total - ded;
-
-      cur.total = total;
-      cur.deposito = deposito;
-      cur.neto = (neto!=null && isFinite(neto)) ? neto : null;
-
-      const hasSomething = Object.keys(f).length > 0;
-      if(hasSomething) result.push(cur);
-      cur = null;
+    if(depo !== null){
+      lines.push(`<div class="row"><span class="muted">DEPÓSITO</span><span>$${money(depo)}</span></div>`);
     }
 
-    for(let i=0;i<lines.length;i++){
-      const line = lines[i];
-      const u = line.toUpperCase();
-
-      // nombre: si la siguiente línea contiene SUELDO/EXT/TOTAL, inicia bloque
-      if(looksLikeName(line)){
-        const next1 = (lines[i+1]||"").toUpperCase();
-        const next2 = (lines[i+2]||"").toUpperCase();
-        const likely = next1.includes("SUELDO") || next1.includes("EXT") || next1.includes("TOTAL") ||
-                       next2.includes("SUELDO") || next2.includes("EXT") || next2.includes("TOTAL");
-
-        if(likely){
-          pushCur();
-          cur = { name: line, fields:{} };
-          continue;
-        }
-      }
-
-      if(!cur) continue;
-
-      if(isLabelLine(u)){
-        const nu = normLabel(u);
-
-        // elige la etiqueta más específica que haga match
-        const key = LABELS.map(normLabel)
-          .sort((a,b)=>b.length-a.length)
-          .find(L => nu.startsWith(L) || nu.includes(L));
-
-        if(key){
-          // Si dice MENOS o trae "-", puede venir sin número (se ignora)
-          const amt = parseMoneyAny(line);
-          if(amt!=null) cur.fields[key] = amt;
-        }
-      }
-    }
-    pushCur();
-
-    // dedupe por nombre
-    const uniq = new Map();
-    for(const e of result){
-      const k = e.name.toUpperCase();
-      if(!uniq.has(k)) uniq.set(k, e);
-      else{
-        const prev = uniq.get(k);
-        Object.assign(prev.fields, e.fields);
+    if(emp?.notes?.length){
+      lines.push(`<div class="line"></div>`);
+      for(const n of emp.notes.slice(0,4)){
+        lines.push(`<div class="row"><span class="muted">${n}</span><span class="muted"> </span></div>`);
       }
     }
 
-    return Array.from(uniq.values()).sort((a,b)=>a.name.localeCompare(b.name,"es"));
+    $("#tBody").innerHTML = lines.join("");
   }
 
-  function getFilteredEmployees(){
-    const q = safeText(filterInp.value).toLowerCase();
-    if(!q) return employees.slice();
-    return employees.filter(e => e.name.toLowerCase().includes(q));
-  }
-
-  function renderList(){
-    const arr = getFilteredEmployees();
-    rowsInfo.textContent = String(arr.length);
-
-    listDiv.innerHTML = arr.map(e=>{
-      const t = e.total;
-      const dep = e.deposito;
-      const net = e.neto;
-      const subtitle = [
-        (t!=null ? `Total: ${money(t)}` : null),
-        (dep!=null ? `Depósito: ${money(dep)}` : null),
-        (net!=null && dep==null ? `Neto calc: ${money(net)}` : null),
-      ].filter(Boolean).join(" • ");
-
-      return `
-        <div class="emp">
-          <div>
-            <b>${escapeHtml(e.name)}</b>
-            <div class="meta">${escapeHtml(subtitle || "—")}</div>
-          </div>
-          <div class="right">
-            <div class="amt">${escapeHtml(money(dep ?? net ?? t ?? 0))}</div>
-            <div class="meta">a pagar</div>
-          </div>
-        </div>
-      `;
-    }).join("") || `<div class="hint">No hay empleados con ese filtro.</div>`;
-  }
-
-  function parsePageSpec(spec, numPages){
-    const s = safeText(spec);
-    if(!s) return [...Array(numPages)].map((_,i)=>i+1);
-
-    const set = new Set();
-    const parts = s.split(",").map(x=>x.trim()).filter(Boolean);
-    for(const p of parts){
-      if(p.includes("-")){
-        const [a,b] = p.split("-").map(x=>parseInt(x.trim(),10));
-        if(!isFinite(a) || !isFinite(b)) continue;
-        const start = Math.max(1, Math.min(a,b));
-        const end = Math.min(numPages, Math.max(a,b));
-        for(let i=start;i<=end;i++) set.add(i);
-      }else{
-        const n = parseInt(p,10);
-        if(isFinite(n) && n>=1 && n<=numPages) set.add(n);
-      }
+  function refreshWorkerSelect(){
+    const sel = $("#worker");
+    sel.innerHTML = `<option value="">— Selecciona —</option>`;
+    for(const e of EMP){
+      const opt = document.createElement("option");
+      opt.value = e.id;
+      opt.textContent = e.nombre;
+      sel.appendChild(opt);
     }
-    const arr = Array.from(set).sort((a,b)=>a-b);
-    return arr.length ? arr : [...Array(numPages)].map((_,i)=>i+1);
+    sel.disabled = EMP.length === 0;
+    $("#btnPrint").disabled = EMP.length === 0;
+    $("#btnRefresh").disabled = EMP.length === 0;
   }
 
-  // ===== PRINT =====
-  function getOpts(){
-    return {
-      paper: paperSel.value,
-      fontSize: fontSizeSel.value,
-      empresa: empresaInp.value,
-      periodo: periodoInp.value,
-      firma: firmaSel.value,
-      gap: gapSel.value,
-    };
-  }
+  async function readExcel(file){
+    const data = await file.arrayBuffer();
+    const wb = XLSX.read(data, {type:"array"});
+    const sheetName = wb.SheetNames[0];
+    const ws = wb.Sheets[sheetName];
+    const aoa = XLSX.utils.sheet_to_json(ws, {header:1, raw:true, defval:null});
 
-  function buildSlipHTML(empList, opts){
-    const width = (opts.paper === "80") ? "80mm" : "58mm";
-    const fontSize = Number(opts.fontSize || 12);
-    const gap = Number(opts.gap || 10);
-    const empresa = safeText(opts.empresa);
-    const periodo = safeText(opts.periodo);
-    const showFirma = (opts.firma === "1");
+    EMP = parseEmployeesFromAOA(aoa);
+    EMP_BY_ID = Object.fromEntries(EMP.map(e=>[e.id,e]));
 
-    function rowLine(label, value, strong=false){
-      if(value===null || value===undefined || !isFinite(value)) return "";
-      return `
-        <tr class="${strong?'total':''}">
-          <td>${escapeHtml(label)}</td>
-          <td class="right">${strong?`<b>${escapeHtml(money(value))}</b>`:escapeHtml(money(value))}</td>
-        </tr>
-      `;
-    }
+    refreshWorkerSelect();
 
-    const slips = empList.map(e=>{
-      const f = e.fields || {};
-      const sueldo = f["SUELDO"] ?? null;
-      const ext = f["EXT"] ?? null;
-      const extFest = f["EXT DIA FEST"] ?? null;
-      const septimo = f["SEPTIMO DIA"] ?? null;
-      const aguinaldo = f["AGUINALDO"] ?? null;
-      const subtotal = f["SUBTOTAL"] ?? null;
-      const total = f["TOTAL"] ?? null;
+    setStatus(`Cargado: ${EMP.length} trabajadores`, true);
+    hideWarn();
 
-      const imss = f["IMSS"] ?? null;
-      const isr = f["ISR"] ?? null;
-      const inf = f["INFONAVIT"] ?? null;
-      const acta = f["A CTA"] ?? null;
-      const falta1 = f["FALTA 1 DIA"] ?? null;
-      const falta2 = f["FALTA 2 DIA"] ?? null;
-      const prestamo = f["PRESTAMO"] ?? null;
-
-      const deposito = f["DEPOSITO"] ?? null;
-      const neto = (deposito!=null ? deposito : (e.neto ?? null));
-
-      return `
-        <section class="ticket">
-          ${empresa ? `<div class="center bold title">${escapeHtml(empresa)}</div>` : ``}
-          <div class="center bold">RECIBO DE SUELDO</div>
-          ${periodo ? `<div class="center small muted">${escapeHtml(periodo)}</div>` : ``}
-          <div class="hr"></div>
-
-          <div class="row"><span class="lbl">Empleado:</span><span class="val">${escapeHtml(e.name)}</span></div>
-
-          <div class="hr"></div>
-
-          <table>
-            <tbody>
-              ${rowLine("Sueldo", sueldo)}
-              ${rowLine("Extra", ext)}
-              ${rowLine("Extra fest", extFest)}
-              ${rowLine("Séptimo día", septimo)}
-              ${rowLine("Aguinaldo", aguinaldo)}
-              ${rowLine("Subtotal", subtotal)}
-              ${rowLine("Total", total)}
-
-              ${(imss!=null || isr!=null || inf!=null || acta!=null || falta1!=null || falta2!=null || prestamo!=null) ? `
-                <tr><td colspan="2"><div class="sep">Deducciones</div></td></tr>
-              ` : ""}
-
-              ${rowLine("IMSS", imss)}
-              ${rowLine("ISR", isr)}
-              ${rowLine("INFONAVIT", inf)}
-              ${rowLine("A CTA", acta)}
-              ${rowLine("FALTA 1 DIA", falta1)}
-              ${rowLine("FALTA 2 DIA", falta2)}
-              ${rowLine("PRESTAMO", prestamo)}
-
-              ${neto!=null ? rowLine("Neto / Depósito", neto, true) : ""}
-            </tbody>
-          </table>
-
-          ${showFirma ? `
-            <div class="hr"></div>
-            <div class="firma">
-              <div class="line"></div>
-              <div class="small center muted">Firma empleado</div>
-              <div style="height:10px"></div>
-              <div class="line"></div>
-              <div class="small center muted">Firma responsable</div>
-            </div>
-          ` : ``}
-
-          <div class="cut"></div>
-        </section>
-        <div class="gap" style="height:${gap}px"></div>
-      `;
-    }).join("");
-
-    return `
-      <!doctype html>
-      <html lang="es">
-      <head>
-        <meta charset="utf-8"/>
-        <meta name="viewport" content="width=device-width, initial-scale=1"/>
-        <title>Impresión Nómina</title>
-        <style>
-          @page { margin: 0; }
-          body{ margin:0; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; background:#fff; color:#000; }
-          .ticket{ width:${width}; padding: 8px 8px 0; font-size:${fontSize}px; line-height:1.25; }
-          .center{text-align:center} .right{text-align:right} .bold{font-weight:900}
-          .muted{opacity:.75} .title{font-size:${fontSize+2}px}
-          .small{font-size:${Math.max(9, fontSize-2)}px}
-          .hr{ border-top:1px dashed #000; margin:8px 0; }
-          .row{display:flex; gap:8px;} .lbl{min-width:78px; opacity:.8} .val{flex:1}
-          table{width:100%; border-collapse:collapse; margin-top:2px}
-          td{padding:2px 0; vertical-align:top}
-          tr.total td{padding-top:6px}
-          .sep{ margin:8px 0 4px; font-weight:900; border-top:1px dashed #000; padding-top:6px; }
-          .firma{margin-top:6px} .line{border-top:1px solid #000; margin:18px 10px 6px}
-          .cut{margin-top:10px; border-top: 2px dotted #000;}
-          .gap{width:${width}}
-          @media print{ body{ -webkit-print-color-adjust: exact; print-color-adjust: exact; } .gap{display:block} }
-        </style>
-      </head>
-      <body>
-        ${slips}
-        <script>
-          setTimeout(()=>{ window.print(); }, 250);
-        <\/script>
-      </body>
-      </html>
-    `;
-  }
-
-  function openPrint(html){
-    const w = window.open("", "_blank");
-    if(!w){ alert("Bloqueo de popups: permite popups para imprimir."); return null; }
-    w.document.open(); w.document.write(html); w.document.close();
-    return w;
-  }
-
-  function updateProgress(){
-    progressBadge.style.display = "inline-flex";
-    progressText.textContent = `${Math.min(printIndex, printQueue.length)}/${printQueue.length}`;
-    btnSiguiente.disabled = !(printQueue.length>0 && printIndex < printQueue.length);
-  }
-
-  function printOneTicket(emp){
-    const html = buildSlipHTML([emp], getOpts());
-    if(!printWin || printWin.closed){
-      printWin = openPrint(html);
-      return;
-    }
-    try{
-      printWin.document.open();
-      printWin.document.write(html);
-      printWin.document.close();
-    }catch(e){
-      printWin = openPrint(html);
+    // Auto seleccionar primero
+    if(EMP.length){
+      $("#worker").value = EMP[0].id;
+      renderTicket(EMP[0]);
+    } else {
+      showWarn("No pude detectar trabajadores. Revisa que el Excel tenga el mismo formato (nombres en columnas 2,6,11,15).");
     }
   }
 
-  async function startPrintOneByOne(list){
-    printQueue = list.slice();
-    printIndex = 0;
-    if(printQueue.length===0) return;
-
-    setStatus("Impresión 1×1 iniciada", "warn");
-    printOneTicket(printQueue[printIndex]);
-    printIndex++;
-    updateProgress();
-    btnSiguiente.disabled = false;
-  }
-
-  btnSiguiente.addEventListener("click", async ()=>{
-    if(printIndex >= printQueue.length){
-      setStatus("Impresión 1×1 terminada", "ok");
-      btnSiguiente.disabled = true;
-      return;
-    }
-    const delay = Math.max(200, parseInt(delayMsInp.value || "800", 10));
-    await new Promise(r=>setTimeout(r, delay));
-    printOneTicket(printQueue[printIndex]);
-    printIndex++;
-    updateProgress();
-    if(printIndex >= printQueue.length){
-      setStatus("Impresión 1×1 terminada", "ok");
-      btnSiguiente.disabled = true;
-    }
-  });
-
-  // ====== UI ======
-  function setButtonsAfterParse(ok){
-    btnVista.disabled = !ok;
-    btnImprimir.disabled = !ok;
-    btnImprimir1x1.disabled = !ok;
-    btnSiguiente.disabled = true;
-    progressBadge.style.display = "none";
-  }
-
-  fileInput.addEventListener("change", async (e)=>{
+  // ===== Eventos =====
+  $("#file").addEventListener("change", async (e)=>{
     const f = e.target.files?.[0];
-    if(!f){
-      setStatus("Sin archivo");
-      fileInfo.textContent = "—";
-      btnParse.disabled = true;
-      btnReset.disabled = true;
-      employees = [];
-      renderList();
-      rowsInfo.textContent = "0";
-      countBadge.style.display = "none";
-      clearLog();
-      setButtonsAfterParse(false);
-      return;
-    }
-
-    fileInfo.textContent = `${f.name} (${Math.round(f.size/1024)} KB)`;
-    setStatus("Cargando PDF...", "warn");
-    clearLog();
-
+    if(!f) return;
     try{
-      pdfBytes = await f.arrayBuffer();
-      pdfDoc = await pdfjsLib.getDocument({ data: pdfBytes }).promise;
-      setStatus(`PDF listo (${pdfDoc.numPages} páginas)`, "ok");
-      btnParse.disabled = false;
-      btnReset.disabled = false;
-      setButtonsAfterParse(false);
-      employees = [];
-      renderList();
-      rowsInfo.textContent = "0";
-      countBadge.style.display = "none";
+      setStatus("Leyendo Excel…", true);
+      await readExcel(f);
     }catch(err){
       console.error(err);
-      setStatus("Error abriendo PDF", "bad");
-      showLog("ERROR:\n"+(err?.message||err));
-      alert("No se pudo abrir el PDF. Intenta exportarlo nuevamente.");
-      pdfDoc = null;
-      pdfBytes = null;
-      btnParse.disabled = true;
-      btnReset.disabled = true;
+      setStatus("Error al leer Excel", false);
+      showWarn("Error leyendo el archivo. Asegúrate que sea .xlsx (no .csv) y vuelve a intentar.");
     }
   });
 
-  btnParse.addEventListener("click", async ()=>{
-    if(!pdfDoc){ alert("Primero sube un PDF."); return; }
-
-    setStatus("Leyendo texto del PDF...", "warn");
-    showLog("Extrayendo texto...\n");
-
-    const pages = parsePageSpec(pagesInp.value, pdfDoc.numPages);
-
-    let allLines = [];
-    for(let i=0;i<pages.length;i++){
-      const p = pages[i];
-      setStatus(`Leyendo página ${p}/${pdfDoc.numPages}...`, "warn");
-      try{
-        const lines = await extractPageLines(p);
-        allLines = allLines.concat(lines);
-      }catch(err){
-        console.error(err);
-        showLog((logBox.textContent||"") + `\nERROR página ${p}: ${err?.message||err}\n`);
-      }
-    }
-
-    showLog((logBox.textContent||"") + `\nLíneas extraídas: ${allLines.length}\nParseando...\n`);
-
-    employees = parseLinesToEmployees(allLines);
-
-    countBadge.style.display = "inline-flex";
-    countText.textContent = String(employees.length);
-
-    renderList();
-
-    const ok = employees.length > 0;
-    setButtonsAfterParse(ok);
-    setStatus(ok ? "Listo para imprimir" : "No se detectaron empleados", ok ? "ok" : "warn");
-
-    showLog((logBox.textContent||"") + `\nDetectados: ${employees.length}\n`);
+  $("#worker").addEventListener("change", ()=>{
+    const id = $("#worker").value;
+    const emp = EMP_BY_ID[id];
+    if(emp) renderTicket(emp);
   });
 
-  filterInp.addEventListener("input", ()=> renderList());
-
-  btnReset.addEventListener("click", ()=>{
-    pdfBytes = null;
-    pdfDoc = null;
-    employees = [];
-    fileInput.value = "";
-    listDiv.innerHTML = "";
-    rowsInfo.textContent = "0";
-    fileInfo.textContent = "—";
-    setStatus("Sin archivo");
-    countBadge.style.display = "none";
-    clearLog();
-
-    printQueue = [];
-    printIndex = 0;
-    if(printWin && !printWin.closed) printWin.close();
-    printWin = null;
-
-    btnParse.disabled = true;
-    btnReset.disabled = true;
-    setButtonsAfterParse(false);
+  $("#empresa").addEventListener("input", ()=>{
+    const id = $("#worker").value;
+    const emp = EMP_BY_ID[id];
+    if(emp) renderTicket(emp);
   });
 
-  btnVista.addEventListener("click", ()=>{
-    const list = getFilteredEmployees();
-    if(!list.length){ alert("No hay empleados para el filtro."); return; }
-    openPrint(buildSlipHTML([list[0]], getOpts()));
+  $("#paper").addEventListener("change", ()=>{
+    // Cambiar el ancho de página (80mm / 58mm)
+    document.documentElement.style.setProperty("--paperW", $("#paper").value);
   });
 
-  btnImprimir1x1.addEventListener("click", async ()=>{
-    const list = getFilteredEmployees();
-    if(!list.length){ alert("No hay empleados para el filtro."); return; }
-    await startPrintOneByOne(list);
+  $("#btnPrint").addEventListener("click", ()=>{
+    // Para evitar “hoja extra”: imprimir SOLO el ticket usando CSS @page y @media print
+    window.print();
   });
 
-  btnImprimir.addEventListener("click", async ()=>{
-    const list = getFilteredEmployees();
-    if(!list.length){ alert("No hay empleados para el filtro."); return; }
-    const mode = printModeSel.value;
-    if(mode === "batch"){
-      openPrint(buildSlipHTML(list, getOpts()));
-      return;
-    }
-    await startPrintOneByOne(list);
+  $("#btnRefresh").addEventListener("click", ()=>{
+    refreshWorkerSelect();
+    const id = $("#worker").value;
+    const emp = EMP_BY_ID[id];
+    if(emp) renderTicket(emp);
   });
 
-  setStatus("Sin archivo");
+  // Inicial
+  renderTicket(null);
+  setStatus("Sin archivo", true);
 </script>
 </body>
 </html>
