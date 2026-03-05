@@ -3,12 +3,10 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Nómina PDF — Impresión Térmica (OCR)</title>
+  <title>Nómina PDF (Texto) — Impresión Térmica</title>
 
   <!-- PDF.js -->
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.min.js"></script>
-  <!-- Tesseract (OCR) -->
-  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
   <style>
     :root{
@@ -116,11 +114,10 @@
       font-size:11px;
       color:rgba(233,238,252,.85);
       white-space:pre-wrap;
-      max-height:200px;
+      max-height:220px;
       overflow:auto;
       display:none;
     }
-    canvas{display:none}
   </style>
 </head>
 
@@ -128,8 +125,8 @@
 <header>
   <div class="row">
     <div>
-      <h1>Nómina PDF — Impresión Térmica (OCR)</h1>
-      <div class="sub">Sube PDF → OCR → detecta empleados → imprime tickets 58/80mm.</div>
+      <h1>Nómina PDF (Texto) — Impresión Térmica</h1>
+      <div class="sub">PDF con texto (copiable) → extrae conceptos → imprime tickets 58/80mm.</div>
     </div>
     <span class="pill" id="statusPill">Sin archivo</span>
   </div>
@@ -150,30 +147,12 @@
 
         <div class="row2">
           <div>
-            <label>Idioma OCR</label>
-            <select id="lang">
-              <option value="spa" selected>Español (spa)</option>
-              <option value="eng">Inglés (eng)</option>
-            </select>
+            <label>Páginas (opcional)</label>
+            <input id="pages" type="text" placeholder="Ej. 1-2 o 1,3,4 (vacío=todo)"/>
           </div>
-          <div>
-            <label>Calidad OCR</label>
-            <select id="scale">
-              <option value="1.6">Rápido</option>
-              <option value="2.0" selected>Normal</option>
-              <option value="2.6">Más preciso</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="row2" style="margin-top:10px">
           <div>
             <label>Filtrar por nombre (opcional)</label>
             <input id="filter" type="text" placeholder="Ej. juan, martin..."/>
-          </div>
-          <div>
-            <label>Páginas (opcional)</label>
-            <input id="pages" type="text" placeholder="Ej. 1-2 o 1,3,4 (vacío=todo)"/>
           </div>
         </div>
 
@@ -244,7 +223,7 @@
         <div class="hr"></div>
 
         <div class="btns">
-          <button class="primary" id="btnParse" disabled>Leer PDF (OCR)</button>
+          <button class="primary" id="btnParse" disabled>Leer PDF</button>
           <button class="primary" id="btnVista" disabled>Vista previa (1)</button>
           <button class="primary" id="btnImprimir" disabled>Imprimir (según modo)</button>
           <button id="btnImprimir1x1" disabled>Imprimir 1×1</button>
@@ -256,9 +235,6 @@
           <span class="badge" id="countBadge" style="display:none">
             Detectados: <b class="mono" id="countText">0</b>
           </span>
-          <span class="badge" id="scanBadge" style="display:none">
-            Progreso OCR: <b class="mono" id="scanText">0%</b>
-          </span>
           <span class="badge" id="progressBadge" style="display:none">
             Progreso 1×1: <b class="mono" id="progressText">0/0</b>
           </span>
@@ -267,10 +243,8 @@
         <div class="log" id="logBox"></div>
 
         <div class="hint" style="margin-top:10px">
-          Tip: si el PDF es imagen, OCR tarda. Si puedes, exporta a Excel para que sea instantáneo.
+          Este modo funciona cuando el PDF trae texto (como el tuyo). Si fuera escaneado, ahí sí se necesitaría OCR.
         </div>
-
-        <canvas id="cv"></canvas>
       </div>
     </section>
 
@@ -287,7 +261,7 @@
 </main>
 
 <script>
-  // PDF.js config
+  // PDF.js worker
   pdfjsLib.GlobalWorkerOptions.workerSrc =
     "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.js";
 
@@ -298,14 +272,10 @@
   const rowsInfo = $("#rowsInfo");
   const listDiv = $("#list");
   const logBox = $("#logBox");
-  const canvas = $("#cv");
-  const ctx = canvas.getContext("2d", { willReadFrequently:true });
 
   const fileInput = $("#file");
   const filterInp = $("#filter");
   const pagesInp = $("#pages");
-  const langSel = $("#lang");
-  const scaleSel = $("#scale");
 
   const btnParse = $("#btnParse");
   const btnVista = $("#btnVista");
@@ -325,8 +295,6 @@
 
   const countBadge = $("#countBadge");
   const countText = $("#countText");
-  const scanBadge = $("#scanBadge");
-  const scanText = $("#scanText");
   const progressBadge = $("#progressBadge");
   const progressText = $("#progressText");
 
@@ -349,20 +317,9 @@
     logBox.style.display = "block";
     logBox.textContent = String(msg || "");
   }
-
   function clearLog(){
     logBox.style.display = "none";
     logBox.textContent = "";
-  }
-
-  function enableUI(on){
-    btnParse.disabled = !on;
-    btnVista.disabled = true;
-    btnImprimir.disabled = true;
-    btnImprimir1x1.disabled = true;
-    btnReset.disabled = !on;
-    btnSiguiente.disabled = true;
-    progressBadge.style.display = "none";
   }
 
   function safeText(v){
@@ -375,13 +332,43 @@
       .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
   }
 
-  function parseMoneyFromLine(line){
-    // agarra el primer $numero que vea
-    // ejemplo: "IMSS  $ 56.20  MENOS"
-    const s = line.replace(/,/g,"");
-    const m = s.match(/\$?\s*([0-9]+(?:\.[0-9]{1,2})?)/);
+  // Parsea número con formatos:
+  // "2.170,00" -> 2170.00
+  // "3,125.00" -> 3125.00 (por si viene raro)
+  // "$ 56,20" -> 56.20
+  function parseMoneyAny(s){
+    const raw = String(s ?? "")
+      .replace(/\$/g," ")
+      .replace(/MXN/gi," ")
+      .replace(/[^\d.,\- ]/g," ")
+      .replace(/\s+/g," ")
+      .trim();
+
+    if(!raw) return null;
+
+    // toma el primer token que parezca número
+    const m = raw.match(/-?\d[\d.,]*/);
     if(!m) return null;
-    const n = Number(m[1]);
+    let t = m[0];
+
+    // Si contiene coma y punto:
+    // asumimos que el separador decimal es el último símbolo (coma o punto)
+    const lastComma = t.lastIndexOf(",");
+    const lastDot = t.lastIndexOf(".");
+    const decPos = Math.max(lastComma, lastDot);
+
+    if(decPos >= 0){
+      const decChar = t[decPos];
+      const intPart = t.slice(0, decPos).replace(/[.,]/g,"");
+      const decPart = t.slice(decPos+1).replace(/[.,]/g,"");
+      t = intPart + "." + decPart; // normaliza
+      if(t === ".") return null;
+      const n = Number(t);
+      return isFinite(n) ? n : null;
+    }
+
+    // sin separador, directo
+    const n = Number(t.replace(/[.,]/g,""));
     return isFinite(n) ? n : null;
   }
 
@@ -391,10 +378,11 @@
     catch(e){ return "$"+(Math.round(n*100)/100).toFixed(2); }
   }
 
-  // Etiquetas esperadas
   const LABELS = [
-    "SUELDO","EXT","TOTAL","IMSS","ISR","INFONAVIT","A CTA","ACTA","DEPOSITO","DEPÓSITO",
-    "FALTA 1 DIA","FALTA 1 DÍA","EXT DIA FEST","EXT DÍA FEST"
+    "SUELDO","EXT","TOTAL","IMSS","ISR","INFONAVIT","A CTA","ACTA",
+    "DEPOSITO","DEPÓSITO","FALTA 1 DIA","FALTA 1 DÍA","FALTA 2 DIA","FALTA 2 DÍA",
+    "EXT DIA FEST","EXT DÍA FEST",
+    "SUBTOTAL","AGUINALDO","SEPTIMO DIA","SÉPTIMO DÍA","PRESTAMO","PRÉSTAMO","VACACIONES","30 DIAS VACACIONES","25%"
   ];
 
   function normLabel(s){
@@ -402,65 +390,103 @@
     if(u==="ACTA") return "A CTA";
     if(u==="DEPÓSITO") return "DEPOSITO";
     if(u==="FALTA 1 DÍA") return "FALTA 1 DIA";
+    if(u==="FALTA 2 DÍA") return "FALTA 2 DIA";
     if(u==="EXT DÍA FEST") return "EXT DIA FEST";
+    if(u==="SÉPTIMO DÍA") return "SEPTIMO DIA";
+    if(u==="PRÉSTAMO") return "PRESTAMO";
     return u;
   }
 
   function isLabelLine(line){
     const u = normLabel(line);
-    return LABELS.some(l => u.includes(l));
+    return LABELS.some(l => u.startsWith(l) || u.includes(l));
   }
 
   function looksLikeName(line){
     const s = safeText(line);
     if(!s) return false;
     const u = s.toUpperCase();
-    if(LABELS.some(l => u.includes(l))) return false;
+
     if(u.includes("NÓMINA") || u.includes("NOMINA") || u.includes("SEMANA")) return false;
-    if(/^\$/.test(s)) return false;
-    // nombres suelen venir en mayúsculas
-    const letters = s.replace(/[^A-ZÁÉÍÓÚÑ ]/gi,"").trim();
-    if(letters.length < 4) return false;
-    // descarta líneas tipo "MENOS"
-    if(u==="MENOS") return false;
+    if(LABELS.some(l => u.includes(l))) return false;
+
+    // muchos nombres vienen en mayúsculas con espacio
+    const onlyLetters = s.replace(/[^A-ZÁÉÍÓÚÑ ]/gi,"").trim();
+    if(onlyLetters.length < 4) return false;
+
+    // descarta línea solo números
+    if(/^\d+([.,]\d+)?$/.test(s)) return false;
+
     return true;
   }
 
-  function parseTextToEmployees(text){
-    // Estrategia simple:
-    // - detecta una línea "nombre"
-    // - luego consume líneas hasta el siguiente nombre
-    // - dentro del bloque busca etiquetas + monto
-    const lines = text
-      .split(/\r?\n/)
-      .map(l => safeText(l))
+  // Extrae texto de una página como líneas "razonables"
+  async function extractPageLines(pageNum){
+    const page = await pdfDoc.getPage(pageNum);
+    const tc = await page.getTextContent();
+
+    // items tienen transform [a,b,c,d,e,f]; e=x f=y
+    const items = (tc.items || []).map(it => ({
+      str: safeText(it.str),
+      x: it.transform?.[4] ?? 0,
+      y: it.transform?.[5] ?? 0
+    })).filter(it => it.str);
+
+    // agrupa por renglón según y (tolerancia)
+    items.sort((a,b)=> (b.y - a.y) || (a.x - b.x));
+
+    const lines = [];
+    const tol = 2.0;
+
+    for(const it of items){
+      let line = lines.find(l => Math.abs(l.y - it.y) <= tol);
+      if(!line){
+        line = { y: it.y, parts: [] };
+        lines.push(line);
+      }
+      line.parts.push(it);
+    }
+
+    // ordena partes por x y construye string
+    const out = lines
+      .sort((a,b)=> b.y - a.y)
+      .map(l => l.parts.sort((a,b)=>a.x-b.x).map(p=>p.str).join(" ").replace(/\s+/g," ").trim())
       .filter(Boolean);
+
+    return out;
+  }
+
+  function parseLinesToEmployees(allLines){
+    const lines = allLines.map(safeText).filter(Boolean);
 
     const result = [];
     let cur = null;
 
     function pushCur(){
       if(!cur) return;
-      // neto preferido: DEPOSITO, si no: TOTAL - ded
+
+      // Neto preferido: DEPOSITO
       const f = cur.fields;
+
       const total = f["TOTAL"] ?? null;
-      const dep = f["DEPOSITO"] ?? null;
+      const deposito = f["DEPOSITO"] ?? null;
 
       let ded = 0;
-      ["IMSS","ISR","INFONAVIT","A CTA","FALTA 1 DIA"].forEach(k=>{
+      ["IMSS","ISR","INFONAVIT","A CTA","FALTA 1 DIA","FALTA 2 DIA","PRESTAMO"].forEach(k=>{
         const v = f[k];
         if(v!=null) ded += Number(v)||0;
       });
+
       let neto = null;
-      if(dep!=null) neto = dep;
+      if(deposito!=null) neto = deposito;
       else if(total!=null) neto = total - ded;
 
       cur.total = total;
-      cur.deposito = dep;
+      cur.deposito = deposito;
       cur.neto = (neto!=null && isFinite(neto)) ? neto : null;
 
-      const has = Object.keys(f).length>0;
-      if(has) result.push(cur);
+      const hasSomething = Object.keys(f).length > 0;
+      if(hasSomething) result.push(cur);
       cur = null;
     }
 
@@ -468,12 +494,13 @@
       const line = lines[i];
       const u = line.toUpperCase();
 
-      // si parece nombre y cerca hay SUELDO/TOTAL, lo tomamos como inicio
+      // nombre: si la siguiente línea contiene SUELDO/EXT/TOTAL, inicia bloque
       if(looksLikeName(line)){
         const next1 = (lines[i+1]||"").toUpperCase();
         const next2 = (lines[i+2]||"").toUpperCase();
-        const likely = (next1.includes("SUELDO") || next1.includes("EXT") || next1.includes("TOTAL") ||
-                        next2.includes("SUELDO") || next2.includes("EXT") || next2.includes("TOTAL"));
+        const likely = next1.includes("SUELDO") || next1.includes("EXT") || next1.includes("TOTAL") ||
+                       next2.includes("SUELDO") || next2.includes("EXT") || next2.includes("TOTAL");
+
         if(likely){
           pushCur();
           cur = { name: line, fields:{} };
@@ -483,30 +510,31 @@
 
       if(!cur) continue;
 
-      // Captura de conceptos
       if(isLabelLine(u)){
-        const lab = normLabel(u);
-        // detecta qué etiqueta es (la primera que haga match)
-        const key = LABELS.map(normLabel).find(L => lab.includes(L));
+        const nu = normLabel(u);
+
+        // elige la etiqueta más específica que haga match
+        const key = LABELS.map(normLabel)
+          .sort((a,b)=>b.length-a.length)
+          .find(L => nu.startsWith(L) || nu.includes(L));
+
         if(key){
-          const amt = parseMoneyFromLine(line);
+          // Si dice MENOS o trae "-", puede venir sin número (se ignora)
+          const amt = parseMoneyAny(line);
           if(amt!=null) cur.fields[key] = amt;
         }
       }
     }
     pushCur();
 
-    // limpia duplicados por nombre (a veces OCR repite)
+    // dedupe por nombre
     const uniq = new Map();
     for(const e of result){
       const k = e.name.toUpperCase();
       if(!uniq.has(k)) uniq.set(k, e);
       else{
-        // merge (por si uno trae campos faltantes)
         const prev = uniq.get(k);
         Object.assign(prev.fields, e.fields);
-        prev.total = prev.fields["TOTAL"] ?? prev.total;
-        prev.deposito = prev.fields["DEPOSITO"] ?? prev.deposito;
       }
     }
 
@@ -524,13 +552,13 @@
     rowsInfo.textContent = String(arr.length);
 
     listDiv.innerHTML = arr.map(e=>{
-      const net = e.neto;
       const t = e.total;
       const dep = e.deposito;
+      const net = e.neto;
       const subtitle = [
         (t!=null ? `Total: ${money(t)}` : null),
         (dep!=null ? `Depósito: ${money(dep)}` : null),
-        (net!=null && dep==null ? `Neto calc: ${money(net)}` : null)
+        (net!=null && dep==null ? `Neto calc: ${money(net)}` : null),
       ].filter(Boolean).join(" • ");
 
       return `
@@ -548,6 +576,29 @@
     }).join("") || `<div class="hint">No hay empleados con ese filtro.</div>`;
   }
 
+  function parsePageSpec(spec, numPages){
+    const s = safeText(spec);
+    if(!s) return [...Array(numPages)].map((_,i)=>i+1);
+
+    const set = new Set();
+    const parts = s.split(",").map(x=>x.trim()).filter(Boolean);
+    for(const p of parts){
+      if(p.includes("-")){
+        const [a,b] = p.split("-").map(x=>parseInt(x.trim(),10));
+        if(!isFinite(a) || !isFinite(b)) continue;
+        const start = Math.max(1, Math.min(a,b));
+        const end = Math.min(numPages, Math.max(a,b));
+        for(let i=start;i<=end;i++) set.add(i);
+      }else{
+        const n = parseInt(p,10);
+        if(isFinite(n) && n>=1 && n<=numPages) set.add(n);
+      }
+    }
+    const arr = Array.from(set).sort((a,b)=>a-b);
+    return arr.length ? arr : [...Array(numPages)].map((_,i)=>i+1);
+  }
+
+  // ===== PRINT =====
   function getOpts(){
     return {
       paper: paperSel.value,
@@ -582,13 +633,18 @@
       const sueldo = f["SUELDO"] ?? null;
       const ext = f["EXT"] ?? null;
       const extFest = f["EXT DIA FEST"] ?? null;
+      const septimo = f["SEPTIMO DIA"] ?? null;
+      const aguinaldo = f["AGUINALDO"] ?? null;
+      const subtotal = f["SUBTOTAL"] ?? null;
       const total = f["TOTAL"] ?? null;
 
       const imss = f["IMSS"] ?? null;
       const isr = f["ISR"] ?? null;
       const inf = f["INFONAVIT"] ?? null;
       const acta = f["A CTA"] ?? null;
-      const falta = f["FALTA 1 DIA"] ?? null;
+      const falta1 = f["FALTA 1 DIA"] ?? null;
+      const falta2 = f["FALTA 2 DIA"] ?? null;
+      const prestamo = f["PRESTAMO"] ?? null;
 
       const deposito = f["DEPOSITO"] ?? null;
       const neto = (deposito!=null ? deposito : (e.neto ?? null));
@@ -609,9 +665,12 @@
               ${rowLine("Sueldo", sueldo)}
               ${rowLine("Extra", ext)}
               ${rowLine("Extra fest", extFest)}
-              ${total!=null ? rowLine("Total", total, false) : ""}
+              ${rowLine("Séptimo día", septimo)}
+              ${rowLine("Aguinaldo", aguinaldo)}
+              ${rowLine("Subtotal", subtotal)}
+              ${rowLine("Total", total)}
 
-              ${(imss!=null || isr!=null || inf!=null || acta!=null || falta!=null) ? `
+              ${(imss!=null || isr!=null || inf!=null || acta!=null || falta1!=null || falta2!=null || prestamo!=null) ? `
                 <tr><td colspan="2"><div class="sep">Deducciones</div></td></tr>
               ` : ""}
 
@@ -619,7 +678,9 @@
               ${rowLine("ISR", isr)}
               ${rowLine("INFONAVIT", inf)}
               ${rowLine("A CTA", acta)}
-              ${rowLine("FALTA 1 DIA", falta)}
+              ${rowLine("FALTA 1 DIA", falta1)}
+              ${rowLine("FALTA 2 DIA", falta2)}
+              ${rowLine("PRESTAMO", prestamo)}
 
               ${neto!=null ? rowLine("Neto / Depósito", neto, true) : ""}
             </tbody>
@@ -735,50 +796,13 @@
     }
   });
 
-  function parsePageSpec(spec, numPages){
-    const s = safeText(spec);
-    if(!s) return [...Array(numPages)].map((_,i)=>i+1);
-
-    const set = new Set();
-    const parts = s.split(",").map(x=>x.trim()).filter(Boolean);
-    for(const p of parts){
-      if(p.includes("-")){
-        const [a,b] = p.split("-").map(x=>parseInt(x.trim(),10));
-        if(!isFinite(a) || !isFinite(b)) continue;
-        const start = Math.max(1, Math.min(a,b));
-        const end = Math.min(numPages, Math.max(a,b));
-        for(let i=start;i<=end;i++) set.add(i);
-      }else{
-        const n = parseInt(p,10);
-        if(isFinite(n) && n>=1 && n<=numPages) set.add(n);
-      }
-    }
-    const arr = Array.from(set);
-    arr.sort((a,b)=>a-b);
-    return arr.length ? arr : [...Array(numPages)].map((_,i)=>i+1);
-  }
-
-  async function ocrPage(pageNum){
-    const page = await pdfDoc.getPage(pageNum);
-    const scale = Number(scaleSel.value || 2.0);
-    const viewport = page.getViewport({ scale });
-
-    canvas.width = Math.floor(viewport.width);
-    canvas.height = Math.floor(viewport.height);
-
-    await page.render({ canvasContext: ctx, viewport }).promise;
-
-    const lang = langSel.value || "spa";
-    const { data } = await Tesseract.recognize(canvas, lang, {
-      logger: m=>{
-        if(m.status === "recognizing text"){
-          const pct = Math.round((m.progress||0)*100);
-          scanText.textContent = pct + "%";
-        }
-      }
-    });
-
-    return data?.text || "";
+  // ====== UI ======
+  function setButtonsAfterParse(ok){
+    btnVista.disabled = !ok;
+    btnImprimir.disabled = !ok;
+    btnImprimir1x1.disabled = !ok;
+    btnSiguiente.disabled = true;
+    progressBadge.style.display = "none";
   }
 
   fileInput.addEventListener("change", async (e)=>{
@@ -786,68 +810,68 @@
     if(!f){
       setStatus("Sin archivo");
       fileInfo.textContent = "—";
-      enableUI(false);
-      listDiv.innerHTML = "";
+      btnParse.disabled = true;
+      btnReset.disabled = true;
+      employees = [];
+      renderList();
       rowsInfo.textContent = "0";
       countBadge.style.display = "none";
-      scanBadge.style.display = "none";
       clearLog();
+      setButtonsAfterParse(false);
       return;
     }
 
     fileInfo.textContent = `${f.name} (${Math.round(f.size/1024)} KB)`;
-    setStatus("PDF cargado. Listo para OCR.", "ok");
+    setStatus("Cargando PDF...", "warn");
     clearLog();
 
     try{
       pdfBytes = await f.arrayBuffer();
       pdfDoc = await pdfjsLib.getDocument({ data: pdfBytes }).promise;
-      enableUI(true);
+      setStatus(`PDF listo (${pdfDoc.numPages} páginas)`, "ok");
       btnParse.disabled = false;
+      btnReset.disabled = false;
+      setButtonsAfterParse(false);
+      employees = [];
+      renderList();
+      rowsInfo.textContent = "0";
+      countBadge.style.display = "none";
     }catch(err){
       console.error(err);
       setStatus("Error abriendo PDF", "bad");
-      showLog("ERROR abriendo PDF:\n"+(err?.message||err));
-      alert("No se pudo abrir el PDF. Prueba exportarlo otra vez.");
-      enableUI(false);
+      showLog("ERROR:\n"+(err?.message||err));
+      alert("No se pudo abrir el PDF. Intenta exportarlo nuevamente.");
+      pdfDoc = null;
+      pdfBytes = null;
+      btnParse.disabled = true;
+      btnReset.disabled = true;
     }
   });
 
   btnParse.addEventListener("click", async ()=>{
-    if(!pdfDoc){
-      alert("Primero sube un PDF.");
-      return;
-    }
+    if(!pdfDoc){ alert("Primero sube un PDF."); return; }
 
-    employees = [];
-    renderList();
-    countBadge.style.display = "none";
-
-    scanBadge.style.display = "inline-flex";
-    scanText.textContent = "0%";
+    setStatus("Leyendo texto del PDF...", "warn");
+    showLog("Extrayendo texto...\n");
 
     const pages = parsePageSpec(pagesInp.value, pdfDoc.numPages);
-    setStatus(`OCR en páginas: ${pages.join(", ")}`, "warn");
-    showLog(`OCR iniciando...\nPáginas: ${pages.join(", ")}\n`);
 
-    let bigText = "";
-
+    let allLines = [];
     for(let i=0;i<pages.length;i++){
       const p = pages[i];
-      setStatus(`OCR página ${p}/${pdfDoc.numPages}...`, "warn");
-      showLog(`OCR página ${p}...\n`);
-
+      setStatus(`Leyendo página ${p}/${pdfDoc.numPages}...`, "warn");
       try{
-        const txt = await ocrPage(p);
-        bigText += "\n" + txt + "\n";
+        const lines = await extractPageLines(p);
+        allLines = allLines.concat(lines);
       }catch(err){
         console.error(err);
-        showLog(`ERROR OCR página ${p}: ${err?.message||err}\n`);
+        showLog((logBox.textContent||"") + `\nERROR página ${p}: ${err?.message||err}\n`);
       }
     }
 
-    setStatus("Parseando resultados...", "warn");
-    employees = parseTextToEmployees(bigText);
+    showLog((logBox.textContent||"") + `\nLíneas extraídas: ${allLines.length}\nParseando...\n`);
+
+    employees = parseLinesToEmployees(allLines);
 
     countBadge.style.display = "inline-flex";
     countText.textContent = String(employees.length);
@@ -855,12 +879,10 @@
     renderList();
 
     const ok = employees.length > 0;
-    btnVista.disabled = !ok;
-    btnImprimir.disabled = !ok;
-    btnImprimir1x1.disabled = !ok;
+    setButtonsAfterParse(ok);
+    setStatus(ok ? "Listo para imprimir" : "No se detectaron empleados", ok ? "ok" : "warn");
 
-    setStatus(ok ? "Listo para imprimir" : "No se detectaron empleados (OCR débil)", ok ? "ok" : "warn");
-    showLog((logBox.textContent||"") + `\nListo. Detectados: ${employees.length}\n`);
+    showLog((logBox.textContent||"") + `\nDetectados: ${employees.length}\n`);
   });
 
   filterInp.addEventListener("input", ()=> renderList());
@@ -874,9 +896,7 @@
     rowsInfo.textContent = "0";
     fileInfo.textContent = "—";
     setStatus("Sin archivo");
-    enableUI(false);
     countBadge.style.display = "none";
-    scanBadge.style.display = "none";
     clearLog();
 
     printQueue = [];
@@ -885,9 +905,8 @@
     printWin = null;
 
     btnParse.disabled = true;
-    btnVista.disabled = true;
-    btnImprimir.disabled = true;
-    btnImprimir1x1.disabled = true;
+    btnReset.disabled = true;
+    setButtonsAfterParse(false);
   });
 
   btnVista.addEventListener("click", ()=>{
@@ -914,7 +933,6 @@
   });
 
   setStatus("Sin archivo");
-  enableUI(false);
 </script>
 </body>
 </html>
