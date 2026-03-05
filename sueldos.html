@@ -806,7 +806,7 @@
 
   btnImprimir1x1.addEventListener("click", async ()=>{
     const list = getFilteredEmployees();
-    if(!list.length){ alert("No hay empleados para el filtro."); return; }
+    if(!list.length){ alert("No hay empleado para el filtro."); return; }
     await startPrintOneByOne(list);
   });
 
