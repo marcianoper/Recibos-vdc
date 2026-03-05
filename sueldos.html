@@ -3,39 +3,45 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Nómina — Calibrable (Excel → Ticket)</title>
+  <title>Nómina — Click en Excel → Ticket térmico</title>
 
-  <!-- SheetJS (leer Excel en el navegador) -->
+  <!-- SheetJS -->
   <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
 
   <style>
     :root{
-      --bg:#0b1220; --card:#0f1b33; --line:rgba(255,255,255,.12);
+      --bg:#0b1220; --panel:#0f1b33; --line:rgba(255,255,255,.12);
       --ink:#e9eefc; --muted:rgba(233,238,252,.72);
-      --brand:#22c55e; --bad:#ef4444;
-      --r:18px; --shadow: 0 18px 60px rgba(0,0,0,.45);
+      --brand:#22c55e; --bad:#ef4444; --warn:#f59e0b;
+      --r:18px; --shadow:0 18px 60px rgba(0,0,0,.45);
       --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
       --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
-      --paperW: 80mm;
+      --paperW:80mm;
     }
     *{box-sizing:border-box}
     body{
       margin:0; font-family:var(--sans); color:var(--ink);
-      background: radial-gradient(1100px 600px at 20% -10%, rgba(34,197,94,.22), transparent 65%),
-                  radial-gradient(900px 600px at 80% 0%, rgba(59,130,246,.18), transparent 60%),
-                  var(--bg);
+      background:
+        radial-gradient(1100px 600px at 20% -10%, rgba(34,197,94,.22), transparent 65%),
+        radial-gradient(900px 600px at 80% 0%, rgba(59,130,246,.18), transparent 60%),
+        var(--bg);
     }
     header{
-      padding:16px 18px;
+      padding:14px 16px;
       border-bottom:1px solid var(--line);
       background: linear-gradient(180deg, rgba(255,255,255,.06), transparent);
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
     }
-    header h1{margin:0;font-size:18px}
-    header p{margin:6px 0 0;color:var(--muted);font-size:13px}
+    header .left h1{margin:0;font-size:16px}
+    header .left p{margin:6px 0 0;color:var(--muted);font-size:12px}
+    header .pill{
+      padding:7px 10px; border-radius:999px; border:1px solid var(--line);
+      background:rgba(255,255,255,.06); color:var(--muted); font-size:12px; white-space:nowrap;
+    }
 
-    main{max-width:1250px;margin:0 auto;padding:16px;display:grid;gap:16px}
-    .grid{display:grid;grid-template-columns:1.3fr .7fr;gap:16px}
-    @media (max-width:1050px){ .grid{grid-template-columns:1fr} }
+    main{max-width:1500px;margin:0 auto;padding:16px;display:grid;gap:16px}
+    .grid{display:grid;grid-template-columns:520px 1fr 420px; gap:16px}
+    @media (max-width:1300px){ .grid{grid-template-columns:1fr} }
 
     .card{
       background:rgba(255,255,255,.04);
@@ -45,16 +51,16 @@
       overflow:hidden;
     }
     .hd{
-      padding:14px 14px 10px;
+      padding:12px 14px;
       border-bottom:1px solid var(--line);
-      display:flex;align-items:center;justify-content:space-between;gap:10px;
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
     }
     .hd .t{font-weight:900}
     .bd{padding:14px}
 
     label{display:block;font-size:12px;color:var(--muted);margin:10px 0 6px}
     input, select, button, textarea{
-      width:100%; padding:11px 12px;
+      width:100%; padding:10px 12px;
       border-radius:12px; border:1px solid var(--line);
       background:rgba(0,0,0,.20); color:var(--ink);
       outline:none;
@@ -66,8 +72,7 @@
       padding:8px 10px; border-radius:10px;
       margin-right:10px; cursor:pointer;
     }
-    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+    .row{display:grid;grid-template-columns:1fr 1fr; gap:12px}
     .btn{
       background: linear-gradient(180deg, rgba(34,197,94,.95), rgba(34,197,94,.75));
       border:none; cursor:pointer; font-weight:900;
@@ -78,43 +83,90 @@
       border:1px solid var(--line);
       box-shadow:none;
     }
-    .pill{
-      display:inline-flex;align-items:center;gap:8px;
-      padding:7px 10px;border:1px solid var(--line);
-      border-radius:999px;background:rgba(255,255,255,.06);
-      font-size:12px;color:var(--muted);
-      white-space:nowrap;
+    .btn.bad{
+      background: rgba(239,68,68,.18);
+      border:1px solid rgba(239,68,68,.35);
+      box-shadow:none;
+      font-weight:900;
     }
+    .hint{font-size:12px;color:var(--muted);line-height:1.35;margin-top:10px}
+    .warn{color:#ffd7a8}
     .danger{color:#ffb4b4}
-    .hint{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.35}
+    .ok{color:#b8ffd0}
 
-    /* Preview table */
-    table{
-      width:100%; border-collapse:separate; border-spacing:0;
-      overflow:hidden; border-radius:14px;
+    /* ===== Excel viewer ===== */
+    .excelWrap{
+      overflow:auto;
+      max-height:72vh;
+      border-radius:14px;
       border:1px solid var(--line);
       background:rgba(0,0,0,.18);
     }
-    th, td{
-      padding:10px 10px;
-      border-bottom:1px solid var(--line);
+    table.excel{
+      border-collapse:separate;
+      border-spacing:0;
+      width:max-content;
+      min-width:100%;
+      font-family:var(--mono);
       font-size:12px;
-      vertical-align:top;
     }
-    th{ text-align:left; color:rgba(233,238,252,.90); background:rgba(255,255,255,.04) }
-    tr:last-child td{border-bottom:none}
+    .excel th, .excel td{
+      padding:6px 8px;
+      border-right:1px solid rgba(255,255,255,.08);
+      border-bottom:1px solid rgba(255,255,255,.08);
+      white-space:nowrap;
+      user-select:none;
+    }
+    .excel th{
+      position:sticky;
+      top:0;
+      background:rgba(255,255,255,.06);
+      color:rgba(233,238,252,.9);
+      z-index:2;
+    }
+    .excel th.corner{
+      left:0; z-index:3; position:sticky;
+      background:rgba(255,255,255,.08);
+    }
+    .excel td.rowhdr{
+      position:sticky;
+      left:0;
+      background:rgba(255,255,255,.06);
+      color:rgba(233,238,252,.85);
+      z-index:1;
+      text-align:right;
+      min-width:44px;
+    }
+    .excel td.cell{
+      cursor:pointer;
+      min-width:90px;
+    }
+    .excel td.cell:hover{
+      outline:2px solid rgba(34,197,94,.45);
+      outline-offset:-2px;
+      background:rgba(34,197,94,.08);
+    }
+    .excel td.selected{
+      outline:2px solid rgba(34,197,94,.9);
+      outline-offset:-2px;
+      background:rgba(34,197,94,.14);
+    }
+    .excel td.nameCell{
+      outline:2px solid rgba(59,130,246,.85);
+      outline-offset:-2px;
+      background:rgba(59,130,246,.12);
+    }
 
-    /* Ticket */
-    .ticketWrap{display:grid;gap:12px;align-content:start}
+    /* ===== Ticket ===== */
     .ticket{
-      width: min(420px, 100%);
-      margin: 0 auto;
+      width:min(420px, 100%);
+      margin:0 auto;
       background:#fff;
       color:#111;
       border-radius:14px;
       border:1px dashed rgba(0,0,0,.25);
       padding:12px 12px 10px;
-      font-family: var(--mono);
+      font-family:var(--mono);
     }
     .ticket .center{text-align:center}
     .ticket .muted{color:#444}
@@ -128,56 +180,70 @@
     .ticket .sig .mini{margin-bottom:4px}
     .ticket .sig .box{border-top:1px solid #000;padding-top:6px}
 
-    /* Print */
     @media print{
       body{background:#fff}
       header, .noPrint{display:none !important}
       main{padding:0}
       .ticket{
-        width: var(--paperW);
+        width:var(--paperW);
         border:none !important;
         border-radius:0 !important;
         margin:0 !important;
         padding:0 !important;
       }
     }
-    @page{ size: var(--paperW) auto; margin: 0; }
+    @page{ size: var(--paperW) auto; margin:0; }
+
+    .kv{display:grid; grid-template-columns:1fr auto; gap:8px; align-items:center}
+    .badge{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:6px 10px; border-radius:999px;
+      border:1px solid var(--line); background:rgba(255,255,255,.06);
+      color:var(--muted); font-size:12px;
+    }
+    .small{font-size:12px;color:var(--muted)}
+    .list{
+      margin:10px 0 0; padding:0; list-style:none;
+      display:grid; gap:8px;
+    }
+    .list li{
+      padding:10px 10px;
+      border:1px solid var(--line);
+      border-radius:12px;
+      background:rgba(0,0,0,.16);
+      display:flex; justify-content:space-between; gap:10px; align-items:center;
+    }
+    .list li b{color:rgba(233,238,252,.95)}
+    .list li .v{font-family:var(--mono); color:rgba(233,238,252,.9)}
   </style>
 </head>
 
 <body>
 <header class="noPrint">
-  <h1>Nómina — Calibrable (Excel → Ticket)</h1>
-  <p>Calibra fila/columna una vez y deja de “jalar datos que no son”.</p>
+  <div class="left">
+    <h1>Nómina — Click en Excel → Ticket térmico</h1>
+    <p>1) Carga Excel 2) Click en el <b>nombre</b> 3) Se captura el bloque 4) Si algo falla, click en el <b>número</b> para corregir 5) Imprimir.</p>
+  </div>
+  <div class="pill" id="statusPill">Sin archivo</div>
 </header>
 
 <main>
   <div class="grid">
-    <!-- LEFT -->
+    <!-- Panel control -->
     <section class="card noPrint">
       <div class="hd">
-        <div class="t">Carga + Calibración</div>
-        <div class="pill" id="statusPill">Sin archivo</div>
+        <div class="t">Control</div>
+        <div class="badge"><span class="ok">●</span> listo para imprimir</div>
       </div>
       <div class="bd">
-
-        <label>Archivo de nómina (.xlsx)</label>
-        <input id="file" type="file" accept=".xlsx,.xls" />
+        <label>Excel (.xlsx)</label>
+        <input id="file" type="file" accept=".xlsx,.xls"/>
 
         <div class="row">
           <div>
             <label>Hoja</label>
-            <select id="sheet" disabled>
-              <option value="">—</option>
-            </select>
+            <select id="sheet" disabled><option>—</option></select>
           </div>
-          <div>
-            <label>Empresa (sale en ticket)</label>
-            <input id="empresa" value="CARNES Y VÍSCERAS DEL CENTRO"/>
-          </div>
-        </div>
-
-        <div class="row3">
           <div>
             <label>Impresora</label>
             <select id="paper">
@@ -185,94 +251,66 @@
               <option value="58mm">58 mm</option>
             </select>
           </div>
-          <div>
-            <label>Fila de NOMBRES</label>
-            <input id="rowNames" type="number" min="1" value="2"/>
-          </div>
-          <div>
-            <label>Columna de CONCEPTOS</label>
-            <input id="colConcept" value="A"/>
-          </div>
         </div>
 
-        <div class="row3">
-          <div>
-            <label>Fila inicio conceptos (SUELDO)</label>
-            <input id="rowStart" type="number" min="1" value="3"/>
-          </div>
-          <div>
-            <label>Primera columna de VALORES</label>
-            <input id="colFirstVal" value="B"/>
-          </div>
-          <div>
-            <label>Salto entre trabajadores (cols)</label>
-            <input id="colStep" type="number" min="1" value="4"/>
-          </div>
+        <label>Empresa (sale en ticket)</label>
+        <input id="empresa" value="CARNES Y VÍSCERAS DEL CENTRO"/>
+
+        <div class="row">
+          <button id="btnAuto" class="btn secondary" disabled>🔎 Auto-capturar bloque (trabajador actual)</button>
+          <button id="btnClear" class="btn bad" disabled>🧹 Limpiar captura (trabajador actual)</button>
         </div>
 
         <div class="row">
-          <div>
-            <label># trabajadores (opcional)</label>
-            <input id="countWorkers" type="number" min="0" value="0"/>
-          </div>
-          <div>
-            <label>Conceptos válidos (uno por línea)</label>
-            <textarea id="concepts" rows="6">SUELDO
-EXT
-TOTAL
-IMSS
-ISR
-INFONAVIT
-A CTA
-NETO
-DEPOSITO</textarea>
-          </div>
+          <button id="btnPrint" class="btn" disabled>🧾 Imprimir ticket</button>
+          <button id="btnHelp" class="btn secondary">Cómo usar</button>
         </div>
 
-        <div class="row">
-          <button class="btn" id="btnParse" disabled>LEER / ACTUALIZAR</button>
-          <button class="btn secondary" id="btnPrint" disabled>IMPRIMIR TICKET</button>
+        <div class="hint" id="helpBox" style="display:none">
+          <b>Uso rápido:</b><br>
+          1) Carga el Excel.<br>
+          2) En la tabla del centro, haz <b>click en el nombre</b> (ej. “MARTIN PITAYO”).<br>
+          3) El sistema intenta leer SUELDO/EXT/TOTAL/IMSS/ISR/INFONAVIT/A CTA/NETO/DEPOSITO del bloque.<br>
+          4) Si algo quedó mal, haz <b>click en el número</b> (ej. 2170). Se asigna al concepto de esa fila (leyendo “SUELDO/EXT/…” a la izquierda).<br>
+          5) Imprime.<br><br>
+          <span class="warn">Tip:</span> Tu Excel tiene columna de “$”. Por eso el sistema busca el primer número a la derecha del concepto.
         </div>
 
-        <label>Trabajador</label>
-        <select id="worker" disabled>
-          <option value="">—</option>
-        </select>
-
-        <div class="hint">
-          ✅ Ajusta los números/columnas hasta que la vista previa coincida con tu Excel.<br>
-          Columna en letra (A,B,C...) y fila en número (1,2,3...).
-        </div>
         <div class="hint danger" id="warn" style="display:none"></div>
 
-        <div style="margin-top:12px">
-          <div class="pill">Vista previa (lo que se va a imprimir)</div>
-        </div>
-        <div style="margin-top:10px; overflow:auto; max-height:360px">
-          <table id="previewTable">
-            <thead>
-              <tr>
-                <th>Trabajador</th>
-                <th>Concepto</th>
-                <th>Valor</th>
-              </tr>
-            </thead>
-            <tbody id="previewBody">
-              <tr><td colspan="3" class="danger">Carga el Excel…</td></tr>
-            </tbody>
-          </table>
+        <div style="margin-top:12px" class="kv">
+          <div class="small">Trabajador actual</div>
+          <div class="badge" id="currentName">—</div>
         </div>
 
+        <ul class="list" id="fieldsList"></ul>
+
+        <div class="hint">
+          <b>Regla para corregir:</b> click en el número, y el sistema identifica el concepto en esa fila (busca “SUELDO/EXT/…” hacia la izquierda).
+        </div>
       </div>
     </section>
 
-    <!-- RIGHT -->
+    <!-- Excel viewer -->
+    <section class="card noPrint">
+      <div class="hd">
+        <div class="t">Vista del Excel (click para seleccionar)</div>
+        <div class="badge" id="cellInfo">Celda: —</div>
+      </div>
+      <div class="bd">
+        <div class="excelWrap" id="excelWrap">
+          <div class="hint">Carga un Excel para mostrarlo aquí.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Ticket -->
     <section class="card">
       <div class="hd">
-        <div class="t">Vista previa del ticket</div>
-        <div class="pill">listo para imprimir</div>
+        <div class="t">Ticket</div>
+        <div class="badge">listo para imprimir</div>
       </div>
-      <div class="bd ticketWrap">
+      <div class="bd">
         <div class="ticket" id="ticket">
           <div class="center">
             <h2 id="tEmpresa">CARNES Y VÍSCERAS DEL CENTRO</h2>
@@ -280,14 +318,12 @@ DEPOSITO</textarea>
           </div>
 
           <div class="line"></div>
-
           <div class="r"><span>Empleado</span><strong id="tNombre">—</strong></div>
           <div class="r"><span>Fecha</span><span id="tFecha" class="muted">—</span></div>
-
           <div class="line"></div>
 
           <div id="tBody">
-            <div class="r"><span class="muted">Configura y lee el Excel…</span><span class="muted">—</span></div>
+            <div class="r"><span class="muted">Selecciona un trabajador…</span><span class="muted">—</span></div>
           </div>
 
           <div class="sig">
@@ -304,28 +340,20 @@ DEPOSITO</textarea>
 
 <script>
   // ===== Helpers =====
-  const $ = (s)=>document.querySelector(s);
-  const cleanStr = (s)=> (s??"").toString().replace(/\s+/g," ").trim();
-  const upper = (s)=> cleanStr(s).toUpperCase();
-  const isNum = (v)=> typeof v === "number" && isFinite(v);
-
-  const money = (n)=>{
-    if(n === null || n === undefined || n === "") return "0.00";
+  const $ = s => document.querySelector(s);
+  const clean = s => (s ?? "").toString().replace(/\s+/g," ").trim();
+  const upper = s => clean(s).toUpperCase();
+  const isNum = v => typeof v === "number" && isFinite(v);
+  const money = n => {
     const x = Number(n);
-    if(Number.isNaN(x)) return "0.00";
+    if(!isFinite(x)) return "0.00";
     return x.toLocaleString("es-MX",{minimumFractionDigits:2, maximumFractionDigits:2});
   };
-
-  function colToIndex(col){
-    // "A"->0, "B"->1, ..., "AA"->26
-    const s = cleanStr(col).toUpperCase();
-    if(!/^[A-Z]+$/.test(s)) throw new Error("Columna inválida: " + col);
-    let n = 0;
-    for(let i=0;i<s.length;i++){
-      n = n*26 + (s.charCodeAt(i)-64);
-    }
-    return n-1;
-  }
+  const colLetter = (n)=>{ // 0->A
+    let s=""; n++;
+    while(n>0){ const m=(n-1)%26; s=String.fromCharCode(65+m)+s; n=Math.floor((n-1)/26); }
+    return s;
+  };
 
   function setStatus(text, good=true){
     const pill = $("#statusPill");
@@ -336,262 +364,480 @@ DEPOSITO</textarea>
   }
   function showWarn(msg){
     const w = $("#warn");
-    w.style.display = "block";
+    w.style.display="block";
     w.textContent = msg;
   }
   function hideWarn(){
     const w = $("#warn");
-    w.style.display = "none";
-    w.textContent = "";
+    w.style.display="none";
+    w.textContent="";
+  }
+
+  // ===== Config / concepts =====
+  const CONCEPTS = [
+    "SUELDO","EXT","TOTAL","IMSS","ISR","INFONAVIT","A CTA","NETO","DEPOSITO"
+  ];
+  const CONCEPT_ALIASES = new Map([
+    ["DEPÓSITO","DEPOSITO"],
+    ["DEPOSITO ","DEPOSITO"],
+    ["A_CTA","A CTA"],
+    ["ACTA","A CTA"],
+  ]);
+
+  function normConcept(s){
+    const u = upper(s);
+    if(CONCEPT_ALIASES.has(u)) return CONCEPT_ALIASES.get(u);
+    return u;
   }
 
   // ===== State =====
-  let WB = null;
-  let AOA = null;
-  let EMP = [];
-  let EMP_BY_ID = {};
+  let wb=null, aoa=null, sheetName=null;
+  let selected = { r:null, c:null };       // clicked cell
+  let currentWorker = null;                // {name, anchor:{r,c}, values:{concept->number}}
+  const workersByAnchor = new Map();       // "r,c" -> worker object
 
-  function getConceptSet(){
-    const raw = ($("#concepts").value || "").split("\n").map(s=>upper(s)).filter(Boolean);
-    return new Set(raw);
-  }
-
-  function parseWithCalibration(aoa){
-    const rowNames = Number($("#rowNames").value||1) - 1;  // to 0-index
-    const rowStart = Number($("#rowStart").value||1) - 1;
-    const colConcept = colToIndex($("#colConcept").value || "A");
-    const colFirstVal = colToIndex($("#colFirstVal").value || "B");
-    const colStep = Math.max(1, Number($("#colStep").value||1));
-    const countWorkers = Number($("#countWorkers").value||0);
-    const valid = getConceptSet();
-
-    if(!aoa || !aoa.length) throw new Error("AOA vacío");
-
-    const maxCols = Math.max(...aoa.map(r => (r||[]).length));
-    const namesRow = aoa[rowNames] || [];
-
-    // Detectar columnas de trabajadores
-    const cols = [];
-    for(let c=colFirstVal; c<maxCols; c+=colStep){
-      const name = cleanStr(namesRow[c]);
-      if(name) cols.push({col:c, name});
-      if(countWorkers > 0 && cols.length >= countWorkers) break;
+  // ===== UI: fields list =====
+  function renderFields(){
+    const ul = $("#fieldsList");
+    ul.innerHTML = "";
+    if(!currentWorker){
+      $("#currentName").textContent = "—";
+      ul.innerHTML = `<li><b>—</b><span class="v">Selecciona un nombre</span></li>`;
+      return;
     }
-    if(!cols.length) throw new Error("No detecté nombres. Revisa 'Fila de NOMBRES' y 'Primera columna de VALORES'.");
+    $("#currentName").textContent = currentWorker.name;
 
-    // Leer conceptos y valores
-    const employees = cols.map(x=>({ id:`${x.name}__c${x.col}`, nombre:x.name, lines:{}, notes:[] }));
-
-    for(let r=rowStart; r<aoa.length; r++){
-      const concept = upper(aoa[r]?.[colConcept]);
-      if(!concept) continue;
-
-      // si no es concepto válido lo ignoramos (esto evita agarrar basura)
-      if(!valid.has(concept)) continue;
-
-      employees.forEach((emp, i)=>{
-        const v = aoa[r]?.[cols[i].col];
-        if(isNum(v)) emp.lines[concept] = v;
-        else if(v === 0) emp.lines[concept] = 0;
-      });
-    }
-
-    // Calcular TOTAL/NETO si faltan
-    for(const emp of employees){
-      const sueldo = isNum(emp.lines["SUELDO"]) ? emp.lines["SUELDO"] : 0;
-      const ext    = isNum(emp.lines["EXT"]) ? emp.lines["EXT"] : 0;
-      const total  = isNum(emp.lines["TOTAL"]) ? emp.lines["TOTAL"] : (sueldo + ext);
-
-      const imss = isNum(emp.lines["IMSS"]) ? emp.lines["IMSS"] : 0;
-      const isr  = isNum(emp.lines["ISR"]) ? emp.lines["ISR"] : 0;
-      const info = isNum(emp.lines["INFONAVIT"]) ? emp.lines["INFONAVIT"] : 0;
-      const acta = isNum(emp.lines["A CTA"]) ? emp.lines["A CTA"] : 0;
-
-      if(!isNum(emp.lines["TOTAL"])) emp.lines["TOTAL"] = total;
-
-      const netoCalc = total - imss - isr - info - acta;
-      if(!isNum(emp.lines["NETO"])) emp.lines["NETO"] = netoCalc;
-    }
-
-    employees.sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
-    return employees;
-  }
-
-  function renderPreviewTable(employees){
-    const body = $("#previewBody");
-    const valid = Array.from(getConceptSet());
-    body.innerHTML = "";
-
-    // mostrar máximo 120 filas para no saturar
-    let shown = 0;
-
-    for(const emp of employees){
-      for(const c of valid){
-        if(emp.lines[c] === undefined) continue;
-        const tr = document.createElement("tr");
-        tr.innerHTML = `<td>${emp.nombre}</td><td>${c}</td><td>$${money(emp.lines[c])}</td>`;
-        body.appendChild(tr);
-        shown++;
-        if(shown >= 120) break;
-      }
-      if(shown >= 120) break;
-    }
-
-    if(!shown){
-      body.innerHTML = `<tr><td colspan="3" class="danger">No se detectaron valores. Ajusta fila/columna y vuelve a leer.</td></tr>`;
+    for(const k of CONCEPTS){
+      const v = currentWorker.values?.[k];
+      const li = document.createElement("li");
+      li.innerHTML = `<b>${k}</b><span class="v">$${v==null ? "—" : money(v)}</span>`;
+      ul.appendChild(li);
     }
   }
 
-  function refreshWorkerSelect(){
-    const sel = $("#worker");
-    sel.innerHTML = `<option value="">— Selecciona —</option>`;
-    for(const e of EMP){
-      const opt = document.createElement("option");
-      opt.value = e.id;
-      opt.textContent = e.nombre;
-      sel.appendChild(opt);
+  // ===== Ticket render =====
+  function renderTicket(){
+    $("#tEmpresa").textContent = clean($("#empresa").value) || "—";
+    $("#tFecha").textContent = new Date().toISOString().slice(0,10);
+
+    if(!currentWorker){
+      $("#tNombre").textContent = "—";
+      $("#tBody").innerHTML = `<div class="r"><span class="muted">Selecciona un trabajador…</span><span class="muted">—</span></div>`;
+      $("#btnPrint").disabled = true;
+      return;
     }
-    const ok = EMP.length > 0;
-    sel.disabled = !ok;
-    $("#btnPrint").disabled = !ok;
-  }
+    $("#tNombre").textContent = currentWorker.name;
 
-  function renderTicket(emp){
-    $("#tEmpresa").textContent = cleanStr($("#empresa").value) || "—";
-    $("#tNombre").textContent = emp?.nombre || "—";
-    $("#tFecha").textContent  = new Date().toISOString().slice(0,10);
+    const V = currentWorker.values || {};
+    const sueldo = isFinite(Number(V["SUELDO"])) ? Number(V["SUELDO"]) : 0;
+    const ext    = isFinite(Number(V["EXT"])) ? Number(V["EXT"]) : 0;
+    const total  = isFinite(Number(V["TOTAL"])) ? Number(V["TOTAL"]) : (sueldo + ext);
+    const imss   = isFinite(Number(V["IMSS"])) ? Number(V["IMSS"]) : 0;
+    const isr    = isFinite(Number(V["ISR"])) ? Number(V["ISR"]) : 0;
+    const info   = isFinite(Number(V["INFONAVIT"])) ? Number(V["INFONAVIT"]) : 0;
+    const acta   = isFinite(Number(V["A CTA"])) ? Number(V["A CTA"]) : 0;
+    const neto   = isFinite(Number(V["NETO"])) ? Number(V["NETO"]) : (total - imss - isr - info - acta);
+    const depo   = isFinite(Number(V["DEPOSITO"])) ? Number(V["DEPOSITO"]) : null;
 
-    const L = (k)=> emp?.lines?.[k];
+    const rows = [];
+    rows.push(`<div class="r"><span>SUELDO</span><strong>$${money(sueldo)}</strong></div>`);
+    rows.push(`<div class="r"><span>EXT</span><strong>$${money(ext)}</strong></div>`);
+    rows.push(`<div class="r"><span class="muted">TOTAL</span><strong>$${money(total)}</strong></div>`);
 
-    const sueldo = isNum(L("SUELDO")) ? L("SUELDO") : 0;
-    const ext    = isNum(L("EXT")) ? L("EXT") : 0;
-    const total  = isNum(L("TOTAL")) ? L("TOTAL") : (sueldo + ext);
-    const imss   = isNum(L("IMSS")) ? L("IMSS") : 0;
-    const isr    = isNum(L("ISR")) ? L("ISR") : 0;
-    const info   = isNum(L("INFONAVIT")) ? L("INFONAVIT") : 0;
-    const acta   = isNum(L("A CTA")) ? L("A CTA") : 0;
-    const neto   = isNum(L("NETO")) ? L("NETO") : (total - imss - isr - info - acta);
-    const depo   = isNum(L("DEPOSITO")) ? L("DEPOSITO") : null;
-
-    const lines = [];
-    lines.push(`<div class="r"><span>SUELDO</span><strong>$${money(sueldo)}</strong></div>`);
-    lines.push(`<div class="r"><span>EXT</span><strong>$${money(ext)}</strong></div>`);
-    lines.push(`<div class="r"><span class="muted">TOTAL</span><strong>$${money(total)}</strong></div>`);
-
-    lines.push(`<div class="line"></div>`);
-    lines.push(`<div class="r"><span class="muted">MENOS IMSS</span><span>$${money(imss)}</span></div>`);
-    lines.push(`<div class="r"><span class="muted">MENOS ISR</span><span>$${money(isr)}</span></div>`);
-    lines.push(`<div class="r"><span class="muted">MENOS INFONAVIT</span><span>$${money(info)}</span></div>`);
+    rows.push(`<div class="line"></div>`);
+    rows.push(`<div class="r"><span class="muted">MENOS IMSS</span><span>$${money(imss)}</span></div>`);
+    rows.push(`<div class="r"><span class="muted">MENOS ISR</span><span>$${money(isr)}</span></div>`);
+    rows.push(`<div class="r"><span class="muted">MENOS INFONAVIT</span><span>$${money(info)}</span></div>`);
     if(acta){
-      lines.push(`<div class="r"><span class="muted">A CTA</span><span>$${money(acta)}</span></div>`);
+      rows.push(`<div class="r"><span class="muted">A CTA</span><span>$${money(acta)}</span></div>`);
     }
 
-    lines.push(`<div class="line"></div>`);
-    lines.push(`<div class="r"><span class="big">NETO A PAGAR</span><strong class="big">$${money(neto)}</strong></div>`);
+    rows.push(`<div class="line"></div>`);
+    rows.push(`<div class="r"><span class="big">NETO A PAGAR</span><strong class="big">$${money(neto)}</strong></div>`);
     if(depo !== null){
-      lines.push(`<div class="r"><span class="muted">DEPÓSITO</span><span>$${money(depo)}</span></div>`);
+      rows.push(`<div class="r"><span class="muted">DEPÓSITO</span><span>$${money(depo)}</span></div>`);
     }
 
-    $("#tBody").innerHTML = lines.join("");
+    $("#tBody").innerHTML = rows.join("");
+    $("#btnPrint").disabled = false;
   }
 
-  async function loadWorkbook(file){
-    const data = await file.arrayBuffer();
-    WB = XLSX.read(data, {type:"array"});
-    const sheets = WB.SheetNames || [];
-    const sel = $("#sheet");
-    sel.innerHTML = sheets.map(s=>`<option value="${s}">${s}</option>`).join("");
-    sel.disabled = sheets.length === 0;
-    $("#btnParse").disabled = sheets.length === 0;
+  // ===== Excel viewer render =====
+  function buildExcelTable(aoa, maxRows=60, maxCols=24){
+    const rows = Math.min(aoa.length, maxRows);
+    let cols = 0;
+    for(let r=0;r<rows;r++) cols = Math.max(cols, (aoa[r]||[]).length);
+    cols = Math.min(cols, maxCols);
 
-    setStatus("Excel cargado. Selecciona hoja y calibra.", true);
+    const wrap = $("#excelWrap");
+    wrap.innerHTML = "";
 
-    // auto: primera hoja
-    sel.value = sheets[0] || "";
-    await loadSheetAOA(sel.value);
-  }
+    const table = document.createElement("table");
+    table.className = "excel";
 
-  async function loadSheetAOA(sheetName){
-    if(!WB || !sheetName) return;
-    const ws = WB.Sheets[sheetName];
-    AOA = XLSX.utils.sheet_to_json(ws, {header:1, raw:true, defval:null});
-  }
+    // header row
+    const thead = document.createElement("thead");
+    const hr = document.createElement("tr");
+    const corner = document.createElement("th");
+    corner.className="corner";
+    corner.textContent = "";
+    hr.appendChild(corner);
 
-  function doParse(){
-    hideWarn();
-    try{
-      EMP = parseWithCalibration(AOA);
-      EMP_BY_ID = Object.fromEntries(EMP.map(e=>[e.id,e]));
-      refreshWorkerSelect();
-      renderPreviewTable(EMP);
+    for(let c=0;c<cols;c++){
+      const th = document.createElement("th");
+      th.textContent = colLetter(c);
+      hr.appendChild(th);
+    }
+    thead.appendChild(hr);
+    table.appendChild(thead);
 
-      setStatus(`Leído: ${EMP.length} trabajadores`, true);
+    // body
+    const tbody = document.createElement("tbody");
+    for(let r=0;r<rows;r++){
+      const tr = document.createElement("tr");
+      const rh = document.createElement("td");
+      rh.className="rowhdr";
+      rh.textContent = String(r+1);
+      tr.appendChild(rh);
 
-      if(EMP.length){
-        $("#worker").value = EMP[0].id;
-        renderTicket(EMP[0]);
-      } else {
-        renderTicket(null);
+      for(let c=0;c<cols;c++){
+        const td = document.createElement("td");
+        td.className="cell";
+        td.dataset.r = r;
+        td.dataset.c = c;
+
+        const v = aoa[r]?.[c];
+        td.textContent = (v==null || v==="") ? "" : (isNum(v) ? v : v.toString());
+        tr.appendChild(td);
       }
-    }catch(err){
-      console.error(err);
-      setStatus("Error leyendo", false);
-      showWarn(err?.message || String(err));
-      $("#previewBody").innerHTML = `<tr><td colspan="3" class="danger">Error: ${cleanStr(err?.message||err)}</td></tr>`;
+      tbody.appendChild(tr);
+    }
+    table.appendChild(tbody);
+    wrap.appendChild(table);
+
+    table.addEventListener("click", onCellClick);
+    paintSelections();
+  }
+
+  function paintSelections(){
+    const table = $("#excelWrap table");
+    if(!table) return;
+    table.querySelectorAll("td.cell").forEach(td=>{
+      td.classList.remove("selected","nameCell");
+    });
+
+    // selected cell
+    if(selected.r!=null){
+      const td = table.querySelector(`td.cell[data-r="${selected.r}"][data-c="${selected.c}"]`);
+      if(td) td.classList.add("selected");
+    }
+
+    // name anchors
+    for(const [key, w] of workersByAnchor){
+      const [r,c] = key.split(",").map(Number);
+      const td = table.querySelector(`td.cell[data-r="${r}"][data-c="${c}"]`);
+      if(td) td.classList.add("nameCell");
     }
   }
 
-  // ===== Events =====
-  $("#paper").addEventListener("change", ()=> {
+  // ===== Logic: determine if cell is a "name" =====
+  function looksLikeNameCell(v){
+    if(v==null) return false;
+    if(isNum(v)) return false;
+    const s = clean(v);
+    if(!s) return false;
+    const u = upper(s);
+    // avoid concepts
+    if(CONCEPTS.includes(normConcept(u))) return false;
+    // many names in your sheet are uppercase and short-ish
+    if(u.length >= 3 && u.length <= 30) return true;
+    return false;
+  }
+
+  // ===== Logic: find concept on same row by scanning left =====
+  function findConceptAt(r,c){
+    // scan up to 6 columns to the left to find a known concept label
+    for(let j=c; j>=Math.max(0,c-6); j--){
+      const v = aoa?.[r]?.[j];
+      const s = clean(v);
+      if(!s) continue;
+      const k = normConcept(s);
+      if(CONCEPTS.includes(k)) return { concept:k, conceptCol:j };
+    }
+    return null;
+  }
+
+  // ===== Logic: get number value in row by scanning right from concept column =====
+  function findNumberRight(r, startCol){
+    // scan up to 6 cols right to find first numeric
+    for(let j=startCol+1; j<=startCol+6; j++){
+      const v = aoa?.[r]?.[j];
+      if(isNum(v)) return { value:v, valueCol:j };
+      // sometimes numbers come as strings like "2,170.00"
+      const s = clean(v);
+      if(s){
+        const num = parseMexNumber(s);
+        if(num!=null) return { value:num, valueCol:j };
+      }
+    }
+    return null;
+  }
+
+  function parseMexNumber(s){
+    // accepts "2,170.00" or "2.170,00" etc; keep it simple for mx: commas as thousands, dot as decimal
+    const t = clean(s).replace(/\$/g,"");
+    if(!t) return null;
+    // remove spaces
+    let x = t.replace(/\s/g,"");
+    // if it has both "." and "," and comma appears after dot -> maybe "2.170,00"
+    if(x.includes(".") && x.includes(",") && x.lastIndexOf(",") > x.lastIndexOf(".")){
+      x = x.replace(/\./g,"").replace(",",".");
+    } else {
+      x = x.replace(/,/g,"");
+    }
+    const n = Number(x);
+    return isFinite(n) ? n : null;
+  }
+
+  // ===== Auto-capture: scan block below name anchor =====
+  function autoCaptureFromAnchor(w){
+    if(!w?.anchor) return;
+    const ar = w.anchor.r, ac = w.anchor.c;
+
+    // in your excel: concepts are under the name, in same column as name (ac)
+    // scan next 50 rows
+    for(let r=ar+1; r<Math.min(aoa.length, ar+55); r++){
+      const label = clean(aoa[r]?.[ac]);
+      if(!label) continue;
+      const k = normConcept(label);
+      if(!CONCEPTS.includes(k)) continue;
+
+      const num = findNumberRight(r, ac);
+      if(num) w.values[k] = num.value;
+    }
+
+    // if TOTAL missing try compute from sueldo/ext
+    if(!isFinite(Number(w.values["TOTAL"]))){
+      const s = Number(w.values["SUELDO"]||0);
+      const e = Number(w.values["EXT"]||0);
+      w.values["TOTAL"] = s + e;
+    }
+    // if NETO missing compute
+    if(!isFinite(Number(w.values["NETO"]))){
+      const total = Number(w.values["TOTAL"]||0);
+      const imss = Number(w.values["IMSS"]||0);
+      const isr = Number(w.values["ISR"]||0);
+      const info = Number(w.values["INFONAVIT"]||0);
+      const acta = Number(w.values["A CTA"]||0);
+      w.values["NETO"] = total - imss - isr - info - acta;
+    }
+  }
+
+  // ===== Cell click handler =====
+  function onCellClick(e){
+    const td = e.target.closest("td.cell");
+    if(!td) return;
+
+    hideWarn();
+
+    const r = Number(td.dataset.r);
+    const c = Number(td.dataset.c);
+    selected = {r,c};
+
+    const v = aoa?.[r]?.[c];
+    $("#cellInfo").textContent = `Celda: ${colLetter(c)}${r+1} = ${clean(v) || "—"}`;
+
+    // If clicked a name-like cell, set worker
+    if(looksLikeNameCell(v)){
+      const name = upper(v);
+      const key = `${r},${c}`;
+
+      let w = workersByAnchor.get(key);
+      if(!w){
+        w = { name, anchor:{r,c}, values:{} };
+        workersByAnchor.set(key, w);
+      } else {
+        w.name = name;
+      }
+      currentWorker = w;
+
+      // auto capture block
+      autoCaptureFromAnchor(currentWorker);
+
+      // enable buttons
+      $("#btnAuto").disabled = false;
+      $("#btnClear").disabled = false;
+
+      renderFields();
+      renderTicket();
+      paintSelections();
+      return;
+    }
+
+    // Otherwise: treat as correction click (assign to concept of that row)
+    if(!currentWorker){
+      showWarn("Primero haz click en el NOMBRE del trabajador.");
+      paintSelections();
+      return;
+    }
+
+    // Determine concept from row by scanning left
+    const found = findConceptAt(r,c);
+    if(!found){
+      showWarn("No encontré el concepto en esa fila. Haz click en el número en la misma fila de SUELDO/EXT/TOTAL/...");
+      paintSelections();
+      return;
+    }
+
+    // Determine value: if clicked cell numeric use it; else try parse; else scan right from concept
+    let val = null;
+    if(isNum(v)) val = v;
+    else {
+      const p = parseMexNumber(clean(v));
+      if(p!=null) val = p;
+    }
+    if(val==null){
+      const right = findNumberRight(r, found.conceptCol);
+      if(right) val = right.value;
+    }
+
+    if(val==null){
+      showWarn("No encontré un número en esa fila. Haz click directamente en la celda del número (ej. 2170).");
+      paintSelections();
+      return;
+    }
+
+    currentWorker.values[found.concept] = val;
+
+    // recompute TOTAL/NETO if needed
+    if(found.concept === "SUELDO" || found.concept === "EXT"){
+      const s = Number(currentWorker.values["SUELDO"]||0);
+      const e2 = Number(currentWorker.values["EXT"]||0);
+      if(!isFinite(Number(currentWorker.values["TOTAL"]))) currentWorker.values["TOTAL"] = s + e2;
+    }
+    if(["TOTAL","IMSS","ISR","INFONAVIT","A CTA","SUELDO","EXT"].includes(found.concept)){
+      const total = Number(currentWorker.values["TOTAL"]||0);
+      const imss = Number(currentWorker.values["IMSS"]||0);
+      const isr = Number(currentWorker.values["ISR"]||0);
+      const info = Number(currentWorker.values["INFONAVIT"]||0);
+      const acta = Number(currentWorker.values["A CTA"]||0);
+      if(!isFinite(Number(currentWorker.values["NETO"]))) currentWorker.values["NETO"] = total - imss - isr - info - acta;
+    }
+
+    renderFields();
+    renderTicket();
+    paintSelections();
+  }
+
+  // ===== Load workbook =====
+  async function loadWorkbook(file){
+    const buf = await file.arrayBuffer();
+    wb = XLSX.read(buf, {type:"array"});
+    const names = wb.SheetNames || [];
+    $("#sheet").innerHTML = names.map(n=>`<option value="${n}">${n}</option>`).join("");
+    $("#sheet").disabled = names.length === 0;
+
+    sheetName = names[0] || null;
+    $("#sheet").value = sheetName || "";
+
+    await loadSheet(sheetName);
+    setStatus(`Excel cargado: ${names.length} hoja(s)`, true);
+
+    // enable print only after selecting worker
+    $("#btnPrint").disabled = true;
+    $("#btnAuto").disabled = true;
+    $("#btnClear").disabled = true;
+  }
+
+  async function loadSheet(name){
+    sheetName = name;
+    const ws = wb.Sheets[name];
+    aoa = XLSX.utils.sheet_to_json(ws, {header:1, raw:true, defval:null});
+
+    // reset selections on sheet change
+    selected = {r:null,c:null};
+    currentWorker = null;
+    workersByAnchor.clear();
+
+    buildExcelTable(aoa, 80, 22); // you can increase if you want
+    renderFields();
+    renderTicket();
+  }
+
+  // ===== Buttons =====
+  $("#paper").addEventListener("change", ()=>{
     document.documentElement.style.setProperty("--paperW", $("#paper").value);
+  });
+
+  $("#empresa").addEventListener("input", ()=>{
+    renderTicket();
+  });
+
+  $("#btnHelp").addEventListener("click", ()=>{
+    const box = $("#helpBox");
+    box.style.display = (box.style.display==="none" ? "block" : "none");
+  });
+
+  $("#btnAuto").addEventListener("click", ()=>{
+    if(!currentWorker) return;
+    autoCaptureFromAnchor(currentWorker);
+    renderFields();
+    renderTicket();
+  });
+
+  $("#btnClear").addEventListener("click", ()=>{
+    if(!currentWorker) return;
+    currentWorker.values = {};
+    renderFields();
+    renderTicket();
+  });
+
+  $("#btnPrint").addEventListener("click", ()=>{
+    if(!currentWorker){
+      showWarn("Selecciona un trabajador primero.");
+      return;
+    }
+    window.print();
   });
 
   $("#file").addEventListener("change", async (e)=>{
     const f = e.target.files?.[0];
     if(!f) return;
+    hideWarn();
     try{
+      if(typeof XLSX === "undefined"){
+        throw new Error("XLSX no cargó. Revisa conexión a internet o bloqueadores.");
+      }
       setStatus("Leyendo Excel…", true);
       await loadWorkbook(f);
-      doParse();
     }catch(err){
       console.error(err);
-      setStatus("Error al cargar Excel", false);
-      showWarn("No se pudo cargar el archivo. " + (err?.message||err));
+      setStatus("Error", false);
+      showWarn("Error cargando Excel: " + (err?.message || err));
     }
   });
 
   $("#sheet").addEventListener("change", async ()=>{
+    if(!wb) return;
     try{
-      await loadSheetAOA($("#sheet").value);
-      doParse();
+      await loadSheet($("#sheet").value);
     }catch(err){
       console.error(err);
-      showWarn("Error al cambiar de hoja: " + (err?.message||err));
+      showWarn("Error cambiando hoja: " + (err?.message || err));
     }
   });
 
-  $("#btnParse").addEventListener("click", doParse);
-
-  // auto re-parse cuando cambias calibración
-  ["rowNames","colConcept","rowStart","colFirstVal","colStep","countWorkers","concepts"].forEach(id=>{
-    $("#"+id).addEventListener("change", ()=> { if(AOA) doParse(); });
-  });
-
-  $("#empresa").addEventListener("input", ()=>{
-    const emp = EMP_BY_ID[$("#worker").value];
-    renderTicket(emp || null);
-  });
-
-  $("#worker").addEventListener("change", ()=>{
-    const emp = EMP_BY_ID[$("#worker").value];
-    renderTicket(emp || null);
-  });
-
-  $("#btnPrint").addEventListener("click", ()=> window.print());
-
-  // init
-  renderTicket(null);
+  // initial
   setStatus("Sin archivo", true);
+  renderFields();
+  renderTicket();
+
+  // enable print when worker selected
+  const origRenderTicket = renderTicket;
+  renderTicket = function(){
+    origRenderTicket();
+    $("#btnPrint").disabled = !currentWorker;
+  };
 </script>
 </body>
 </html>
