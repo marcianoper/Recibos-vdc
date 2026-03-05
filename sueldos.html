@@ -3,16 +3,15 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Recibos de Sueldo — Térmica</title>
+  <title>Nómina — Impresión Térmica (Excel tipo cuadros)</title>
 
-  <!-- SheetJS (leer Excel en el navegador) -->
+  <!-- SheetJS -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.19.3/dist/xlsx.full.min.js"></script>
 
   <style>
     :root{
       --bg:#0b1220;
       --card:#0f1b33;
-      --card2:#0c1730;
       --line:rgba(255,255,255,.12);
       --ink:#e9eefc;
       --muted:rgba(233,238,252,.72);
@@ -43,14 +42,14 @@
       z-index:5;
     }
     header .row{
-      max-width:1200px;margin:0 auto;
+      max-width:1240px;margin:0 auto;
       display:flex;align-items:center;justify-content:space-between;gap:12px;
       flex-wrap:wrap;
     }
     h1{margin:0;font-size:18px;letter-spacing:.2px}
     .sub{color:var(--muted);font-size:13px;margin-top:4px}
-    main{max-width:1200px;margin:0 auto;padding:16px;display:grid;gap:14px}
-    .grid{display:grid;grid-template-columns: 420px 1fr;gap:14px}
+    main{max-width:1240px;margin:0 auto;padding:16px;display:grid;gap:14px}
+    .grid{display:grid;grid-template-columns: 460px 1fr;gap:14px}
     @media (max-width: 980px){ .grid{grid-template-columns:1fr} }
 
     .card{
@@ -87,7 +86,7 @@
       color:var(--ink);
       padding:10px 12px;border-radius:12px;
       cursor:pointer;
-      font-weight:700;
+      font-weight:800;
     }
     button.primary{
       background:linear-gradient(180deg, rgba(34,197,94,.95), rgba(16,185,129,.9));
@@ -96,47 +95,36 @@
     }
     button.danger{background:rgba(239,68,68,.18);border-color:rgba(239,68,68,.35)}
     button:disabled{opacity:.45;cursor:not-allowed}
+
     .pill{font-size:12px;padding:6px 10px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
     .hint{font-size:12px;color:var(--muted);line-height:1.35}
-
-    table{
-      width:100%;
-      border-collapse:separate;
-      border-spacing:0;
-      font-size:12.5px;
-    }
-    thead th{
-      text-align:left;
-      padding:10px 10px;
-      color:var(--muted);
-      border-bottom:1px solid var(--line);
-      position:sticky; top:0;
-      background:rgba(11,18,32,.75);
-      backdrop-filter: blur(10px);
-    }
-    tbody td{
-      padding:9px 10px;
-      border-bottom:1px solid rgba(255,255,255,.06);
-      vertical-align:top;
-    }
-    .scroll{
-      max-height:540px; overflow:auto;
-      border-radius:16px;
-      border:1px solid var(--line);
-      background:rgba(0,0,0,.18);
-    }
     .mono{font-family:var(--mono)}
-    .right{text-align:right}
-    .small{font-size:11px}
-
     .badge{
       display:inline-flex; align-items:center; gap:8px;
       font-size:12px; color:var(--muted);
       border:1px solid var(--line);
       padding:8px 10px; border-radius:12px;
       background:rgba(0,0,0,.18);
-      margin-top:10px;
     }
+
+    .scroll{
+      max-height:620px; overflow:auto;
+      border-radius:16px;
+      border:1px solid var(--line);
+      background:rgba(0,0,0,.18);
+      padding:10px;
+    }
+    .emp{
+      display:flex; justify-content:space-between; gap:10px;
+      padding:10px 10px;
+      border-bottom:1px solid rgba(255,255,255,.06);
+      align-items:flex-start;
+    }
+    .emp:last-child{border-bottom:none}
+    .emp b{font-size:13px}
+    .emp .meta{font-size:12px;color:var(--muted);margin-top:2px}
+    .emp .amt{font-weight:900}
+    .right{text-align:right}
   </style>
 </head>
 
@@ -144,8 +132,8 @@
 <header>
   <div class="row">
     <div>
-      <h1>Recibos de Sueldo — Impresión Térmica</h1>
-      <div class="sub">Sube tu Excel → mapea columnas → imprime tickets por empleado (58mm/80mm).</div>
+      <h1>Nómina — Impresión Térmica (Excel tipo cuadros)</h1>
+      <div class="sub">Sube tu Excel como el de tus “cuadritos” → detecta empleados → imprime tickets 58mm/80mm.</div>
     </div>
     <span class="pill" id="statusPill">Sin archivo</span>
   </div>
@@ -170,24 +158,24 @@
             <select id="sheet"></select>
           </div>
           <div>
-            <label>Fila de encabezados (1 = primera fila)</label>
-            <input id="headerRow" type="number" min="1" value="1"/>
+            <label>Filtrar por nombre (opcional)</label>
+            <input id="filter" type="text" placeholder="Ej. juan, martin..."/>
           </div>
         </div>
 
         <div class="hr"></div>
 
-        <b style="font-size:13px">2) Configurar Ticket</b>
+        <b style="font-size:13px">2) Ticket</b>
         <div class="row2" style="margin-top:10px">
           <div>
             <label>Ancho impresora</label>
             <select id="paper">
-              <option value="58">58mm (más común)</option>
+              <option value="58">58mm</option>
               <option value="80">80mm</option>
             </select>
           </div>
           <div>
-            <label>Tamaño de letra</label>
+            <label>Tamaño letra</label>
             <select id="fontSize">
               <option value="11">Compacto</option>
               <option value="12" selected>Normal</option>
@@ -198,12 +186,12 @@
 
         <div class="row2" style="margin-top:10px">
           <div>
-            <label>Nombre empresa (opcional)</label>
+            <label>Empresa (opcional)</label>
             <input id="empresa" type="text" placeholder="Carnes y Vísceras del Centro"/>
           </div>
           <div>
             <label>Periodo (opcional)</label>
-            <input id="periodo" type="text" placeholder="Semana 10 / 2026-03-02 a 2026-03-08"/>
+            <input id="periodo" type="text" placeholder="Semana XX / fechas"/>
           </div>
         </div>
 
@@ -216,10 +204,10 @@
             </select>
           </div>
           <div>
-            <label>Separación entre recibos</label>
+            <label>Separación entre notas</label>
             <select id="gap">
               <option value="10" selected>Normal</option>
-              <option value="18">Grande (mejor corte)</option>
+              <option value="18">Grande</option>
               <option value="0">Sin espacio</option>
             </select>
           </div>
@@ -227,116 +215,50 @@
 
         <div class="row2" style="margin-top:10px">
           <div>
-            <label>Modo de impresión</label>
+            <label>Modo</label>
             <select id="printMode">
-              <option value="batch" selected>Lote (1 impresión con todos)</option>
+              <option value="batch" selected>Lote (una impresión)</option>
               <option value="onebyone">Uno por uno (nota por nota)</option>
             </select>
           </div>
           <div>
-            <label>Delay entre notas (ms)</label>
+            <label>Delay 1×1 (ms)</label>
             <input id="delayMs" type="number" min="200" value="800"/>
           </div>
         </div>
 
         <div class="hr"></div>
 
-        <b style="font-size:13px">3) Mapear columnas</b>
-        <div class="hint" style="margin-top:8px">
-          ✅ Si tu Excel trae columnas diferentes, no pasa nada: aquí las asignas.
-        </div>
-
-        <div class="row2" style="margin-top:10px">
-          <div>
-            <label>Empleado / Nombre</label>
-            <select id="colNombre"></select>
-          </div>
-          <div>
-            <label>Puesto (opcional)</label>
-            <select id="colPuesto"></select>
-          </div>
-        </div>
-
-        <div class="row2" style="margin-top:10px">
-          <div>
-            <label>Días trabajados (opcional)</label>
-            <select id="colDias"></select>
-          </div>
-          <div>
-            <label>Sueldo base (opcional)</label>
-            <select id="colBase"></select>
-          </div>
-        </div>
-
-        <div class="row2" style="margin-top:10px">
-          <div>
-            <label>Total percepciones (opcional)</label>
-            <select id="colPerc"></select>
-          </div>
-          <div>
-            <label>Total deducciones (opcional)</label>
-            <select id="colDedu"></select>
-          </div>
-        </div>
-
-        <div class="row2" style="margin-top:10px">
-          <div>
-            <label>Neto a pagar (recomendado)</label>
-            <select id="colNeto"></select>
-          </div>
-          <div>
-            <label>Observaciones (opcional)</label>
-            <select id="colObs"></select>
-          </div>
-        </div>
-
-        <div class="row2" style="margin-top:10px">
-          <div>
-            <label>Columna con desglose (opcional)</label>
-            <select id="colDetalle"></select>
-          </div>
-          <div>
-            <label>Filtrar empleado (opcional)</label>
-            <input id="filter" type="text" placeholder="Escribe parte del nombre..."/>
-          </div>
-        </div>
-
-        <div class="hr"></div>
-
         <div class="btns">
-          <button class="primary" id="btnGenerar" disabled>Imprimir (según modo)</button>
-          <button id="btnVista" disabled>Vista previa (1)</button>
+          <button class="primary" id="btnVista" disabled>Vista previa (1)</button>
+          <button class="primary" id="btnImprimir" disabled>Imprimir (según modo)</button>
           <button id="btnImprimir1x1" disabled>Imprimir 1×1</button>
           <button id="btnSiguiente" disabled>Imprimir siguiente</button>
           <button class="danger" id="btnReset" disabled>Limpiar</button>
         </div>
 
-        <div class="badge" id="progressBadge" style="display:none">
-          <span>Progreso:</span>
-          <b class="mono" id="progressText">0/0</b>
+        <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          <span class="badge" id="countBadge" style="display:none">
+            Detectados: <b class="mono" id="countText">0</b>
+          </span>
+          <span class="badge" id="progressBadge" style="display:none">
+            Progreso: <b class="mono" id="progressText">0/0</b>
+          </span>
         </div>
 
-        <div class="hint" style="margin-top:12px">
-          Tip: si no existe “Neto”, se puede calcular (Percepciones - Deducciones).
-        </div>
-        <div class="hint" style="margin-top:6px">
-          Nota: desde HTML puro no se puede mandar “corte ESC/POS” directo; aquí simulamos “nota” con separación y/o uno por uno.
+        <div class="hint" style="margin-top:10px">
+          Este modo “inteligente” funciona con tu Excel de cuadros. Solo asegúrate de que los nombres estén arriba y los conceptos debajo (SUELDO/EXT/TOTAL/IMSS/ISR/INFONAVIT/A CTA/DEPOSITO…).
         </div>
       </div>
     </section>
 
     <section class="card">
       <div class="hd">
-        <b>Vista previa del Excel</b>
-        <span class="pill" id="rowsInfo">0 filas</span>
+        <b>Empleados detectados</b>
+        <span class="pill" id="rowsInfo">0</span>
       </div>
       <div class="bd">
-        <div class="scroll">
-          <table id="tbl">
-            <thead><tr id="thead"></tr></thead>
-            <tbody id="tbody"></tbody>
-          </table>
-        </div>
+        <div class="scroll" id="list"></div>
       </div>
     </section>
   </div>
@@ -348,16 +270,14 @@
   const statusPill = $("#statusPill");
   const fileInfo = $("#fileInfo");
   const rowsInfo = $("#rowsInfo");
+  const listDiv = $("#list");
 
   const fileInput = $("#file");
   const sheetSel = $("#sheet");
-  const headerRowInp = $("#headerRow");
+  const filterInp = $("#filter");
 
-  const tblHead = $("#thead");
-  const tblBody = $("#tbody");
-
-  const btnGenerar = $("#btnGenerar");
   const btnVista = $("#btnVista");
+  const btnImprimir = $("#btnImprimir");
   const btnImprimir1x1 = $("#btnImprimir1x1");
   const btnSiguiente = $("#btnSiguiente");
   const btnReset = $("#btnReset");
@@ -368,81 +288,51 @@
   const periodoInp = $("#periodo");
   const firmaSel = $("#firma");
   const gapSel = $("#gap");
-  const filterInp = $("#filter");
-
   const printModeSel = $("#printMode");
   const delayMsInp = $("#delayMs");
 
+  const countBadge = $("#countBadge");
+  const countText = $("#countText");
   const progressBadge = $("#progressBadge");
   const progressText = $("#progressText");
 
-  const mapSelects = {
-    nombre: $("#colNombre"),
-    puesto: $("#colPuesto"),
-    dias: $("#colDias"),
-    base: $("#colBase"),
-    perc: $("#colPerc"),
-    dedu: $("#colDedu"),
-    neto: $("#colNeto"),
-    obs: $("#colObs"),
-    detalle: $("#colDetalle"),
-  };
-
   let wb = null;
   let currentSheetName = "";
-  let dataRows = [];
-  let headers = [];
-
-  // Estado impresión 1x1
+  let matrix = [];         // 2D array
+  let employees = [];      // parsed
   let printQueue = [];
   let printIndex = 0;
-  let printWin = null; // ventana reutilizable para 1x1
+  let printWin = null;
 
   function setStatus(text, tone="muted"){
     statusPill.textContent = text;
-    statusPill.style.borderColor = "rgba(255,255,255,.12)";
     statusPill.style.color = "rgba(233,238,252,.75)";
-    if(tone==="ok"){ statusPill.style.color = "#86efac"; }
-    if(tone==="warn"){ statusPill.style.color = "#fcd34d"; }
-    if(tone==="bad"){ statusPill.style.color = "#fca5a5"; }
+    if(tone==="ok") statusPill.style.color = "#86efac";
+    if(tone==="warn") statusPill.style.color = "#fcd34d";
+    if(tone==="bad") statusPill.style.color = "#fca5a5";
   }
 
   function enableUI(on){
-    btnGenerar.disabled = !on;
     btnVista.disabled = !on;
+    btnImprimir.disabled = !on;
     btnImprimir1x1.disabled = !on;
     btnReset.disabled = !on;
-    // btnSiguiente se activa solo si hay cola
     btnSiguiente.disabled = true;
     progressBadge.style.display = "none";
   }
 
-  function clearTable(){
-    tblHead.innerHTML = "";
-    tblBody.innerHTML = "";
-    rowsInfo.textContent = "0 filas";
-  }
-
-  function fillSheetList(){
-    sheetSel.innerHTML = "";
-    (wb.SheetNames || []).forEach(n=>{
-      const opt = document.createElement("option");
-      opt.value = n; opt.textContent = n;
-      sheetSel.appendChild(opt);
-    });
-    currentSheetName = wb.SheetNames?.[0] || "";
-    sheetSel.value = currentSheetName;
-  }
-
   function safeText(v){
     if(v===null || v===undefined) return "";
-    return String(v).trim();
+    return String(v).replace(/\s+/g," ").trim();
   }
 
   function parseNumber(v){
     if(v===null || v===undefined) return null;
-    if(typeof v === "number") return v;
-    const s = String(v).replace(/[$,\s]/g,"").replace("—","").trim();
+    if(typeof v === "number") return isFinite(v) ? v : null;
+    const s = String(v)
+      .replace(/[$,\s]/g,"")
+      .replace("—","")
+      .trim();
     if(!s) return null;
     const n = Number(s);
     return isFinite(n) ? n : null;
@@ -463,193 +353,243 @@
       .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
   }
 
-  function buildMappingOptions(){
-    const opts = ["(vacío)"].concat(headers);
-    Object.values(mapSelects).forEach(sel=>{
-      sel.innerHTML = "";
-      opts.forEach(h=>{
-        const opt = document.createElement("option");
-        opt.value = (h==="(vacío)") ? "" : h;
-        opt.textContent = h;
-        sel.appendChild(opt);
-      });
+  // ====== PARSER INTELIGENTE PARA "CUADROS" ======
+  const LABELS = new Set([
+    "SUELDO","EXT","TOTAL","IMSS","ISR","INFONAVIT","A CTA","ACTA","DEPOSITO","DEPÓSITO",
+    "FALTA 1 DIA","FALTA 1 DÍA","EXT DIA FEST","EXT DÍA FEST","MENOS"
+  ]);
+
+  function looksLikeNameCell(v){
+    const s = safeText(v);
+    if(!s) return false;
+
+    const u = s.toUpperCase();
+    if(LABELS.has(u)) return false;
+
+    // No números sueltos / no $
+    if(/^\$/.test(s)) return false;
+    if(/^\d+(\.\d+)?$/.test(s)) return false;
+
+    // Debe tener letras
+    if(!/[A-ZÁÉÍÓÚÑa-záéíóúñ]/.test(s)) return false;
+
+    // Muchos nombres vienen en mayúsculas; si no lo están, igual lo aceptamos
+    // pero evitamos textos genéricos
+    const bad = ["SEMANA","NOMINA","NÓMINA","PAGO","RECIBO","TOTAL GENERAL"];
+    if(bad.some(x => u.includes(x))) return false;
+
+    // Suelen tener espacio (nombre + apellido) pero no siempre; no obligamos.
+    return true;
+  }
+
+  function isLabel(v){
+    const u = safeText(v).toUpperCase();
+    if(!u) return false;
+    return LABELS.has(u) || ["SUELDO","EXT","TOTAL","IMSS","ISR","INFONAVIT","A CTA","ACTA","DEPOSITO","DEPÓSITO","FALTA 1 DIA","FALTA 1 DÍA","EXT DIA FEST","EXT DÍA FEST"].includes(u);
+  }
+
+  function normLabel(v){
+    const u = safeText(v).toUpperCase();
+    if(u==="ACTA") return "A CTA";
+    if(u==="DEPÓSITO") return "DEPOSITO";
+    if(u==="FALTA 1 DÍA") return "FALTA 1 DIA";
+    if(u==="EXT DÍA FEST") return "EXT DIA FEST";
+    return u;
+  }
+
+  function findAmountNear(r, c){
+    // En tu formato: [label] [monto] [MENOS]
+    // el monto casi siempre está en c+1, si no, buscamos a la derecha en 3 columnas.
+    for(let k=1;k<=3;k++){
+      const n = parseNumber(matrix[r]?.[c+k]);
+      if(n!==null) return n;
+    }
+    // a veces el monto está en la misma celda (raro)
+    const n0 = parseNumber(matrix[r]?.[c]);
+    return n0!==null ? n0 : null;
+  }
+
+  function parseEmployeeAt(r, c){
+    const name = safeText(matrix[r][c]);
+    const fields = {};
+    const order = []; // para imprimir en el orden que salieron
+
+    let blankStreak = 0;
+
+    // escaneamos hacia abajo (máximo 28 filas por seguridad)
+    for(let i=r+1;i<Math.min(matrix.length, r+29);i++){
+      const cell = safeText(matrix[i]?.[c]);
+      if(!cell){
+        blankStreak++;
+        if(blankStreak>=3) break; // fin del bloque
+        continue;
+      }
+      blankStreak = 0;
+
+      // si encontramos otro nombre en la misma columna, termina bloque
+      if(looksLikeNameCell(cell) && !isLabel(cell)) break;
+
+      if(isLabel(cell)){
+        const lab = normLabel(cell);
+        const amt = findAmountNear(i, c);
+        if(amt!==null){
+          // si se repite una etiqueta, guardamos el último (o podrías acumular)
+          fields[lab] = amt;
+          if(!order.includes(lab)) order.push(lab);
+        }
+      }
+    }
+
+    // Heurística para neto: si hay DEPOSITO úsalo; si no, intenta TOTAL - (IMSS+ISR+INFONAVIT+A CTA+FALTA 1 DIA)
+    const total = fields["TOTAL"] ?? null;
+    const deposito = fields["DEPOSITO"] ?? null;
+
+    let ded = 0;
+    ["IMSS","ISR","INFONAVIT","A CTA","FALTA 1 DIA"].forEach(k=>{
+      const v = fields[k];
+      if(v!==null && v!==undefined) ded += Number(v)||0;
     });
 
-    const pick = (sel, candidates)=>{
-      const found = headers.find(h => candidates.some(c => h.toLowerCase().includes(c)));
-      if(found) sel.value = found;
-    };
-    pick(mapSelects.nombre, ["nombre","empleado","trabajador","colaborador"]);
-    pick(mapSelects.puesto, ["puesto","cargo","area","depart"]);
-    pick(mapSelects.dias, ["dias","días","jornada"]);
-    pick(mapSelects.base, ["base","sueldo","salario"]);
-    pick(mapSelects.perc, ["percep","ingres","bono","total perce"]);
-    pick(mapSelects.dedu, ["deduc","descu","prest","total dedu"]);
-    pick(mapSelects.neto, ["neto","a pagar","pagar","total neto"]);
-    pick(mapSelects.obs, ["obs","observ","nota"]);
-    pick(mapSelects.detalle, ["detalle","desglose","concepto"]);
-  }
+    let netoCalc = null;
+    if(deposito!==null) netoCalc = deposito;
+    else if(total!==null) netoCalc = total - ded;
 
-  function renderPreview(maxRows=40){
-    clearTable();
-    tblHead.innerHTML = headers.map(h=>`<th>${escapeHtml(h)}</th>`).join("");
-
-    const show = dataRows.slice(0, maxRows);
-    tblBody.innerHTML = show.map(r=>{
-      return `<tr>${
-        headers.map(h=>{
-          const v = r[h];
-          const t = (typeof v === "number") ? String(v) : safeText(v);
-          return `<td>${escapeHtml(t)}</td>`;
-        }).join("")
-      }</tr>`;
-    }).join("");
-
-    rowsInfo.textContent = `${dataRows.length} filas`;
-  }
-
-  function readSheet(){
-    if(!wb) return;
-
-    currentSheetName = sheetSel.value;
-    const ws = wb.Sheets[currentSheetName];
-    if(!ws){ setStatus("Hoja no encontrada", "bad"); return; }
-
-    const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
-    const headerRowIndex = Math.max(1, parseInt(headerRowInp.value || "1", 10)) - 1;
-
-    if(raw.length === 0){
-      setStatus("La hoja está vacía", "warn");
-      dataRows = []; headers = [];
-      clearTable();
-      enableUI(false);
-      return;
-    }
-    if(headerRowIndex >= raw.length){
-      setStatus("La fila de encabezados está fuera de rango", "bad");
-      enableUI(false);
-      return;
-    }
-
-    const headerArr = raw[headerRowIndex].map(x=>safeText(x) || "");
-    const normHeaders = headerArr.map((h,i)=> h ? h : `COL_${i+1}`);
-
-    const body = raw.slice(headerRowIndex+1)
-      .filter(row => row.some(cell => safeText(cell) !== ""));
-
-    headers = normHeaders;
-    dataRows = body.map(row=>{
-      const obj = {};
-      headers.forEach((h,i)=> obj[h] = row[i] ?? "");
-      return obj;
-    });
-
-    buildMappingOptions();
-    renderPreview();
-    setStatus("Archivo listo", "ok");
-    enableUI(headers.length>0 && dataRows.length>0);
-  }
-
-  fileInput.addEventListener("change", async (e)=>{
-    const f = e.target.files?.[0];
-    if(!f){
-      setStatus("Sin archivo");
-      fileInfo.textContent = "—";
-      enableUI(false);
-      clearTable();
-      return;
-    }
-
-    fileInfo.textContent = `${f.name} (${Math.round(f.size/1024)} KB)`;
-    setStatus("Leyendo Excel...", "warn");
-
-    const buf = await f.arrayBuffer();
-    wb = XLSX.read(buf, { type: "array" });
-
-    fillSheetList();
-    readSheet();
-  });
-
-  sheetSel.addEventListener("change", readSheet);
-  headerRowInp.addEventListener("change", readSheet);
-  headerRowInp.addEventListener("keyup", (ev)=>{ if(ev.key==="Enter") readSheet(); });
-
-  btnReset.addEventListener("click", ()=>{
-    wb = null;
-    currentSheetName = "";
-    headers = [];
-    dataRows = [];
-    fileInput.value = "";
-    sheetSel.innerHTML = "";
-    Object.values(mapSelects).forEach(s=> s.innerHTML="");
-    clearTable();
-    fileInfo.textContent = "—";
-    setStatus("Sin archivo");
-    enableUI(false);
-
-    // reset cola impresión
-    printQueue = [];
-    printIndex = 0;
-    if(printWin && !printWin.closed) printWin.close();
-    printWin = null;
-  });
-
-  function getMap(){
     return {
-      nombre: mapSelects.nombre.value,
-      puesto: mapSelects.puesto.value,
-      dias: mapSelects.dias.value,
-      base: mapSelects.base.value,
-      perc: mapSelects.perc.value,
-      dedu: mapSelects.dedu.value,
-      neto: mapSelects.neto.value,
-      obs: mapSelects.obs.value,
-      detalle: mapSelects.detalle.value,
+      name,
+      fields,
+      order,
+      total,
+      deposito,
+      deducciones: ded || 0,
+      neto: (netoCalc!==null && isFinite(netoCalc)) ? netoCalc : null,
+      _pos: {r,c}
     };
   }
 
-  function getFilteredRows(mapped){
-    const q = safeText(filterInp.value).toLowerCase();
+  function parseEmployeesFromMatrix(){
+    const found = [];
 
-    const rows = dataRows.map(r=>({
-      nombre: mapped.nombre ? r[mapped.nombre] : "",
-      puesto: mapped.puesto ? r[mapped.puesto] : "",
-      dias: mapped.dias ? r[mapped.dias] : "",
-      base: mapped.base ? r[mapped.base] : "",
-      perc: mapped.perc ? r[mapped.perc] : "",
-      dedu: mapped.dedu ? r[mapped.dedu] : "",
-      neto: mapped.neto ? r[mapped.neto] : "",
-      obs: mapped.obs ? r[mapped.obs] : "",
-      detalle: mapped.detalle ? r[mapped.detalle] : "",
-    }));
+    const rows = matrix.length;
+    const cols = Math.max(...matrix.map(r=>r.length || 0), 0);
 
-    if(!q) return rows;
-    return rows.filter(x => safeText(x.nombre).toLowerCase().includes(q));
+    for(let r=0;r<rows;r++){
+      for(let c=0;c<cols;c++){
+        const v = matrix[r]?.[c];
+        if(!looksLikeNameCell(v)) continue;
+
+        // Si justo abajo está "SUELDO" o "EXT" o "TOTAL", es muy probable que sea encabezado de bloque
+        const below = safeText(matrix[r+1]?.[c]).toUpperCase();
+        const below2 = safeText(matrix[r+2]?.[c]).toUpperCase();
+        const likelyBlock = (below==="SUELDO" || below==="EXT" || below==="TOTAL" || below2==="SUELDO" || below2==="EXT" || below2==="TOTAL");
+        if(!likelyBlock) continue;
+
+        const emp = parseEmployeeAt(r,c);
+
+        // Debe tener por lo menos TOTAL o DEPOSITO o SUELDO para considerarlo válido
+        const hasSomething = (emp.fields["TOTAL"]!=null) || (emp.fields["DEPOSITO"]!=null) || (emp.fields["SUELDO"]!=null);
+        if(!hasSomething) continue;
+
+        found.push(emp);
+      }
+    }
+
+    // Deduplicar por (name + row + col) primero, y por name si se repite igual
+    const seen = new Set();
+    const out = [];
+    for(const e of found){
+      const key = `${e.name}@@${e._pos.r}@@${e._pos.c}`;
+      if(seen.has(key)) continue;
+      seen.add(key);
+      out.push(e);
+    }
+
+    // Orden por nombre
+    out.sort((a,b)=> a.name.localeCompare(b.name, "es"));
+    return out;
   }
 
-  function buildSlipHTML(rows, opts){
+  // ====== UI LIST ======
+  function getFilteredEmployees(){
+    const q = safeText(filterInp.value).toLowerCase();
+    if(!q) return employees.slice();
+    return employees.filter(e => e.name.toLowerCase().includes(q));
+  }
+
+  function renderList(){
+    const arr = getFilteredEmployees();
+    rowsInfo.textContent = String(arr.length);
+    listDiv.innerHTML = arr.map(e=>{
+      const net = e.neto;
+      const t = e.total;
+      const dep = e.deposito;
+      const subtitle = [
+        (t!=null ? `Total: ${money(t)}` : null),
+        (dep!=null ? `Depósito: ${money(dep)}` : null),
+        (net!=null && dep==null ? `Neto calc: ${money(net)}` : null)
+      ].filter(Boolean).join(" • ");
+
+      return `
+        <div class="emp">
+          <div>
+            <b>${escapeHtml(e.name)}</b>
+            <div class="meta">${escapeHtml(subtitle || "—")}</div>
+          </div>
+          <div class="right">
+            <div class="amt">${escapeHtml(money(dep ?? net ?? t ?? 0))}</div>
+            <div class="meta">a pagar</div>
+          </div>
+        </div>
+      `;
+    }).join("") || `<div class="hint">No hay empleados con ese filtro.</div>`;
+  }
+
+  // ====== PRINT ======
+  function getOpts(){
+    return {
+      paper: paperSel.value,
+      fontSize: fontSizeSel.value,
+      empresa: empresaInp.value,
+      periodo: periodoInp.value,
+      firma: firmaSel.value,
+      gap: gapSel.value,
+    };
+  }
+
+  function buildSlipHTML(empList, opts){
     const width = (opts.paper === "80") ? "80mm" : "58mm";
     const fontSize = Number(opts.fontSize || 12);
     const gap = Number(opts.gap || 10);
-
     const empresa = safeText(opts.empresa);
     const periodo = safeText(opts.periodo);
     const showFirma = (opts.firma === "1");
 
-    const slips = rows.map((r)=>{
-      const nombre = safeText(r.nombre) || "(Sin nombre)";
-      const puesto = safeText(r.puesto);
-      const dias = safeText(r.dias);
+    function rowLine(label, value, strong=false){
+      if(value===null || value===undefined || !isFinite(value)) return "";
+      return `
+        <tr class="${strong?'total':''}">
+          <td>${escapeHtml(label)}</td>
+          <td class="right">${strong?`<b>${escapeHtml(money(value))}</b>`:escapeHtml(money(value))}</td>
+        </tr>
+      `;
+    }
 
-      const base = parseNumber(r.base);
-      const perc = parseNumber(r.perc);
-      const dedu = parseNumber(r.dedu);
-      const neto = parseNumber(r.neto);
+    const slips = empList.map(e=>{
+      const f = e.fields;
 
-      const obs = safeText(r.obs);
-      const detalle = safeText(r.detalle);
+      // Orden bonito
+      const sueldo = f["SUELDO"] ?? null;
+      const ext = f["EXT"] ?? null;
+      const extFest = f["EXT DIA FEST"] ?? null;
+      const total = f["TOTAL"] ?? null;
 
-      const netoCalc = (neto===null && perc!==null && dedu!==null) ? (perc - dedu) : neto;
+      const imss = f["IMSS"] ?? null;
+      const isr = f["ISR"] ?? null;
+      const inf = f["INFONAVIT"] ?? null;
+      const acta = f["A CTA"] ?? null;
+      const falta = f["FALTA 1 DIA"] ?? null;
+
+      const deposito = f["DEPOSITO"] ?? null;
+      const neto = (deposito!=null ? deposito : (e.neto ?? null));
 
       return `
         <section class="ticket">
@@ -658,31 +598,30 @@
           ${periodo ? `<div class="center small muted">${escapeHtml(periodo)}</div>` : ``}
           <div class="hr"></div>
 
-          <div class="row"><span class="lbl">Empleado:</span><span class="val">${escapeHtml(nombre)}</span></div>
-          ${puesto ? `<div class="row"><span class="lbl">Puesto:</span><span class="val">${escapeHtml(puesto)}</span></div>` : ``}
-          ${dias ? `<div class="row"><span class="lbl">Días:</span><span class="val">${escapeHtml(dias)}</span></div>` : ``}
+          <div class="row"><span class="lbl">Empleado:</span><span class="val">${escapeHtml(e.name)}</span></div>
 
           <div class="hr"></div>
 
           <table>
             <tbody>
-              ${base!==null ? `<tr><td>Sueldo base</td><td class="right">${escapeHtml(money(base))}</td></tr>` : ``}
-              ${perc!==null ? `<tr><td>Percepciones</td><td class="right">${escapeHtml(money(perc))}</td></tr>` : ``}
-              ${dedu!==null ? `<tr><td>Deducciones</td><td class="right">${escapeHtml(money(dedu))}</td></tr>` : ``}
-              ${netoCalc!==null ? `<tr class="total"><td><b>Neto a pagar</b></td><td class="right"><b>${escapeHtml(money(netoCalc))}</b></td></tr>` : ``}
+              ${rowLine("Sueldo", sueldo)}
+              ${rowLine("Extra", ext)}
+              ${rowLine("Extra fest", extFest)}
+              ${total!=null ? rowLine("Total", total, false) : ""}
+
+              ${(imss!=null || isr!=null || inf!=null || acta!=null || falta!=null) ? `
+                <tr><td colspan="2"><div class="sep">Deducciones</div></td></tr>
+              ` : ""}
+
+              ${rowLine("IMSS", imss)}
+              ${rowLine("ISR", isr)}
+              ${rowLine("INFONAVIT", inf)}
+              ${rowLine("A CTA", acta)}
+              ${rowLine("FALTA 1 DIA", falta)}
+
+              ${neto!=null ? rowLine("Neto / Depósito", neto, true) : ""}
             </tbody>
           </table>
-
-          ${detalle ? `
-            <div class="hr"></div>
-            <div class="small bold">Desglose</div>
-            <div class="small pre">${escapeHtml(detalle)}</div>
-          ` : ``}
-
-          ${obs ? `
-            <div class="hr"></div>
-            <div class="small"><b>Observaciones:</b> ${escapeHtml(obs)}</div>
-          ` : ``}
 
           ${showFirma ? `
             <div class="hr"></div>
@@ -707,7 +646,7 @@
       <head>
         <meta charset="utf-8"/>
         <meta name="viewport" content="width=device-width, initial-scale=1"/>
-        <title>Impresión Recibos</title>
+        <title>Impresión Nómina</title>
         <style>
           @page { margin: 0; }
           body{
@@ -724,7 +663,7 @@
           }
           .center{text-align:center}
           .right{text-align:right}
-          .bold{font-weight:800}
+          .bold{font-weight:900}
           .muted{opacity:.75}
           .title{font-size:${fontSize+2}px}
           .small{font-size:${Math.max(9, fontSize-2)}px}
@@ -738,7 +677,12 @@
           table{width:100%; border-collapse:collapse; margin-top:2px}
           td{padding:2px 0; vertical-align:top}
           tr.total td{padding-top:6px}
-          .pre{white-space:pre-wrap}
+          .sep{
+            margin:8px 0 4px;
+            font-weight:900;
+            border-top:1px dashed #000;
+            padding-top:6px;
+          }
           .firma{margin-top:6px}
           .line{border-top:1px solid #000; margin:18px 10px 6px}
           .cut{margin-top:10px; border-top: 2px dotted #000;}
@@ -752,9 +696,8 @@
       <body>
         ${slips}
         <script>
-  // auto-print
-  setTimeout(()=>{ window.print(); }, 250);
-<\/script>
+          setTimeout(()=>{ window.print(); }, 250);
+        <\/script>
       </body>
       </html>
     `;
@@ -772,76 +715,37 @@
     return w;
   }
 
-  function getOpts(){
-    return {
-      paper: paperSel.value,
-      fontSize: fontSizeSel.value,
-      empresa: empresaInp.value,
-      periodo: periodoInp.value,
-      firma: firmaSel.value,
-      gap: gapSel.value,
-    };
-  }
-
-  function validateBeforePrint(mapped, rows){
-    if(!mapped.nombre){
-      alert("Selecciona la columna de Nombre/Empleado.");
-      return false;
-    }
-    if(rows.length===0){
-      alert("No hay filas para imprimir (revisa filtro).");
-      return false;
-    }
-    if(!mapped.neto && (!mapped.perc || !mapped.dedu)){
-      const ok = confirm("No mapeaste 'Neto' ni (Percepciones y Deducciones). El ticket puede salir sin Neto. ¿Continuar?");
-      if(!ok) return false;
-    }
-    return true;
-  }
-
   function updateProgress(){
     progressBadge.style.display = "inline-flex";
     progressText.textContent = `${Math.min(printIndex, printQueue.length)}/${printQueue.length}`;
     btnSiguiente.disabled = !(printQueue.length>0 && printIndex < printQueue.length);
   }
 
-  // Imprime SOLO 1 ticket en la ventana reutilizable (1x1 real)
-  function printOneTicket(row){
-    const html = buildSlipHTML([row], getOpts());
+  function printOneTicket(emp){
+    const html = buildSlipHTML([emp], getOpts());
 
     if(!printWin || printWin.closed){
       printWin = openPrint(html);
       return;
     }
-
-    // reutilizar ventana (evita 100 popups)
     try{
       printWin.document.open();
       printWin.document.write(html);
       printWin.document.close();
     }catch(e){
-      // si el navegador bloquea reuso, reabrimos
       printWin = openPrint(html);
     }
   }
 
-  async function startPrintOneByOne(rows){
-    // Preparar cola
-    printQueue = rows.slice();
+  async function startPrintOneByOne(list){
+    printQueue = list.slice();
     printIndex = 0;
-
     if(printQueue.length===0) return;
 
     setStatus("Impresión 1×1 iniciada", "warn");
-    updateProgress();
-
-    // imprimir el primero
     printOneTicket(printQueue[printIndex]);
     printIndex++;
     updateProgress();
-    setStatus("Imprimiendo... (usa 'Imprimir siguiente')", "warn");
-
-    // activar botón siguiente
     btnSiguiente.disabled = false;
   }
 
@@ -852,7 +756,6 @@
       return;
     }
     const delay = Math.max(200, parseInt(delayMsInp.value || "800", 10));
-    // pequeño delay para que el spooler alcance (evita que se encime)
     await new Promise(r=>setTimeout(r, delay));
 
     printOneTicket(printQueue[printIndex]);
@@ -865,39 +768,112 @@
     }
   });
 
-  btnVista.addEventListener("click", ()=>{
-    const mapped = getMap();
-    const rows = getFilteredRows(mapped).slice(0, 1);
-    if(!validateBeforePrint(mapped, rows)) return;
+  // ====== EVENTS ======
+  function fillSheetList(){
+    sheetSel.innerHTML = "";
+    (wb.SheetNames || []).forEach(n=>{
+      const opt = document.createElement("option");
+      opt.value = n; opt.textContent = n;
+      sheetSel.appendChild(opt);
+    });
+    currentSheetName = wb.SheetNames?.[0] || "";
+    sheetSel.value = currentSheetName;
+  }
 
-    const html = buildSlipHTML(rows, getOpts());
+  function readSheet(){
+    if(!wb) return;
+    currentSheetName = sheetSel.value;
+    const ws = wb.Sheets[currentSheetName];
+    if(!ws){ setStatus("Hoja no encontrada", "bad"); return; }
+
+    const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
+    matrix = raw;
+
+    setStatus("Detectando empleados...", "warn");
+    employees = parseEmployeesFromMatrix();
+
+    countBadge.style.display = "inline-flex";
+    countText.textContent = String(employees.length);
+
+    renderList();
+    setStatus(employees.length ? "Listo para imprimir" : "No se detectaron empleados", employees.length ? "ok" : "warn");
+    enableUI(employees.length>0);
+  }
+
+  fileInput.addEventListener("change", async (e)=>{
+    const f = e.target.files?.[0];
+    if(!f){
+      setStatus("Sin archivo");
+      fileInfo.textContent = "—";
+      enableUI(false);
+      listDiv.innerHTML = "";
+      rowsInfo.textContent = "0";
+      countBadge.style.display = "none";
+      return;
+    }
+    fileInfo.textContent = `${f.name} (${Math.round(f.size/1024)} KB)`;
+    setStatus("Leyendo Excel...", "warn");
+
+    const buf = await f.arrayBuffer();
+    wb = XLSX.read(buf, { type: "array" });
+    fillSheetList();
+    readSheet();
+  });
+
+  sheetSel.addEventListener("change", readSheet);
+
+  filterInp.addEventListener("input", ()=>{
+    renderList();
+  });
+
+  btnReset.addEventListener("click", ()=>{
+    wb = null;
+    currentSheetName = "";
+    matrix = [];
+    employees = [];
+    fileInput.value = "";
+    sheetSel.innerHTML = "";
+    listDiv.innerHTML = "";
+    rowsInfo.textContent = "0";
+    fileInfo.textContent = "—";
+    setStatus("Sin archivo");
+    enableUI(false);
+    countBadge.style.display = "none";
+
+    printQueue = [];
+    printIndex = 0;
+    if(printWin && !printWin.closed) printWin.close();
+    printWin = null;
+  });
+
+  btnVista.addEventListener("click", ()=>{
+    const list = getFilteredEmployees();
+    if(!list.length){ alert("No hay empleados para el filtro."); return; }
+    const html = buildSlipHTML([list[0]], getOpts());
     openPrint(html);
   });
 
   btnImprimir1x1.addEventListener("click", async ()=>{
-    const mapped = getMap();
-    const rows = getFilteredRows(mapped);
-    if(!validateBeforePrint(mapped, rows)) return;
-
-    await startPrintOneByOne(rows);
+    const list = getFilteredEmployees();
+    if(!list.length){ alert("No hay empleados para el filtro."); return; }
+    await startPrintOneByOne(list);
   });
 
-  btnGenerar.addEventListener("click", async ()=>{
-    const mapped = getMap();
-    const rows = getFilteredRows(mapped);
-    if(!validateBeforePrint(mapped, rows)) return;
+  btnImprimir.addEventListener("click", async ()=>{
+    const list = getFilteredEmployees();
+    if(!list.length){ alert("No hay empleados para el filtro."); return; }
 
     const mode = printModeSel.value;
-
     if(mode === "batch"){
-      const html = buildSlipHTML(rows, getOpts());
+      const html = buildSlipHTML(list, getOpts());
       openPrint(html);
       return;
     }
-
-    // mode onebyone
-    await startPrintOneByOne(rows);
+    await startPrintOneByOne(list);
   });
+
+  // init
+  setStatus("Sin archivo");
 </script>
 </body>
 </html>
