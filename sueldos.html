@@ -128,6 +128,15 @@
     .mono{font-family:var(--mono)}
     .right{text-align:right}
     .small{font-size:11px}
+
+    .badge{
+      display:inline-flex; align-items:center; gap:8px;
+      font-size:12px; color:var(--muted);
+      border:1px solid var(--line);
+      padding:8px 10px; border-radius:12px;
+      background:rgba(0,0,0,.18);
+      margin-top:10px;
+    }
   </style>
 </head>
 
@@ -136,7 +145,7 @@
   <div class="row">
     <div>
       <h1>Recibos de Sueldo — Impresión Térmica</h1>
-      <div class="sub">Sube tu Excel → mapea columnas → genera recibos individuales para 58mm/80mm.</div>
+      <div class="sub">Sube tu Excel → mapea columnas → imprime tickets por empleado (58mm/80mm).</div>
     </div>
     <span class="pill" id="statusPill">Sin archivo</span>
   </div>
@@ -216,6 +225,20 @@
           </div>
         </div>
 
+        <div class="row2" style="margin-top:10px">
+          <div>
+            <label>Modo de impresión</label>
+            <select id="printMode">
+              <option value="batch" selected>Lote (1 impresión con todos)</option>
+              <option value="onebyone">Uno por uno (nota por nota)</option>
+            </select>
+          </div>
+          <div>
+            <label>Delay entre notas (ms)</label>
+            <input id="delayMs" type="number" min="200" value="800"/>
+          </div>
+        </div>
+
         <div class="hr"></div>
 
         <b style="font-size:13px">3) Mapear columnas</b>
@@ -281,13 +304,23 @@
         <div class="hr"></div>
 
         <div class="btns">
-          <button class="primary" id="btnGenerar" disabled>Generar e Imprimir</button>
-          <button id="btnVista" disabled>Vista previa ticket</button>
+          <button class="primary" id="btnGenerar" disabled>Imprimir (según modo)</button>
+          <button id="btnVista" disabled>Vista previa (1)</button>
+          <button id="btnImprimir1x1" disabled>Imprimir 1×1</button>
+          <button id="btnSiguiente" disabled>Imprimir siguiente</button>
           <button class="danger" id="btnReset" disabled>Limpiar</button>
+        </div>
+
+        <div class="badge" id="progressBadge" style="display:none">
+          <span>Progreso:</span>
+          <b class="mono" id="progressText">0/0</b>
         </div>
 
         <div class="hint" style="margin-top:12px">
           Tip: si no existe “Neto”, se puede calcular (Percepciones - Deducciones).
+        </div>
+        <div class="hint" style="margin-top:6px">
+          Nota: desde HTML puro no se puede mandar “corte ESC/POS” directo; aquí simulamos “nota” con separación y/o uno por uno.
         </div>
       </div>
     </section>
@@ -325,6 +358,8 @@
 
   const btnGenerar = $("#btnGenerar");
   const btnVista = $("#btnVista");
+  const btnImprimir1x1 = $("#btnImprimir1x1");
+  const btnSiguiente = $("#btnSiguiente");
   const btnReset = $("#btnReset");
 
   const paperSel = $("#paper");
@@ -334,6 +369,12 @@
   const firmaSel = $("#firma");
   const gapSel = $("#gap");
   const filterInp = $("#filter");
+
+  const printModeSel = $("#printMode");
+  const delayMsInp = $("#delayMs");
+
+  const progressBadge = $("#progressBadge");
+  const progressText = $("#progressText");
 
   const mapSelects = {
     nombre: $("#colNombre"),
@@ -352,6 +393,11 @@
   let dataRows = [];
   let headers = [];
 
+  // Estado impresión 1x1
+  let printQueue = [];
+  let printIndex = 0;
+  let printWin = null; // ventana reutilizable para 1x1
+
   function setStatus(text, tone="muted"){
     statusPill.textContent = text;
     statusPill.style.borderColor = "rgba(255,255,255,.12)";
@@ -364,7 +410,11 @@
   function enableUI(on){
     btnGenerar.disabled = !on;
     btnVista.disabled = !on;
+    btnImprimir1x1.disabled = !on;
     btnReset.disabled = !on;
+    // btnSiguiente se activa solo si hay cola
+    btnSiguiente.disabled = true;
+    progressBadge.style.display = "none";
   }
 
   function clearTable(){
@@ -536,6 +586,12 @@
     fileInfo.textContent = "—";
     setStatus("Sin archivo");
     enableUI(false);
+
+    // reset cola impresión
+    printQueue = [];
+    printIndex = 0;
+    if(printWin && !printWin.closed) printWin.close();
+    printWin = null;
   });
 
   function getMap(){
@@ -565,7 +621,6 @@
       neto: mapped.neto ? r[mapped.neto] : "",
       obs: mapped.obs ? r[mapped.obs] : "",
       detalle: mapped.detalle ? r[mapped.detalle] : "",
-      __raw: r
     }));
 
     if(!q) return rows;
@@ -697,7 +752,8 @@
       <body>
         ${slips}
         <script>
-          setTimeout(()=>{ window.print(); }, 300);
+          // auto-print
+          setTimeout(()=>{ window.print(); }, 250);
         </script>
       </body>
       </html>
@@ -708,58 +764,139 @@
     const w = window.open("", "_blank");
     if(!w){
       alert("Bloqueo de popups: permite popups para imprimir.");
-      return;
+      return null;
     }
     w.document.open();
     w.document.write(html);
     w.document.close();
+    return w;
   }
+
+  function getOpts(){
+    return {
+      paper: paperSel.value,
+      fontSize: fontSizeSel.value,
+      empresa: empresaInp.value,
+      periodo: periodoInp.value,
+      firma: firmaSel.value,
+      gap: gapSel.value,
+    };
+  }
+
+  function validateBeforePrint(mapped, rows){
+    if(!mapped.nombre){
+      alert("Selecciona la columna de Nombre/Empleado.");
+      return false;
+    }
+    if(rows.length===0){
+      alert("No hay filas para imprimir (revisa filtro).");
+      return false;
+    }
+    if(!mapped.neto && (!mapped.perc || !mapped.dedu)){
+      const ok = confirm("No mapeaste 'Neto' ni (Percepciones y Deducciones). El ticket puede salir sin Neto. ¿Continuar?");
+      if(!ok) return false;
+    }
+    return true;
+  }
+
+  function updateProgress(){
+    progressBadge.style.display = "inline-flex";
+    progressText.textContent = `${Math.min(printIndex, printQueue.length)}/${printQueue.length}`;
+    btnSiguiente.disabled = !(printQueue.length>0 && printIndex < printQueue.length);
+  }
+
+  // Imprime SOLO 1 ticket en la ventana reutilizable (1x1 real)
+  function printOneTicket(row){
+    const html = buildSlipHTML([row], getOpts());
+
+    if(!printWin || printWin.closed){
+      printWin = openPrint(html);
+      return;
+    }
+
+    // reutilizar ventana (evita 100 popups)
+    try{
+      printWin.document.open();
+      printWin.document.write(html);
+      printWin.document.close();
+    }catch(e){
+      // si el navegador bloquea reuso, reabrimos
+      printWin = openPrint(html);
+    }
+  }
+
+  async function startPrintOneByOne(rows){
+    // Preparar cola
+    printQueue = rows.slice();
+    printIndex = 0;
+
+    if(printQueue.length===0) return;
+
+    setStatus("Impresión 1×1 iniciada", "warn");
+    updateProgress();
+
+    // imprimir el primero
+    printOneTicket(printQueue[printIndex]);
+    printIndex++;
+    updateProgress();
+    setStatus("Imprimiendo... (usa 'Imprimir siguiente')", "warn");
+
+    // activar botón siguiente
+    btnSiguiente.disabled = false;
+  }
+
+  btnSiguiente.addEventListener("click", async ()=>{
+    if(printIndex >= printQueue.length){
+      setStatus("Impresión 1×1 terminada", "ok");
+      btnSiguiente.disabled = true;
+      return;
+    }
+    const delay = Math.max(200, parseInt(delayMsInp.value || "800", 10));
+    // pequeño delay para que el spooler alcance (evita que se encime)
+    await new Promise(r=>setTimeout(r, delay));
+
+    printOneTicket(printQueue[printIndex]);
+    printIndex++;
+    updateProgress();
+
+    if(printIndex >= printQueue.length){
+      setStatus("Impresión 1×1 terminada", "ok");
+      btnSiguiente.disabled = true;
+    }
+  });
 
   btnVista.addEventListener("click", ()=>{
     const mapped = getMap();
-    if(!mapped.nombre){
-      alert("Selecciona la columna de Nombre/Empleado.");
-      return;
-    }
     const rows = getFilteredRows(mapped).slice(0, 1);
-    if(rows.length===0){ alert("No hay filas con ese filtro."); return; }
+    if(!validateBeforePrint(mapped, rows)) return;
 
-    const html = buildSlipHTML(rows, {
-      paper: paperSel.value,
-      fontSize: fontSizeSel.value,
-      empresa: empresaInp.value,
-      periodo: periodoInp.value,
-      firma: firmaSel.value,
-      gap: gapSel.value,
-    });
+    const html = buildSlipHTML(rows, getOpts());
     openPrint(html);
   });
 
-  btnGenerar.addEventListener("click", ()=>{
+  btnImprimir1x1.addEventListener("click", async ()=>{
     const mapped = getMap();
-    if(!mapped.nombre){
-      alert("Selecciona la columna de Nombre/Empleado.");
-      return;
-    }
     const rows = getFilteredRows(mapped);
-    if(rows.length===0){
-      alert("No hay filas para imprimir (revisa filtro).");
+    if(!validateBeforePrint(mapped, rows)) return;
+
+    await startPrintOneByOne(rows);
+  });
+
+  btnGenerar.addEventListener("click", async ()=>{
+    const mapped = getMap();
+    const rows = getFilteredRows(mapped);
+    if(!validateBeforePrint(mapped, rows)) return;
+
+    const mode = printModeSel.value;
+
+    if(mode === "batch"){
+      const html = buildSlipHTML(rows, getOpts());
+      openPrint(html);
       return;
-    }
-    if(!mapped.neto && (!mapped.perc || !mapped.dedu)){
-      const ok = confirm("No mapeaste 'Neto' ni (Percepciones y Deducciones). El ticket saldrá sin Neto. ¿Continuar?");
-      if(!ok) return;
     }
 
-    const html = buildSlipHTML(rows, {
-      paper: paperSel.value,
-      fontSize: fontSizeSel.value,
-      empresa: empresaInp.value,
-      periodo: periodoInp.value,
-      firma: firmaSel.value,
-      gap: gapSel.value,
-    });
-    openPrint(html);
+    // mode onebyone
+    await startPrintOneByOne(rows);
   });
 </script>
 </body>
