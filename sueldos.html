@@ -3,20 +3,20 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Nómina — Ticket desde Excel (VDC360°)</title>
+  <title>Nómina — Calibrable (Excel → Ticket)</title>
 
   <!-- SheetJS (leer Excel en el navegador) -->
- <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+  <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
 
   <style>
     :root{
       --bg:#0b1220; --card:#0f1b33; --line:rgba(255,255,255,.12);
       --ink:#e9eefc; --muted:rgba(233,238,252,.72);
-      --brand:#22c55e; --warn:#f59e0b; --bad:#ef4444;
+      --brand:#22c55e; --bad:#ef4444;
       --r:18px; --shadow: 0 18px 60px rgba(0,0,0,.45);
       --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
       --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
-      --paperW: 80mm; /* cambia a 58mm si ocupas */
+      --paperW: 80mm;
     }
     *{box-sizing:border-box}
     body{
@@ -30,12 +30,12 @@
       border-bottom:1px solid var(--line);
       background: linear-gradient(180deg, rgba(255,255,255,.06), transparent);
     }
-    header h1{margin:0;font-size:18px;letter-spacing:.2px}
+    header h1{margin:0;font-size:18px}
     header p{margin:6px 0 0;color:var(--muted);font-size:13px}
 
-    main{max-width:1100px;margin:0 auto;padding:16px;display:grid;gap:16px}
-    .grid{display:grid;grid-template-columns:1.2fr .8fr;gap:16px}
-    @media (max-width:980px){ .grid{grid-template-columns:1fr} }
+    main{max-width:1250px;margin:0 auto;padding:16px;display:grid;gap:16px}
+    .grid{display:grid;grid-template-columns:1.3fr .7fr;gap:16px}
+    @media (max-width:1050px){ .grid{grid-template-columns:1fr} }
 
     .card{
       background:rgba(255,255,255,.04);
@@ -44,15 +44,16 @@
       box-shadow:var(--shadow);
       overflow:hidden;
     }
-    .card .hd{
+    .hd{
       padding:14px 14px 10px;
       border-bottom:1px solid var(--line);
       display:flex;align-items:center;justify-content:space-between;gap:10px;
     }
-    .card .hd .t{font-weight:800}
-    .card .bd{padding:14px}
+    .hd .t{font-weight:900}
+    .bd{padding:14px}
+
     label{display:block;font-size:12px;color:var(--muted);margin:10px 0 6px}
-    input, select, button{
+    input, select, button, textarea{
       width:100%; padding:11px 12px;
       border-radius:12px; border:1px solid var(--line);
       background:rgba(0,0,0,.20); color:var(--ink);
@@ -66,6 +67,7 @@
       margin-right:10px; cursor:pointer;
     }
     .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
     .btn{
       background: linear-gradient(180deg, rgba(34,197,94,.95), rgba(34,197,94,.75));
       border:none; cursor:pointer; font-weight:900;
@@ -76,7 +78,6 @@
       border:1px solid var(--line);
       box-shadow:none;
     }
-    .hint{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.35}
     .pill{
       display:inline-flex;align-items:center;gap:8px;
       padding:7px 10px;border:1px solid var(--line);
@@ -84,8 +85,26 @@
       font-size:12px;color:var(--muted);
       white-space:nowrap;
     }
+    .danger{color:#ffb4b4}
+    .hint{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.35}
 
-    /* ===== Ticket Preview ===== */
+    /* Preview table */
+    table{
+      width:100%; border-collapse:separate; border-spacing:0;
+      overflow:hidden; border-radius:14px;
+      border:1px solid var(--line);
+      background:rgba(0,0,0,.18);
+    }
+    th, td{
+      padding:10px 10px;
+      border-bottom:1px solid var(--line);
+      font-size:12px;
+      vertical-align:top;
+    }
+    th{ text-align:left; color:rgba(233,238,252,.90); background:rgba(255,255,255,.04) }
+    tr:last-child td{border-bottom:none}
+
+    /* Ticket */
     .ticketWrap{display:grid;gap:12px;align-content:start}
     .ticket{
       width: min(420px, 100%);
@@ -100,10 +119,7 @@
     .ticket .center{text-align:center}
     .ticket .muted{color:#444}
     .ticket .line{border-top:1px dashed rgba(0,0,0,.55);margin:8px 0}
-    .ticket .r{
-      display:flex;justify-content:space-between;gap:10px;
-      font-size:13px;
-    }
+    .ticket .r{display:flex;justify-content:space-between;gap:10px;font-size:13px}
     .ticket .r strong{font-weight:900}
     .ticket h2{margin:0;font-size:14px;letter-spacing:.4px}
     .ticket .mini{font-size:11px}
@@ -112,7 +128,7 @@
     .ticket .sig .mini{margin-bottom:4px}
     .ticket .sig .box{border-top:1px solid #000;padding-top:6px}
 
-    /* ===== Print (térmica) ===== */
+    /* Print */
     @media print{
       body{background:#fff}
       header, .noPrint{display:none !important}
@@ -126,66 +142,135 @@
       }
     }
     @page{ size: var(--paperW) auto; margin: 0; }
-
-    .danger{color:#ffb4b4}
-    .ok{color:#b8ffd0}
   </style>
 </head>
 
 <body>
 <header class="noPrint">
-  <h1>Nómina — Ticket desde Excel</h1>
-  <p>Sube tu Excel, selecciona trabajador y imprime en térmica (80mm / 58mm).</p>
+  <h1>Nómina — Calibrable (Excel → Ticket)</h1>
+  <p>Calibra fila/columna una vez y deja de “jalar datos que no son”.</p>
 </header>
 
 <main>
   <div class="grid">
+    <!-- LEFT -->
     <section class="card noPrint">
       <div class="hd">
-        <div class="t">Cargar Excel</div>
+        <div class="t">Carga + Calibración</div>
         <div class="pill" id="statusPill">Sin archivo</div>
       </div>
       <div class="bd">
+
         <label>Archivo de nómina (.xlsx)</label>
         <input id="file" type="file" accept=".xlsx,.xls" />
 
         <div class="row">
           <div>
+            <label>Hoja</label>
+            <select id="sheet" disabled>
+              <option value="">—</option>
+            </select>
+          </div>
+          <div>
+            <label>Empresa (sale en ticket)</label>
+            <input id="empresa" value="CARNES Y VÍSCERAS DEL CENTRO"/>
+          </div>
+        </div>
+
+        <div class="row3">
+          <div>
             <label>Impresora</label>
             <select id="paper">
-              <option value="80mm" selected>80 mm (POS-80 / JK-8002P)</option>
+              <option value="80mm" selected>80 mm</option>
               <option value="58mm">58 mm</option>
             </select>
           </div>
           <div>
-            <label>Empresa (sale en el ticket)</label>
-            <input id="empresa" value="CARNES Y VÍSCERAS DEL CENTRO" />
+            <label>Fila de NOMBRES</label>
+            <input id="rowNames" type="number" min="1" value="2"/>
           </div>
+          <div>
+            <label>Columna de CONCEPTOS</label>
+            <input id="colConcept" value="A"/>
+          </div>
+        </div>
+
+        <div class="row3">
+          <div>
+            <label>Fila inicio conceptos (SUELDO)</label>
+            <input id="rowStart" type="number" min="1" value="3"/>
+          </div>
+          <div>
+            <label>Primera columna de VALORES</label>
+            <input id="colFirstVal" value="B"/>
+          </div>
+          <div>
+            <label>Salto entre trabajadores (cols)</label>
+            <input id="colStep" type="number" min="1" value="4"/>
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label># trabajadores (opcional)</label>
+            <input id="countWorkers" type="number" min="0" value="0"/>
+          </div>
+          <div>
+            <label>Conceptos válidos (uno por línea)</label>
+            <textarea id="concepts" rows="6">SUELDO
+EXT
+TOTAL
+IMSS
+ISR
+INFONAVIT
+A CTA
+NETO
+DEPOSITO</textarea>
+          </div>
+        </div>
+
+        <div class="row">
+          <button class="btn" id="btnParse" disabled>LEER / ACTUALIZAR</button>
+          <button class="btn secondary" id="btnPrint" disabled>IMPRIMIR TICKET</button>
         </div>
 
         <label>Trabajador</label>
         <select id="worker" disabled>
-          <option value="">— Carga el Excel primero —</option>
+          <option value="">—</option>
         </select>
 
-        <div class="row">
-          <button class="btn" id="btnPrint" disabled>IMPRIMIR RECIBO</button>
-          <button class="btn secondary" id="btnReload" disabled>RECARGAR LISTA</button>
-        </div>
-
         <div class="hint">
-          ✅ Lee el Excel directo desde tu compu (por seguridad del navegador, siempre se selecciona con el botón).<br>
-          Tip: si sale cortado, cambia 80mm ↔ 58mm.
+          ✅ Ajusta los números/columnas hasta que la vista previa coincida con tu Excel.<br>
+          Columna en letra (A,B,C...) y fila en número (1,2,3...).
+        </div>
+        <div class="hint danger" id="warn" style="display:none"></div>
+
+        <div style="margin-top:12px">
+          <div class="pill">Vista previa (lo que se va a imprimir)</div>
+        </div>
+        <div style="margin-top:10px; overflow:auto; max-height:360px">
+          <table id="previewTable">
+            <thead>
+              <tr>
+                <th>Trabajador</th>
+                <th>Concepto</th>
+                <th>Valor</th>
+              </tr>
+            </thead>
+            <tbody id="previewBody">
+              <tr><td colspan="3" class="danger">Carga el Excel…</td></tr>
+            </tbody>
+          </table>
         </div>
 
-        <div class="hint danger" id="warn" style="display:none"></div>
       </div>
     </section>
 
+    <!-- RIGHT -->
     <section class="card">
       <div class="hd">
         <div class="t">Vista previa del ticket</div>
-        <div class="pill"><span class="ok">●</span> listo para imprimir</div>
+        <div class="pill">listo para imprimir</div>
       </div>
       <div class="bd ticketWrap">
         <div class="ticket" id="ticket">
@@ -202,7 +287,7 @@
           <div class="line"></div>
 
           <div id="tBody">
-            <div class="r"><span class="muted">Carga el Excel…</span><span class="muted">—</span></div>
+            <div class="r"><span class="muted">Configura y lee el Excel…</span><span class="muted">—</span></div>
           </div>
 
           <div class="sig">
@@ -218,10 +303,11 @@
 </main>
 
 <script>
-  // ===== Utilidades =====
+  // ===== Helpers =====
   const $ = (s)=>document.querySelector(s);
   const cleanStr = (s)=> (s??"").toString().replace(/\s+/g," ").trim();
-  const u = (s)=> cleanStr(s).toUpperCase();
+  const upper = (s)=> cleanStr(s).toUpperCase();
+  const isNum = (v)=> typeof v === "number" && isFinite(v);
 
   const money = (n)=>{
     if(n === null || n === undefined || n === "") return "0.00";
@@ -229,7 +315,17 @@
     if(Number.isNaN(x)) return "0.00";
     return x.toLocaleString("es-MX",{minimumFractionDigits:2, maximumFractionDigits:2});
   };
-  const isNum = (v)=> typeof v === "number" && isFinite(v);
+
+  function colToIndex(col){
+    // "A"->0, "B"->1, ..., "AA"->26
+    const s = cleanStr(col).toUpperCase();
+    if(!/^[A-Z]+$/.test(s)) throw new Error("Columna inválida: " + col);
+    let n = 0;
+    for(let i=0;i<s.length;i++){
+      n = n*26 + (s.charCodeAt(i)-64);
+    }
+    return n-1;
+  }
 
   function setStatus(text, good=true){
     const pill = $("#statusPill");
@@ -249,107 +345,58 @@
     w.textContent = "";
   }
 
-  // ===== PARSER ROBUSTO PARA TU EXCEL (bloques por columnas) =====
-  // Estrategia:
-  // 1) Detecta la celda donde aparece "SUELDO" (eso marca la columna de conceptos y la fila de conceptos).
-  // 2) Busca nombres en la fila de arriba (o dos arriba) para cada columna de valores.
-  // 3) Recorre hacia abajo leyendo: concepto (colConceptos) + valor (colEmpleado).
-  // 4) Normaliza etiquetas: SUELDO, EXT, TOTAL, IMSS, ISR, INFONAVIT, A CTA, NETO, DEPOSITO/DEPÓSITO.
-  function parseEmployeesFromAOA(aoa){
-    const labels = new Set(["SUELDO","EXT","TOTAL","MENOS","IMSS","ISR","INFONAVIT","A CTA","NETO","DEPOSITO","DEPÓSITO","DEPOSITO "]);
+  // ===== State =====
+  let WB = null;
+  let AOA = null;
+  let EMP = [];
+  let EMP_BY_ID = {};
 
-    // 1) Encontrar "SUELDO"
-    let labelRow = -1, labelCol = -1;
-    outer:
-    for(let r=0;r<Math.min(aoa.length, 40);r++){
-      const row = aoa[r] || [];
-      for(let c=0;c<Math.min(row.length, 40);c++){
-        if(u(row[c]) === "SUELDO"){
-          labelRow = r;
-          labelCol = c;
-          break outer;
-        }
-      }
+  function getConceptSet(){
+    const raw = ($("#concepts").value || "").split("\n").map(s=>upper(s)).filter(Boolean);
+    return new Set(raw);
+  }
+
+  function parseWithCalibration(aoa){
+    const rowNames = Number($("#rowNames").value||1) - 1;  // to 0-index
+    const rowStart = Number($("#rowStart").value||1) - 1;
+    const colConcept = colToIndex($("#colConcept").value || "A");
+    const colFirstVal = colToIndex($("#colFirstVal").value || "B");
+    const colStep = Math.max(1, Number($("#colStep").value||1));
+    const countWorkers = Number($("#countWorkers").value||0);
+    const valid = getConceptSet();
+
+    if(!aoa || !aoa.length) throw new Error("AOA vacío");
+
+    const maxCols = Math.max(...aoa.map(r => (r||[]).length));
+    const namesRow = aoa[rowNames] || [];
+
+    // Detectar columnas de trabajadores
+    const cols = [];
+    for(let c=colFirstVal; c<maxCols; c+=colStep){
+      const name = cleanStr(namesRow[c]);
+      if(name) cols.push({col:c, name});
+      if(countWorkers > 0 && cols.length >= countWorkers) break;
     }
-    if(labelRow === -1) throw new Error("No encontré la celda 'SUELDO' en el Excel.");
+    if(!cols.length) throw new Error("No detecté nombres. Revisa 'Fila de NOMBRES' y 'Primera columna de VALORES'.");
 
-    // 2) Detectar columnas de empleados (donde hay valores numéricos) y sus nombres en filas superiores
-    const nameRowsToTry = [labelRow-1, labelRow-2, labelRow-3].filter(x=>x>=0);
-    const conceptRows = aoa.slice(labelRow, Math.min(aoa.length, labelRow+40));
+    // Leer conceptos y valores
+    const employees = cols.map(x=>({ id:`${x.name}__c${x.col}`, nombre:x.name, lines:{}, notes:[] }));
 
-    // columnas candidatas: donde en la fila de SUELDO haya un número (o algo) a la derecha
-    const sueldoRow = aoa[labelRow] || [];
-    const maxC = Math.max(sueldoRow.length, 30);
-
-    const employeeCols = [];
-    for(let c=labelCol+1; c<maxC; c++){
-      const valAtSueldo = sueldoRow[c];
-
-      // si no hay nada en sueldo, probablemente no es una columna de empleado
-      if(valAtSueldo === null || valAtSueldo === undefined || valAtSueldo === "") continue;
-
-      // nombre arriba
-      let name = "";
-      for(const nr of nameRowsToTry){
-        const candidate = cleanStr(aoa[nr]?.[c]);
-        // evitar que agarre etiquetas como nombre
-        if(candidate && !labels.has(u(candidate))) { name = candidate; break; }
-      }
-      if(!name) continue;
-
-      employeeCols.push({ col:c, name });
-    }
-
-    if(!employeeCols.length){
-      throw new Error("Detecté 'SUELDO' pero no pude detectar columnas de trabajadores. Revisa que los nombres estén arriba de los valores.");
-    }
-
-    // 3) Construir empleados leyendo filas hacia abajo
-    const employees = employeeCols.map(ec=>({
-      id: `${ec.name}__c${ec.col}`,
-      nombre: ec.name,
-      lines: {},
-      notes: []
-    }));
-
-    for(let r=labelRow; r<aoa.length; r++){
-      const conceptRaw = aoa[r]?.[labelCol];
-      const concept = u(conceptRaw);
-
+    for(let r=rowStart; r<aoa.length; r++){
+      const concept = upper(aoa[r]?.[colConcept]);
       if(!concept) continue;
 
-      // notas tipo "FALTA 1 DIA" en la columna de conceptos
-      if(!labels.has(concept) && concept.length){
-        // si no es un concepto conocido y no tiene números al lado, lo guardamos como nota
-        let anyNumber = false;
-        for(const ec of employeeCols){
-          if(isNum(aoa[r]?.[ec.col])) { anyNumber = true; break; }
-        }
-        if(!anyNumber){
-          for(const emp of employees) emp.notes.push(cleanStr(conceptRaw));
-        }
-        continue;
-      }
+      // si no es concepto válido lo ignoramos (esto evita agarrar basura)
+      if(!valid.has(concept)) continue;
 
-      // normalizar DEPOSITO/DEPÓSITO
-      let key = concept;
-      if(key === "DEPÓSITO") key = "DEPOSITO";
-      if(key === "DEPOSITO ") key = "DEPOSITO";
-
-      // MENOS solo es separador
-      if(key === "MENOS") continue;
-
-      // leer valores por empleado
       employees.forEach((emp, i)=>{
-        const c = employeeCols[i].col;
-        const v = aoa[r]?.[c];
-
-        // solo guardamos si es numérico (o si viene algo pero no número, lo ignoramos)
-        if(isNum(v)) emp.lines[key] = v;
+        const v = aoa[r]?.[cols[i].col];
+        if(isNum(v)) emp.lines[concept] = v;
+        else if(v === 0) emp.lines[concept] = 0;
       });
     }
 
-    // 4) Completar TOTAL/NETO si faltan
+    // Calcular TOTAL/NETO si faltan
     for(const emp of employees){
       const sueldo = isNum(emp.lines["SUELDO"]) ? emp.lines["SUELDO"] : 0;
       const ext    = isNum(emp.lines["EXT"]) ? emp.lines["EXT"] : 0;
@@ -366,14 +413,34 @@
       if(!isNum(emp.lines["NETO"])) emp.lines["NETO"] = netoCalc;
     }
 
-    // ordenar
     employees.sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
     return employees;
   }
 
-  // ===== Estado =====
-  let EMP = [];
-  let EMP_BY_ID = {};
+  function renderPreviewTable(employees){
+    const body = $("#previewBody");
+    const valid = Array.from(getConceptSet());
+    body.innerHTML = "";
+
+    // mostrar máximo 120 filas para no saturar
+    let shown = 0;
+
+    for(const emp of employees){
+      for(const c of valid){
+        if(emp.lines[c] === undefined) continue;
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td>${emp.nombre}</td><td>${c}</td><td>$${money(emp.lines[c])}</td>`;
+        body.appendChild(tr);
+        shown++;
+        if(shown >= 120) break;
+      }
+      if(shown >= 120) break;
+    }
+
+    if(!shown){
+      body.innerHTML = `<tr><td colspan="3" class="danger">No se detectaron valores. Ajusta fila/columna y vuelve a leer.</td></tr>`;
+    }
+  }
 
   function refreshWorkerSelect(){
     const sel = $("#worker");
@@ -387,7 +454,6 @@
     const ok = EMP.length > 0;
     sel.disabled = !ok;
     $("#btnPrint").disabled = !ok;
-    $("#btnReload").disabled = !ok;
   }
 
   function renderTicket(emp){
@@ -416,91 +482,114 @@
     lines.push(`<div class="r"><span class="muted">MENOS IMSS</span><span>$${money(imss)}</span></div>`);
     lines.push(`<div class="r"><span class="muted">MENOS ISR</span><span>$${money(isr)}</span></div>`);
     lines.push(`<div class="r"><span class="muted">MENOS INFONAVIT</span><span>$${money(info)}</span></div>`);
-
     if(acta){
       lines.push(`<div class="r"><span class="muted">A CTA</span><span>$${money(acta)}</span></div>`);
     }
 
     lines.push(`<div class="line"></div>`);
     lines.push(`<div class="r"><span class="big">NETO A PAGAR</span><strong class="big">$${money(neto)}</strong></div>`);
-
     if(depo !== null){
       lines.push(`<div class="r"><span class="muted">DEPÓSITO</span><span>$${money(depo)}</span></div>`);
-    }
-
-    if(emp?.notes?.length){
-      lines.push(`<div class="line"></div>`);
-      for(const n of emp.notes.slice(0,4)){
-        lines.push(`<div class="r"><span class="muted">${cleanStr(n)}</span><span class="muted"></span></div>`);
-      }
     }
 
     $("#tBody").innerHTML = lines.join("");
   }
 
-  async function readExcel(file){
+  async function loadWorkbook(file){
     const data = await file.arrayBuffer();
-    const wb = XLSX.read(data, {type:"array"});
-    const sheetName = wb.SheetNames[0];
-    const ws = wb.Sheets[sheetName];
+    WB = XLSX.read(data, {type:"array"});
+    const sheets = WB.SheetNames || [];
+    const sel = $("#sheet");
+    sel.innerHTML = sheets.map(s=>`<option value="${s}">${s}</option>`).join("");
+    sel.disabled = sheets.length === 0;
+    $("#btnParse").disabled = sheets.length === 0;
 
-    // raw:true para que no "formatee raro" los números
-    const aoa = XLSX.utils.sheet_to_json(ws, {header:1, raw:true, defval:null});
+    setStatus("Excel cargado. Selecciona hoja y calibra.", true);
 
-    EMP = parseEmployeesFromAOA(aoa);
-    EMP_BY_ID = Object.fromEntries(EMP.map(e=>[e.id,e]));
+    // auto: primera hoja
+    sel.value = sheets[0] || "";
+    await loadSheetAOA(sel.value);
+  }
 
-    refreshWorkerSelect();
-    setStatus(`Cargado: ${EMP.length} trabajadores`, true);
+  async function loadSheetAOA(sheetName){
+    if(!WB || !sheetName) return;
+    const ws = WB.Sheets[sheetName];
+    AOA = XLSX.utils.sheet_to_json(ws, {header:1, raw:true, defval:null});
+  }
+
+  function doParse(){
     hideWarn();
+    try{
+      EMP = parseWithCalibration(AOA);
+      EMP_BY_ID = Object.fromEntries(EMP.map(e=>[e.id,e]));
+      refreshWorkerSelect();
+      renderPreviewTable(EMP);
 
-    if(EMP.length){
-      $("#worker").value = EMP[0].id;
-      renderTicket(EMP[0]);
+      setStatus(`Leído: ${EMP.length} trabajadores`, true);
+
+      if(EMP.length){
+        $("#worker").value = EMP[0].id;
+        renderTicket(EMP[0]);
+      } else {
+        renderTicket(null);
+      }
+    }catch(err){
+      console.error(err);
+      setStatus("Error leyendo", false);
+      showWarn(err?.message || String(err));
+      $("#previewBody").innerHTML = `<tr><td colspan="3" class="danger">Error: ${cleanStr(err?.message||err)}</td></tr>`;
     }
   }
 
-  // ===== Eventos =====
+  // ===== Events =====
+  $("#paper").addEventListener("change", ()=> {
+    document.documentElement.style.setProperty("--paperW", $("#paper").value);
+  });
+
   $("#file").addEventListener("change", async (e)=>{
     const f = e.target.files?.[0];
     if(!f) return;
-
     try{
       setStatus("Leyendo Excel…", true);
-      await readExcel(f);
+      await loadWorkbook(f);
+      doParse();
     }catch(err){
       console.error(err);
-      setStatus("Error al leer Excel", false);
-      showWarn("No pude leer el formato de este Excel. Tip: asegúrate que exista la palabra 'SUELDO' en la hoja y que arriba estén los nombres. Detalle: " + (err?.message || err));
+      setStatus("Error al cargar Excel", false);
+      showWarn("No se pudo cargar el archivo. " + (err?.message||err));
     }
   });
 
-  $("#worker").addEventListener("change", ()=>{
-    const id = $("#worker").value;
-    const emp = EMP_BY_ID[id];
-    if(emp) renderTicket(emp);
+  $("#sheet").addEventListener("change", async ()=>{
+    try{
+      await loadSheetAOA($("#sheet").value);
+      doParse();
+    }catch(err){
+      console.error(err);
+      showWarn("Error al cambiar de hoja: " + (err?.message||err));
+    }
+  });
+
+  $("#btnParse").addEventListener("click", doParse);
+
+  // auto re-parse cuando cambias calibración
+  ["rowNames","colConcept","rowStart","colFirstVal","colStep","countWorkers","concepts"].forEach(id=>{
+    $("#"+id).addEventListener("change", ()=> { if(AOA) doParse(); });
   });
 
   $("#empresa").addEventListener("input", ()=>{
-    const id = $("#worker").value;
-    const emp = EMP_BY_ID[id];
+    const emp = EMP_BY_ID[$("#worker").value];
     renderTicket(emp || null);
   });
 
-  $("#paper").addEventListener("change", ()=>{
-    document.documentElement.style.setProperty("--paperW", $("#paper").value);
+  $("#worker").addEventListener("change", ()=>{
+    const emp = EMP_BY_ID[$("#worker").value];
+    renderTicket(emp || null);
   });
 
   $("#btnPrint").addEventListener("click", ()=> window.print());
 
-  $("#btnReload").addEventListener("click", ()=>{
-    refreshWorkerSelect();
-    const id = $("#worker").value;
-    const emp = EMP_BY_ID[id];
-    if(emp) renderTicket(emp);
-  });
-
-  // Inicial
+  // init
   renderTicket(null);
   setStatus("Sin archivo", true);
 </script>
