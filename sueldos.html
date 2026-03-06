@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Nómina — Click en Excel → Ticket térmico (V2)</title>
 
-  <!-- SheetJS -->
   <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
 
   <style>
@@ -39,7 +38,7 @@
       background:rgba(255,255,255,.06); color:var(--muted); font-size:12px; white-space:nowrap;
     }
 
-    main{max-width:1500px;margin:0 auto;padding:16px;display:grid;gap:16px}
+    main{max-width:1600px;margin:0 auto;padding:16px;display:grid;gap:16px}
     .grid{display:grid;grid-template-columns:520px 1fr 420px; gap:16px}
     @media (max-width:1300px){ .grid{grid-template-columns:1fr} }
 
@@ -96,7 +95,7 @@
 
     .excelWrap{
       overflow:auto;
-      max-height:72vh;
+      max-height:82vh;
       border-radius:14px;
       border:1px solid var(--line);
       background:rgba(0,0,0,.18);
@@ -165,13 +164,17 @@
       border:1px dashed rgba(0,0,0,.25);
       padding:12px 12px 10px;
       font-family:var(--mono);
+      font-weight:900;
+    }
+    .ticket *{
+      font-weight:900 !important;
     }
     .ticket .center{text-align:center}
     .ticket .muted{color:#444}
     .ticket .line{border-top:1px dashed rgba(0,0,0,.55);margin:8px 0}
     .ticket .r{display:flex;justify-content:space-between;gap:10px;font-size:13px}
     .ticket .r strong{font-weight:900}
-    .ticket h2{margin:0;font-size:14px;letter-spacing:.4px}
+    .ticket h2{margin:0;font-size:14px;letter-spacing:.4px;font-weight:900}
     .ticket .mini{font-size:11px}
     .ticket .big{font-size:15px;font-weight:900}
     .ticket .sig{margin-top:12px}
@@ -180,14 +183,43 @@
 
     @media print{
       body{background:#fff}
-      header, .noPrint{display:none !important}
-      main{padding:0}
+      header, .noPrint, .hd{display:none !important}
+      main{padding:0 !important; margin:0 !important; max-width:none !important}
+      .grid{
+        display:block !important;
+      }
+      .card{
+        background:#fff !important;
+        border:none !important;
+        box-shadow:none !important;
+        border-radius:0 !important;
+        overflow:visible !important;
+      }
+      .card > .bd{
+        padding:0 !important;
+      }
+      .ticketOnly{
+        display:block !important;
+      }
       .ticket{
-        width:var(--paperW);
+        width:var(--paperW) !important;
         border:none !important;
         border-radius:0 !important;
         margin:0 !important;
         padding:0 !important;
+        box-shadow:none !important;
+      }
+      body *{
+        visibility:hidden;
+      }
+      .ticketOnly, .ticketOnly *{
+        visibility:visible;
+      }
+      .ticketOnly{
+        position:absolute;
+        left:0;
+        top:0;
+        width:var(--paperW);
       }
     }
     @page{ size: var(--paperW) auto; margin:0; }
@@ -269,8 +301,7 @@
           2) Haz <b>click en el nombre</b> del trabajador.<br>
           3) El sistema detecta SUELDO, EXT, TOTAL, IMSS, ISR, INFONAVIT, A CTA, FALTA, NETO y DEPOSITO.<br>
           4) Si algo quedó mal, haz <b>click en el número</b> de esa fila para corregir.<br>
-          5) Imprime.<br><br>
-          También detecta variaciones como <b>FALTA 1 DIA</b>, <b>FALTA 2 DIAS</b>, <b>FALTA 1 DÍA</b>.
+          5) Imprime.
         </div>
 
         <div class="hint danger" id="warn" style="display:none"></div>
@@ -281,10 +312,6 @@
         </div>
 
         <ul class="list" id="fieldsList"></ul>
-
-        <div class="hint">
-          <b>Regla para corregir:</b> haz click en el número, y el sistema identifica el concepto en esa fila.
-        </div>
       </div>
     </section>
 
@@ -300,8 +327,8 @@
       </div>
     </section>
 
-    <section class="card">
-      <div class="hd">
+    <section class="card ticketOnly">
+      <div class="hd noPrint">
         <div class="t">Ticket</div>
         <div class="badge">listo para imprimir</div>
       </div>
@@ -462,23 +489,23 @@
     const rows = [];
     rows.push(`<div class="r"><span>SUELDO</span><strong>$${money(sueldo)}</strong></div>`);
     rows.push(`<div class="r"><span>EXT</span><strong>$${money(ext)}</strong></div>`);
-    rows.push(`<div class="r"><span class="muted">TOTAL</span><strong>$${money(total)}</strong></div>`);
+    rows.push(`<div class="r"><span>TOTAL</span><strong>$${money(total)}</strong></div>`);
 
     rows.push(`<div class="line"></div>`);
-    rows.push(`<div class="r"><span class="muted">MENOS IMSS</span><span>$${money(imss)}</span></div>`);
-    rows.push(`<div class="r"><span class="muted">MENOS ISR</span><span>$${money(isr)}</span></div>`);
-    rows.push(`<div class="r"><span class="muted">MENOS INFONAVIT</span><span>$${money(info)}</span></div>`);
+    rows.push(`<div class="r"><span>MENOS IMSS</span><span>$${money(imss)}</span></div>`);
+    rows.push(`<div class="r"><span>MENOS ISR</span><span>$${money(isr)}</span></div>`);
+    rows.push(`<div class="r"><span>MENOS INFONAVIT</span><span>$${money(info)}</span></div>`);
     if(acta){
-      rows.push(`<div class="r"><span class="muted">A CTA</span><span>$${money(acta)}</span></div>`);
+      rows.push(`<div class="r"><span>A CTA</span><span>$${money(acta)}</span></div>`);
     }
     if(falta){
-      rows.push(`<div class="r"><span class="muted">FALTA</span><span>$${money(falta)}</span></div>`);
+      rows.push(`<div class="r"><span>FALTA</span><span>$${money(falta)}</span></div>`);
     }
 
     rows.push(`<div class="line"></div>`);
     rows.push(`<div class="r"><span class="big">TOTAL A PAGAR</span><strong class="big">$${money(neto)}</strong></div>`);
-    rows.push(`<div class="r"><span class="muted">DEPÓSITO</span><span>$${money(depo)}</span></div>`);
-    rows.push(`<div class="r"><span class="muted">EFECTIVO</span><span>$${money(efectivo)}</span></div>`);
+    rows.push(`<div class="r"><span>DEPÓSITO</span><span>$${money(depo)}</span></div>`);
+    rows.push(`<div class="r"><span>EFECTIVO</span><span>$${money(efectivo)}</span></div>`);
 
     $("#tBody").innerHTML = rows.join("");
     $("#btnPrint").disabled = false;
@@ -488,11 +515,10 @@
     renderTicketBase();
   }
 
-  function buildExcelTable(aoa, maxRows=80, maxCols=22){
-    const rows = Math.min(aoa.length, maxRows);
+  function buildExcelTable(aoa){
+    const rows = aoa.length;
     let cols = 0;
     for(let r=0;r<rows;r++) cols = Math.max(cols, (aoa[r]||[]).length);
-    cols = Math.min(cols, maxCols);
 
     const wrap = $("#excelWrap");
     wrap.innerHTML = "";
@@ -506,6 +532,7 @@
     corner.className="corner";
     corner.textContent = "";
     hr.appendChild(corner);
+
     for(let c=0;c<cols;c++){
       const th = document.createElement("th");
       th.textContent = colLetter(c);
@@ -620,7 +647,7 @@
 
     w.values = w.values || {};
 
-    for(let r=ar+1; r<Math.min(aoa.length, ar+80); r++){
+    for(let r=ar+1; r<Math.min(aoa.length, ar+120); r++){
       const cellHere = aoa[r]?.[ac];
       if(looksLikeNameCell(cellHere)) break;
 
@@ -772,7 +799,7 @@
     currentWorker = null;
     workersByAnchor.clear();
 
-    buildExcelTable(aoa, 80, 22);
+    buildExcelTable(aoa);
     renderFields();
     renderTicket();
   }
