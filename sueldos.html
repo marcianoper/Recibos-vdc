@@ -94,7 +94,6 @@
     .danger{color:#ffb4b4}
     .ok{color:#b8ffd0}
 
-    /* ===== Excel viewer ===== */
     .excelWrap{
       overflow:auto;
       max-height:72vh;
@@ -157,7 +156,6 @@
       background:rgba(59,130,246,.12);
     }
 
-    /* ===== Ticket ===== */
     .ticket{
       width:min(420px, 100%);
       margin:0 auto;
@@ -222,14 +220,13 @@
 <header class="noPrint">
   <div class="left">
     <h1>Nómina — Click en Excel → Ticket térmico (V2)</h1>
-    <p>1) Carga Excel 2) Click en el <b>nombre</b> 3) Se captura el bloque (más estricto) 4) Si algo falla, click en el <b>número</b> para corregir 5) Imprimir.</p>
+    <p>1) Carga Excel 2) Click en el <b>nombre</b> 3) Se captura el bloque 4) Si algo falla, click en el <b>número</b> para corregir 5) Imprimir.</p>
   </div>
   <div class="pill" id="statusPill">Sin archivo</div>
 </header>
 
 <main>
   <div class="grid">
-    <!-- Panel control -->
     <section class="card noPrint">
       <div class="hd">
         <div class="t">Control</div>
@@ -257,8 +254,8 @@
         <input id="empresa" value="CARNES Y VÍSCERAS DEL CENTRO"/>
 
         <div class="row">
-          <button id="btnAuto" class="btn secondary" disabled>🔎 Auto-capturar bloque (trabajador actual)</button>
-          <button id="btnClear" class="btn bad" disabled>🧹 Limpiar captura (trabajador actual)</button>
+          <button id="btnAuto" class="btn secondary" disabled>🔎 Auto-capturar bloque</button>
+          <button id="btnClear" class="btn bad" disabled>🧹 Limpiar captura</button>
         </div>
 
         <div class="row">
@@ -269,11 +266,11 @@
         <div class="hint" id="helpBox" style="display:none">
           <b>Uso rápido:</b><br>
           1) Carga el Excel.<br>
-          2) En la tabla del centro, haz <b>click en el nombre</b> (ej. “MARTIN PITAYO”).<br>
-          3) El sistema captura SUELDO/EXT/TOTAL/IMSS/ISR/INFONAVIT/A CTA/NETO/DEPOSITO del bloque, y se detiene cuando detecta otro nombre.<br>
-          4) Si algo quedó mal, haz <b>click en el número</b>. Se asigna al concepto de esa fila (busca “SUELDO/EXT/…” a la izquierda).<br>
+          2) Haz <b>click en el nombre</b> del trabajador.<br>
+          3) El sistema detecta SUELDO, EXT, TOTAL, IMSS, ISR, INFONAVIT, A CTA, FALTA, NETO y DEPOSITO.<br>
+          4) Si algo quedó mal, haz <b>click en el número</b> de esa fila para corregir.<br>
           5) Imprime.<br><br>
-          <span class="warn">Tip:</span> Tu Excel tiene columna “$”. Por eso el sistema busca el primer número a la derecha del concepto (estricto y cercano).
+          También detecta variaciones como <b>FALTA 1 DIA</b>, <b>FALTA 2 DIAS</b>, <b>FALTA 1 DÍA</b>.
         </div>
 
         <div class="hint danger" id="warn" style="display:none"></div>
@@ -286,12 +283,11 @@
         <ul class="list" id="fieldsList"></ul>
 
         <div class="hint">
-          <b>Regla para corregir:</b> click en el número, y el sistema identifica el concepto en esa fila (busca “SUELDO/EXT/…” hacia la izquierda).
+          <b>Regla para corregir:</b> haz click en el número, y el sistema identifica el concepto en esa fila.
         </div>
       </div>
     </section>
 
-    <!-- Excel viewer -->
     <section class="card noPrint">
       <div class="hd">
         <div class="t">Vista del Excel (click para seleccionar)</div>
@@ -304,7 +300,6 @@
       </div>
     </section>
 
-    <!-- Ticket -->
     <section class="card">
       <div class="hd">
         <div class="t">Ticket</div>
@@ -339,21 +334,30 @@
 </main>
 
 <script>
-  // ===== Helpers =====
   const $ = s => document.querySelector(s);
   const clean = s => (s ?? "").toString().replace(/\s+/g," ").trim();
   const upper = s => clean(s).toUpperCase();
   const isNum = v => typeof v === "number" && isFinite(v);
+
   const money = n => {
     const x = Number(n);
     if(!isFinite(x)) return "0.00";
     return x.toLocaleString("es-MX",{minimumFractionDigits:2, maximumFractionDigits:2});
   };
-  const colLetter = (n)=>{ // 0->A
+
+  const colLetter = (n)=>{
     let s=""; n++;
-    while(n>0){ const m=(n-1)%26; s=String.fromCharCode(65+m)+s; n=Math.floor((n-1)/26); }
+    while(n>0){
+      const m=(n-1)%26;
+      s=String.fromCharCode(65+m)+s;
+      n=Math.floor((n-1)/26);
+    }
     return s;
   };
+
+  function round2(n){
+    return Math.round((Number(n) + Number.EPSILON) * 100) / 100;
+  }
 
   function setStatus(text, good=true){
     const pill = $("#statusPill");
@@ -362,48 +366,61 @@
     pill.style.background   = good ? "rgba(34,197,94,.10)" : "rgba(239,68,68,.10)";
     pill.style.color        = good ? "rgba(233,238,252,.92)" : "rgba(255,200,200,.95)";
   }
+
   function showWarn(msg){
     const w = $("#warn");
     w.style.display="block";
     w.textContent = msg;
   }
+
   function hideWarn(){
     const w = $("#warn");
     w.style.display="none";
     w.textContent="";
   }
 
-  // ===== Concepts =====
   const CONCEPTS = [
-    "SUELDO","EXT","TOTAL","IMSS","ISR","INFONAVIT","A CTA","NETO","DEPOSITO"
+    "SUELDO","EXT","TOTAL","IMSS","ISR","INFONAVIT","A CTA","FALTA","NETO","DEPOSITO"
   ];
+
   const CONCEPT_ALIASES = new Map([
     ["DEPÓSITO","DEPOSITO"],
     ["DEPOSITO ","DEPOSITO"],
     ["A_CTA","A CTA"],
     ["ACTA","A CTA"],
+    ["FALTA 1 DIA","FALTA"],
+    ["FALTA 2 DIAS","FALTA"],
+    ["FALTA 3 DIAS","FALTA"],
+    ["FALTA 1 DÍA","FALTA"],
+    ["FALTA 2 DÍAS","FALTA"],
+    ["FALTA 3 DÍAS","FALTA"],
+    ["FALTA DIA","FALTA"],
+    ["FALTADIA","FALTA"],
+    ["FALTA","FALTA"]
   ]);
+
   function normConcept(s){
     const u = upper(s);
     if(CONCEPT_ALIASES.has(u)) return CONCEPT_ALIASES.get(u);
+    if(/^FALTA\b/.test(u)) return "FALTA";
     return u;
   }
 
-  // ===== State =====
   let wb=null, aoa=null, sheetName=null;
   let selected = { r:null, c:null };
   let currentWorker = null;
   const workersByAnchor = new Map();
 
-  // ===== UI: fields list =====
   function renderFields(){
     const ul = $("#fieldsList");
     ul.innerHTML = "";
+
     if(!currentWorker){
       $("#currentName").textContent = "—";
       ul.innerHTML = `<li><b>—</b><span class="v">Selecciona un nombre</span></li>`;
       return;
     }
+
     $("#currentName").textContent = currentWorker.name;
 
     for(const k of CONCEPTS){
@@ -414,7 +431,6 @@
     }
   }
 
-  // ===== Ticket render =====
   function renderTicketBase(){
     $("#tEmpresa").textContent = clean($("#empresa").value) || "—";
     $("#tFecha").textContent = new Date().toISOString().slice(0,10);
@@ -431,14 +447,17 @@
     const V = currentWorker.values || {};
     const sueldo = isFinite(Number(V["SUELDO"])) ? Number(V["SUELDO"]) : 0;
     const ext    = isFinite(Number(V["EXT"])) ? Number(V["EXT"]) : 0;
-    const total  = isFinite(Number(V["TOTAL"])) ? Number(V["TOTAL"]) : (sueldo + ext);
+    const total  = isFinite(Number(V["TOTAL"])) ? Number(V["TOTAL"]) : round2(sueldo + ext);
     const imss   = isFinite(Number(V["IMSS"])) ? Number(V["IMSS"]) : 0;
     const isr    = isFinite(Number(V["ISR"])) ? Number(V["ISR"]) : 0;
     const info   = isFinite(Number(V["INFONAVIT"])) ? Number(V["INFONAVIT"]) : 0;
     const acta   = isFinite(Number(V["A CTA"])) ? Number(V["A CTA"]) : 0;
-    const neto   = isFinite(Number(V["NETO"])) ? Number(V["NETO"]) : (total - imss - isr - info - acta);
-    const depo   = isFinite(Number(V["DEPOSITO"])) ? Number(V["DEPOSITO"]) : 0;
-    const efectivo = neto - depo;
+    const falta  = isFinite(Number(V["FALTA"])) ? Number(V["FALTA"]) : 0;
+
+    const netoCalculado = round2(total - imss - isr - info - acta - falta);
+    const neto   = isFinite(Number(V["NETO"])) ? round2(Number(V["NETO"])) : netoCalculado;
+    const depo   = isFinite(Number(V["DEPOSITO"])) ? round2(Number(V["DEPOSITO"])) : 0;
+    const efectivo = round2(neto - depo);
 
     const rows = [];
     rows.push(`<div class="r"><span>SUELDO</span><strong>$${money(sueldo)}</strong></div>`);
@@ -452,6 +471,9 @@
     if(acta){
       rows.push(`<div class="r"><span class="muted">A CTA</span><span>$${money(acta)}</span></div>`);
     }
+    if(falta){
+      rows.push(`<div class="r"><span class="muted">FALTA</span><span>$${money(falta)}</span></div>`);
+    }
 
     rows.push(`<div class="line"></div>`);
     rows.push(`<div class="r"><span class="big">TOTAL A PAGAR</span><strong class="big">$${money(neto)}</strong></div>`);
@@ -461,9 +483,11 @@
     $("#tBody").innerHTML = rows.join("");
     $("#btnPrint").disabled = false;
   }
-  function renderTicket(){ renderTicketBase(); }
 
-  // ===== Excel viewer =====
+  function renderTicket(){
+    renderTicketBase();
+  }
+
   function buildExcelTable(aoa, maxRows=80, maxCols=22){
     const rows = Math.min(aoa.length, maxRows);
     let cols = 0;
@@ -520,6 +544,7 @@
   function paintSelections(){
     const table = $("#excelWrap table");
     if(!table) return;
+
     table.querySelectorAll("td.cell").forEach(td=>{
       td.classList.remove("selected","nameCell");
     });
@@ -536,7 +561,6 @@
     }
   }
 
-  // ===== Name heuristics =====
   function looksLikeNameCell(v){
     if(v==null) return false;
     if(isNum(v)) return false;
@@ -545,20 +569,22 @@
     const u = upper(s);
     if(CONCEPTS.includes(normConcept(u))) return false;
     if(u === "MENOS") return false;
+    if(/^FALTA\b/.test(u)) return false;
     if(u.length >= 3 && u.length <= 35) return true;
     return false;
   }
 
-  // ===== Parsing helpers =====
   function parseMexNumber(s){
     const t = clean(s).replace(/\$/g,"");
     if(!t) return null;
+
     let x = t.replace(/\s/g,"");
     if(x.includes(".") && x.includes(",") && x.lastIndexOf(",") > x.lastIndexOf(".")){
       x = x.replace(/\./g,"").replace(",",".");
     } else {
       x = x.replace(/,/g,"");
     }
+
     const n = Number(x);
     return isFinite(n) ? n : null;
   }
@@ -578,6 +604,7 @@
     for(let j=startCol+1; j<=startCol+3; j++){
       const v = aoa?.[r]?.[j];
       if(isNum(v)) return { value:v, valueCol:j };
+
       const s = clean(v);
       if(s){
         const num = parseMexNumber(s);
@@ -587,7 +614,6 @@
     return null;
   }
 
-  // ===== Auto-capture =====
   function autoCaptureFromAnchor(w){
     if(!w?.anchor) return;
     const ar = w.anchor.r, ac = w.anchor.c;
@@ -608,22 +634,24 @@
       if(num) w.values[k] = num.value;
     }
 
+    const s = Number(w.values["SUELDO"]||0);
+    const e = Number(w.values["EXT"]||0);
     if(!isFinite(Number(w.values["TOTAL"]))){
-      const s = Number(w.values["SUELDO"]||0);
-      const e = Number(w.values["EXT"]||0);
-      w.values["TOTAL"] = s + e;
+      w.values["TOTAL"] = round2(s + e);
     }
+
+    const total = Number(w.values["TOTAL"]||0);
+    const imss = Number(w.values["IMSS"]||0);
+    const isr = Number(w.values["ISR"]||0);
+    const info = Number(w.values["INFONAVIT"]||0);
+    const acta = Number(w.values["A CTA"]||0);
+    const falta = Number(w.values["FALTA"]||0);
+
     if(!isFinite(Number(w.values["NETO"]))){
-      const total = Number(w.values["TOTAL"]||0);
-      const imss = Number(w.values["IMSS"]||0);
-      const isr = Number(w.values["ISR"]||0);
-      const info = Number(w.values["INFONAVIT"]||0);
-      const acta = Number(w.values["A CTA"]||0);
-      w.values["NETO"] = total - imss - isr - info - acta;
+      w.values["NETO"] = round2(total - imss - isr - info - acta - falta);
     }
   }
 
-  // ===== Cell click handler =====
   function onCellClick(e){
     const td = e.target.closest("td.cell");
     if(!td) return;
@@ -650,8 +678,8 @@
         w.anchor = {r,c};
         w.values = w.values || {};
       }
-      currentWorker = w;
 
+      currentWorker = w;
       autoCaptureFromAnchor(currentWorker);
 
       $("#btnAuto").disabled = false;
@@ -671,7 +699,7 @@
 
     const found = findConceptAt(r,c);
     if(!found){
-      showWarn("No encontré el concepto en esa fila. Haz click en el número en la misma fila de SUELDO/EXT/TOTAL/...");
+      showWarn("No encontré el concepto en esa fila. Haz click en el número correcto de esa fila.");
       paintSelections();
       return;
     }
@@ -699,16 +727,17 @@
     if(found.concept === "SUELDO" || found.concept === "EXT"){
       const s = Number(currentWorker.values["SUELDO"]||0);
       const e2 = Number(currentWorker.values["EXT"]||0);
-      currentWorker.values["TOTAL"] = s + e2;
+      currentWorker.values["TOTAL"] = round2(s + e2);
     }
 
-    if(["TOTAL","IMSS","ISR","INFONAVIT","A CTA","SUELDO","EXT"].includes(found.concept)){
+    if(["TOTAL","IMSS","ISR","INFONAVIT","A CTA","FALTA","SUELDO","EXT"].includes(found.concept)){
       const total = Number(currentWorker.values["TOTAL"]||0);
       const imss = Number(currentWorker.values["IMSS"]||0);
       const isr = Number(currentWorker.values["ISR"]||0);
       const info = Number(currentWorker.values["INFONAVIT"]||0);
       const acta = Number(currentWorker.values["A CTA"]||0);
-      currentWorker.values["NETO"] = total - imss - isr - info - acta;
+      const falta = Number(currentWorker.values["FALTA"]||0);
+      currentWorker.values["NETO"] = round2(total - imss - isr - info - acta - falta);
     }
 
     renderFields();
@@ -716,7 +745,6 @@
     paintSelections();
   }
 
-  // ===== Load workbook =====
   async function loadWorkbook(file){
     const buf = await file.arrayBuffer();
     wb = XLSX.read(buf, {type:"array"});
@@ -749,7 +777,6 @@
     renderTicket();
   }
 
-  // ===== Buttons =====
   $("#paper").addEventListener("change", ()=>{
     document.documentElement.style.setProperty("--paperW", $("#paper").value);
   });
@@ -812,7 +839,6 @@
     }
   });
 
-  // init
   setStatus("Sin archivo", true);
   renderFields();
   renderTicket();
