@@ -392,8 +392,8 @@
   // ===== State =====
   let wb=null, aoa=null, sheetName=null;
   let selected = { r:null, c:null };
-  let currentWorker = null;                // {name, anchor:{r,c}, values:{}}
-  const workersByAnchor = new Map();       // "r,c" -> worker
+  let currentWorker = null;
+  const workersByAnchor = new Map();
 
   // ===== UI: fields list =====
   function renderFields(){
@@ -425,6 +425,7 @@
       $("#btnPrint").disabled = true;
       return;
     }
+
     $("#tNombre").textContent = currentWorker.name;
 
     const V = currentWorker.values || {};
@@ -436,7 +437,8 @@
     const info   = isFinite(Number(V["INFONAVIT"])) ? Number(V["INFONAVIT"]) : 0;
     const acta   = isFinite(Number(V["A CTA"])) ? Number(V["A CTA"]) : 0;
     const neto   = isFinite(Number(V["NETO"])) ? Number(V["NETO"]) : (total - imss - isr - info - acta);
-    const depo   = isFinite(Number(V["DEPOSITO"])) ? Number(V["DEPOSITO"]) : null;
+    const depo   = isFinite(Number(V["DEPOSITO"])) ? Number(V["DEPOSITO"]) : 0;
+    const efectivo = neto - depo;
 
     const rows = [];
     rows.push(`<div class="r"><span>SUELDO</span><strong>$${money(sueldo)}</strong></div>`);
@@ -452,15 +454,13 @@
     }
 
     rows.push(`<div class="line"></div>`);
-    rows.push(`<div class="r"><span class="big">NETO A PAGAR</span><strong class="big">$${money(neto)}</strong></div>`);
-    if(depo !== null){
-      rows.push(`<div class="r"><span class="muted">DEPÓSITO</span><span>$${money(depo)}</span></div>`);
-    }
+    rows.push(`<div class="r"><span class="big">TOTAL A PAGAR</span><strong class="big">$${money(neto)}</strong></div>`);
+    rows.push(`<div class="r"><span class="muted">DEPÓSITO</span><span>$${money(depo)}</span></div>`);
+    rows.push(`<div class="r"><span class="muted">EFECTIVO</span><span>$${money(efectivo)}</span></div>`);
 
     $("#tBody").innerHTML = rows.join("");
     $("#btnPrint").disabled = false;
   }
-  // wrapper to also toggle print button
   function renderTicket(){ renderTicketBase(); }
 
   // ===== Excel viewer =====
@@ -544,9 +544,7 @@
     if(!s) return false;
     const u = upper(s);
     if(CONCEPTS.includes(normConcept(u))) return false;
-    // avoid "MENOS" etc
     if(u === "MENOS") return false;
-    // common: names uppercase and short
     if(u.length >= 3 && u.length <= 35) return true;
     return false;
   }
@@ -576,7 +574,6 @@
     return null;
   }
 
-  // NEW: strict number search (close to the concept, avoids grabbing far totals)
   function findNumberRightStrict(r, startCol){
     for(let j=startCol+1; j<=startCol+3; j++){
       const v = aoa?.[r]?.[j];
@@ -590,7 +587,7 @@
     return null;
   }
 
-  // ===== NEW: auto-capture strict block (stops at next name) =====
+  // ===== Auto-capture =====
   function autoCaptureFromAnchor(w){
     if(!w?.anchor) return;
     const ar = w.anchor.r, ac = w.anchor.c;
@@ -599,8 +596,6 @@
 
     for(let r=ar+1; r<Math.min(aoa.length, ar+80); r++){
       const cellHere = aoa[r]?.[ac];
-
-      // stop if next worker name encountered in same column
       if(looksLikeNameCell(cellHere)) break;
 
       const label = clean(cellHere);
@@ -613,7 +608,6 @@
       if(num) w.values[k] = num.value;
     }
 
-    // Calculations
     if(!isFinite(Number(w.values["TOTAL"]))){
       const s = Number(w.values["SUELDO"]||0);
       const e = Number(w.values["EXT"]||0);
@@ -643,7 +637,6 @@
     const v = aoa?.[r]?.[c];
     $("#cellInfo").textContent = `Celda: ${colLetter(c)}${r+1} = ${clean(v) || "—"}`;
 
-    // Click on name => select worker + auto capture strict
     if(looksLikeNameCell(v)){
       const name = upper(v);
       const key = `${r},${c}`;
@@ -670,7 +663,6 @@
       return;
     }
 
-    // Correction click: assign clicked numeric to concept in row
     if(!currentWorker){
       showWarn("Primero haz click en el NOMBRE del trabajador.");
       paintSelections();
@@ -691,33 +683,32 @@
       if(p!=null) val = p;
     }
 
-    // if clicked cell is not a number, try strict scan from concept
     if(val==null){
       const right = findNumberRightStrict(r, found.conceptCol);
       if(right) val = right.value;
     }
 
     if(val==null){
-      showWarn("No encontré un número en esa fila. Haz click directamente en la celda del número (ej. 2170).");
+      showWarn("No encontré un número en esa fila. Haz click directamente en la celda del número.");
       paintSelections();
       return;
     }
 
     currentWorker.values[found.concept] = val;
 
-    // recompute TOTAL/NETO if needed
     if(found.concept === "SUELDO" || found.concept === "EXT"){
       const s = Number(currentWorker.values["SUELDO"]||0);
       const e2 = Number(currentWorker.values["EXT"]||0);
       currentWorker.values["TOTAL"] = s + e2;
     }
+
     if(["TOTAL","IMSS","ISR","INFONAVIT","A CTA","SUELDO","EXT"].includes(found.concept)){
       const total = Number(currentWorker.values["TOTAL"]||0);
       const imss = Number(currentWorker.values["IMSS"]||0);
       const isr = Number(currentWorker.values["ISR"]||0);
       const info = Number(currentWorker.values["INFONAVIT"]||0);
       const acta = Number(currentWorker.values["A CTA"]||0);
-      if(!isFinite(Number(currentWorker.values["NETO"]))) currentWorker.values["NETO"] = total - imss - isr - info - acta;
+      currentWorker.values["NETO"] = total - imss - isr - info - acta;
     }
 
     renderFields();
