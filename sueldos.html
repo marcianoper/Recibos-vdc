@@ -3,158 +3,341 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>VDC-NOMINAS</title>
+  <title>Nómina — Click en Excel → Ticket térmico (V3 Claro)</title>
 
   <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
 
   <style>
     :root{
-      --bg:#0b1220; --panel:#0f1b33; --line:rgba(255,255,255,.12);
-      --ink:#e9eefc; --muted:rgba(233,238,252,.72);
-      --brand:#22c55e; --bad:#ef4444; --warn:#f59e0b;
-      --r:18px; --shadow:0 18px 60px rgba(0,0,0,.45);
+      --bg:#eef3f8;
+      --bg2:#f8fbff;
+      --panel:#ffffff;
+      --panelSoft:#f7fafc;
+      --line:rgba(15,23,42,.10);
+
+      --ink:#0f172a;
+      --muted:#64748b;
+
+      --brand:#16a34a;
+      --brand2:#22c55e;
+      --bad:#dc2626;
+      --warn:#d97706;
+
+      --r:18px;
+      --shadow:0 16px 45px rgba(15,23,42,.08);
+
       --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
       --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+
       --paperW:80mm;
     }
+
     *{box-sizing:border-box}
+
     body{
-      margin:0; font-family:var(--sans); color:var(--ink);
+      margin:0;
+      font-family:var(--sans);
+      color:var(--ink);
       background:
-        radial-gradient(1100px 600px at 20% -10%, rgba(34,197,94,.22), transparent 65%),
-        radial-gradient(900px 600px at 80% 0%, rgba(59,130,246,.18), transparent 60%),
-        var(--bg);
-    }
-    header{
-      padding:14px 16px;
-      border-bottom:1px solid var(--line);
-      background: linear-gradient(180deg, rgba(255,255,255,.06), transparent);
-      display:flex; align-items:center; justify-content:space-between; gap:12px;
-    }
-    header .left h1{margin:0;font-size:16px}
-    header .left p{margin:6px 0 0;color:var(--muted);font-size:12px}
-    header .pill{
-      padding:7px 10px; border-radius:999px; border:1px solid var(--line);
-      background:rgba(255,255,255,.06); color:var(--muted); font-size:12px; white-space:nowrap;
+        radial-gradient(1200px 700px at 20% -10%, rgba(34,197,94,.10), transparent 65%),
+        radial-gradient(900px 600px at 85% 0%, rgba(59,130,246,.08), transparent 60%),
+        linear-gradient(180deg, var(--bg2), var(--bg));
     }
 
-    main{max-width:1600px;margin:0 auto;padding:16px;display:grid;gap:16px}
-    .grid{display:grid;grid-template-columns:520px 1fr 420px; gap:16px}
-    @media (max-width:1300px){ .grid{grid-template-columns:1fr} }
+    header{
+      padding:14px 18px;
+      border-bottom:1px solid var(--line);
+      background:rgba(255,255,255,.88);
+      backdrop-filter: blur(8px);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      position:sticky;
+      top:0;
+      z-index:30;
+    }
+
+    header .left h1{
+      margin:0;
+      font-size:16px;
+      color:#0f172a;
+    }
+
+    header .left p{
+      margin:6px 0 0;
+      color:var(--muted);
+      font-size:12px;
+    }
+
+    header .pill{
+      padding:8px 12px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background:#fff;
+      color:var(--muted);
+      font-size:12px;
+      white-space:nowrap;
+      box-shadow:0 8px 20px rgba(15,23,42,.05);
+    }
+
+    main{
+      max-width:1700px;
+      margin:0 auto;
+      padding:18px;
+      display:grid;
+      gap:16px;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns:320px 1.9fr 330px;
+      gap:16px;
+      align-items:start;
+    }
+
+    @media (max-width:1350px){
+      .grid{grid-template-columns:1fr}
+    }
 
     .card{
-      background:rgba(255,255,255,.04);
+      background:rgba(255,255,255,.92);
       border:1px solid var(--line);
       border-radius:var(--r);
       box-shadow:var(--shadow);
       overflow:hidden;
     }
+
     .hd{
       padding:12px 14px;
       border-bottom:1px solid var(--line);
-      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      background:linear-gradient(180deg, rgba(255,255,255,.92), rgba(248,250,252,.82));
     }
-    .hd .t{font-weight:900}
-    .bd{padding:14px}
 
-    label{display:block;font-size:12px;color:var(--muted);margin:10px 0 6px}
+    .hd .t{
+      font-weight:900;
+      color:#0f172a;
+    }
+
+    .bd{
+      padding:14px;
+    }
+
+    label{
+      display:block;
+      font-size:12px;
+      color:var(--muted);
+      margin:10px 0 6px;
+      font-weight:700;
+    }
+
     input, select, button, textarea{
-      width:100%; padding:10px 12px;
-      border-radius:12px; border:1px solid var(--line);
-      background:rgba(0,0,0,.20); color:var(--ink);
-      outline:none;
-    }
-    input::file-selector-button{
-      border:1px solid var(--line);
-      background:rgba(255,255,255,.06);
+      width:100%;
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid rgba(15,23,42,.12);
+      background:#fff;
       color:var(--ink);
-      padding:8px 10px; border-radius:10px;
-      margin-right:10px; cursor:pointer;
+      outline:none;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.8);
     }
-    .row{display:grid;grid-template-columns:1fr 1fr; gap:12px}
+
+    input::file-selector-button{
+      border:1px solid rgba(15,23,42,.12);
+      background:#f8fafc;
+      color:var(--ink);
+      padding:8px 10px;
+      border-radius:10px;
+      margin-right:10px;
+      cursor:pointer;
+    }
+
+    .row{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:12px;
+    }
+
     .btn{
-      background: linear-gradient(180deg, rgba(34,197,94,.95), rgba(34,197,94,.75));
-      border:none; cursor:pointer; font-weight:900;
-      box-shadow: 0 12px 28px rgba(34,197,94,.22);
+      background:linear-gradient(180deg, var(--brand2), var(--brand));
+      color:#fff;
+      border:none;
+      cursor:pointer;
+      font-weight:900;
+      box-shadow:0 12px 24px rgba(34,197,94,.18);
     }
+
     .btn.secondary{
-      background: rgba(255,255,255,.08);
-      border:1px solid var(--line);
+      background:#fff;
+      color:#0f172a;
+      border:1px solid rgba(15,23,42,.12);
       box-shadow:none;
     }
+
     .btn.bad{
-      background: rgba(239,68,68,.18);
-      border:1px solid rgba(239,68,68,.35);
+      background:#fff5f5;
+      color:#991b1b;
+      border:1px solid rgba(220,38,38,.18);
       box-shadow:none;
       font-weight:900;
     }
-    .hint{font-size:12px;color:var(--muted);line-height:1.35;margin-top:10px}
-    .warn{color:#ffd7a8}
-    .danger{color:#ffb4b4}
-    .ok{color:#b8ffd0}
 
+    .hint{
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.4;
+      margin-top:10px;
+    }
+
+    .warn{color:#92400e}
+    .danger{color:#991b1b}
+    .ok{color:#15803d}
+
+    .kv{
+      display:grid;
+      grid-template-columns:1fr auto;
+      gap:8px;
+      align-items:center;
+    }
+
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid rgba(15,23,42,.10);
+      background:#fff;
+      color:var(--muted);
+      font-size:12px;
+      box-shadow:0 8px 20px rgba(15,23,42,.04);
+    }
+
+    .small{
+      font-size:12px;
+      color:var(--muted);
+    }
+
+    .list{
+      margin:10px 0 0;
+      padding:0;
+      list-style:none;
+      display:grid;
+      gap:8px;
+    }
+
+    .list li{
+      padding:10px;
+      border:1px solid rgba(15,23,42,.08);
+      border-radius:12px;
+      background:#fbfdff;
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      align-items:center;
+    }
+
+    .list li b{
+      color:#0f172a;
+    }
+
+    .list li .v{
+      font-family:var(--mono);
+      color:#334155;
+    }
+
+    /* ===== Excel ===== */
     .excelWrap{
       overflow:auto;
-      max-height:82vh;
+      max-height:86vh;
       border-radius:14px;
-      border:1px solid var(--line);
-      background:rgba(0,0,0,.18);
+      border:1px solid rgba(15,23,42,.10);
+      background:#ffffff;
     }
+
+    .excelZoom{
+      transform:scale(.78);
+      transform-origin: top left;
+      width:128%;
+    }
+
     table.excel{
       border-collapse:separate;
       border-spacing:0;
       width:max-content;
       min-width:100%;
       font-family:var(--mono);
-      font-size:12px;
+      font-size:10px;
+      color:#0f172a;
+      background:#fff;
     }
+
     .excel th, .excel td{
-      padding:6px 8px;
-      border-right:1px solid rgba(255,255,255,.08);
-      border-bottom:1px solid rgba(255,255,255,.08);
+      padding:3px 5px;
+      border-right:1px solid rgba(15,23,42,.08);
+      border-bottom:1px solid rgba(15,23,42,.08);
       white-space:nowrap;
       user-select:none;
+      line-height:1.08;
     }
+
     .excel th{
       position:sticky;
       top:0;
-      background:rgba(255,255,255,.06);
-      color:rgba(233,238,252,.9);
+      background:#f1f5f9;
+      color:#0f172a;
       z-index:2;
+      font-weight:900;
     }
+
     .excel th.corner{
-      left:0; z-index:3; position:sticky;
-      background:rgba(255,255,255,.08);
+      left:0;
+      z-index:3;
+      position:sticky;
+      background:#e2e8f0;
     }
+
     .excel td.rowhdr{
       position:sticky;
       left:0;
-      background:rgba(255,255,255,.06);
-      color:rgba(233,238,252,.85);
+      background:#f8fafc;
+      color:#475569;
       z-index:1;
       text-align:right;
-      min-width:44px;
+      min-width:34px;
+      font-size:10px;
+      font-weight:700;
     }
+
     .excel td.cell{
       cursor:pointer;
-      min-width:90px;
+      min-width:58px;
+      background:#fff;
     }
+
     .excel td.cell:hover{
-      outline:2px solid rgba(34,197,94,.45);
+      outline:2px solid rgba(34,197,94,.50);
       outline-offset:-2px;
-      background:rgba(34,197,94,.08);
+      background:#f0fdf4;
     }
+
     .excel td.selected{
-      outline:2px solid rgba(34,197,94,.9);
+      outline:2px solid rgba(34,197,94,.95);
       outline-offset:-2px;
-      background:rgba(34,197,94,.14);
+      background:#dcfce7;
     }
+
     .excel td.nameCell{
       outline:2px solid rgba(59,130,246,.85);
       outline-offset:-2px;
-      background:rgba(59,130,246,.12);
+      background:#dbeafe;
     }
 
+    /* ===== Ticket ===== */
     .ticket{
       width:min(420px, 100%);
       margin:0 auto;
@@ -165,16 +348,29 @@
       padding:12px 12px 10px;
       font-family:var(--mono);
       font-weight:900;
+      box-shadow:0 8px 24px rgba(15,23,42,.05);
     }
+
     .ticket *{
       font-weight:900 !important;
     }
+
     .ticket .center{text-align:center}
     .ticket .muted{color:#444}
     .ticket .line{border-top:1px dashed rgba(0,0,0,.55);margin:8px 0}
-    .ticket .r{display:flex;justify-content:space-between;gap:10px;font-size:13px}
+    .ticket .r{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      font-size:13px;
+    }
     .ticket .r strong{font-weight:900}
-    .ticket h2{margin:0;font-size:14px;letter-spacing:.4px;font-weight:900}
+    .ticket h2{
+      margin:0;
+      font-size:14px;
+      letter-spacing:.4px;
+      font-weight:900;
+    }
     .ticket .mini{font-size:11px}
     .ticket .big{font-size:15px;font-weight:900}
     .ticket .sig{margin-top:12px}
@@ -185,9 +381,7 @@
       body{background:#fff}
       header, .noPrint, .hd{display:none !important}
       main{padding:0 !important; margin:0 !important; max-width:none !important}
-      .grid{
-        display:block !important;
-      }
+      .grid{display:block !important}
       .card{
         background:#fff !important;
         border:none !important;
@@ -195,12 +389,8 @@
         border-radius:0 !important;
         overflow:visible !important;
       }
-      .card > .bd{
-        padding:0 !important;
-      }
-      .ticketOnly{
-        display:block !important;
-      }
+      .card > .bd{padding:0 !important}
+      .ticketOnly{display:block !important}
       .ticket{
         width:var(--paperW) !important;
         border:none !important;
@@ -209,12 +399,8 @@
         padding:0 !important;
         box-shadow:none !important;
       }
-      body *{
-        visibility:hidden;
-      }
-      .ticketOnly, .ticketOnly *{
-        visibility:visible;
-      }
+      body *{visibility:hidden}
+      .ticketOnly, .ticketOnly *{visibility:visible}
       .ticketOnly{
         position:absolute;
         left:0;
@@ -222,36 +408,18 @@
         width:var(--paperW);
       }
     }
-    @page{ size: var(--paperW) auto; margin:0; }
 
-    .kv{display:grid; grid-template-columns:1fr auto; gap:8px; align-items:center}
-    .badge{
-      display:inline-flex; align-items:center; gap:8px;
-      padding:6px 10px; border-radius:999px;
-      border:1px solid var(--line); background:rgba(255,255,255,.06);
-      color:var(--muted); font-size:12px;
+    @page{
+      size: var(--paperW) auto;
+      margin:0;
     }
-    .small{font-size:12px;color:var(--muted)}
-    .list{
-      margin:10px 0 0; padding:0; list-style:none;
-      display:grid; gap:8px;
-    }
-    .list li{
-      padding:10px 10px;
-      border:1px solid var(--line);
-      border-radius:12px;
-      background:rgba(0,0,0,.16);
-      display:flex; justify-content:space-between; gap:10px; align-items:center;
-    }
-    .list li b{color:rgba(233,238,252,.95)}
-    .list li .v{font-family:var(--mono); color:rgba(233,238,252,.9)}
   </style>
 </head>
 
 <body>
 <header class="noPrint">
   <div class="left">
-    <h1>Nómina — Click en Excel → Ticket térmico (V2)</h1>
+    <h1>Nómina — Click en Excel → Ticket térmico (V3 Claro)</h1>
     <p>1) Carga Excel 2) Click en el <b>nombre</b> 3) Se captura el bloque 4) Si algo falla, click en el <b>número</b> para corregir 5) Imprimir.</p>
   </div>
   <div class="pill" id="statusPill">Sin archivo</div>
@@ -298,9 +466,9 @@
         <div class="hint" id="helpBox" style="display:none">
           <b>Uso rápido:</b><br>
           1) Carga el Excel.<br>
-          2) Haz <b>click en el nombre</b> del trabajador.<br>
+          2) Haz click en el <b>nombre</b> del trabajador.<br>
           3) El sistema detecta SUELDO, EXT, TOTAL, IMSS, ISR, INFONAVIT, A CTA, FALTA, NETO y DEPOSITO.<br>
-          4) Si algo quedó mal, haz <b>click en el número</b> de esa fila para corregir.<br>
+          4) Si algo quedó mal, haz click en el <b>número</b> de esa fila para corregir.<br>
           5) Imprime.
         </div>
 
@@ -317,7 +485,7 @@
 
     <section class="card noPrint">
       <div class="hd">
-        <div class="t">Vista del Excel (click para seleccionar)</div>
+        <div class="t">Vista del Excel (compacta)</div>
         <div class="badge" id="cellInfo">Celda: —</div>
       </div>
       <div class="bd">
@@ -389,9 +557,9 @@
   function setStatus(text, good=true){
     const pill = $("#statusPill");
     pill.textContent = text;
-    pill.style.borderColor = good ? "rgba(34,197,94,.45)" : "rgba(239,68,68,.55)";
-    pill.style.background   = good ? "rgba(34,197,94,.10)" : "rgba(239,68,68,.10)";
-    pill.style.color        = good ? "rgba(233,238,252,.92)" : "rgba(255,200,200,.95)";
+    pill.style.borderColor = good ? "rgba(34,197,94,.25)" : "rgba(220,38,38,.25)";
+    pill.style.background   = good ? "#f0fdf4" : "#fef2f2";
+    pill.style.color        = good ? "#166534" : "#991b1b";
   }
 
   function showWarn(msg){
@@ -433,7 +601,7 @@
     return u;
   }
 
-  let wb=null, aoa=null, sheetName=null;
+  let wb = null, aoa = null, sheetName = null;
   let selected = { r:null, c:null };
   let currentWorker = null;
   const workersByAnchor = new Map();
@@ -482,8 +650,8 @@
     const falta  = isFinite(Number(V["FALTA"])) ? Number(V["FALTA"]) : 0;
 
     const netoCalculado = round2(total - imss - isr - info - acta - falta);
-    const neto   = isFinite(Number(V["NETO"])) ? round2(Number(V["NETO"])) : netoCalculado;
-    const depo   = isFinite(Number(V["DEPOSITO"])) ? round2(Number(V["DEPOSITO"])) : 0;
+    const neto = isFinite(Number(V["NETO"])) ? round2(Number(V["NETO"])) : netoCalculado;
+    const depo = isFinite(Number(V["DEPOSITO"])) ? round2(Number(V["DEPOSITO"])) : 0;
     const efectivo = round2(neto - depo);
 
     const rows = [];
@@ -518,10 +686,13 @@
   function buildExcelTable(aoa){
     const rows = aoa.length;
     let cols = 0;
-    for(let r=0;r<rows;r++) cols = Math.max(cols, (aoa[r]||[]).length);
+    for(let r=0; r<rows; r++) cols = Math.max(cols, (aoa[r] || []).length);
 
     const wrap = $("#excelWrap");
     wrap.innerHTML = "";
+
+    const zoomBox = document.createElement("div");
+    zoomBox.className = "excelZoom";
 
     const table = document.createElement("table");
     table.className = "excel";
@@ -529,11 +700,11 @@
     const thead = document.createElement("thead");
     const hr = document.createElement("tr");
     const corner = document.createElement("th");
-    corner.className="corner";
+    corner.className = "corner";
     corner.textContent = "";
     hr.appendChild(corner);
 
-    for(let c=0;c<cols;c++){
+    for(let c=0; c<cols; c++){
       const th = document.createElement("th");
       th.textContent = colLetter(c);
       hr.appendChild(th);
@@ -542,27 +713,30 @@
     table.appendChild(thead);
 
     const tbody = document.createElement("tbody");
-    for(let r=0;r<rows;r++){
+    for(let r=0; r<rows; r++){
       const tr = document.createElement("tr");
+
       const rh = document.createElement("td");
-      rh.className="rowhdr";
+      rh.className = "rowhdr";
       rh.textContent = String(r+1);
       tr.appendChild(rh);
 
-      for(let c=0;c<cols;c++){
+      for(let c=0; c<cols; c++){
         const td = document.createElement("td");
-        td.className="cell";
+        td.className = "cell";
         td.dataset.r = r;
         td.dataset.c = c;
 
         const v = aoa[r]?.[c];
-        td.textContent = (v==null || v==="") ? "" : (isNum(v) ? v : v.toString());
+        td.textContent = (v == null || v === "") ? "" : (isNum(v) ? v : v.toString());
         tr.appendChild(td);
       }
       tbody.appendChild(tr);
     }
+
     table.appendChild(tbody);
-    wrap.appendChild(table);
+    zoomBox.appendChild(table);
+    wrap.appendChild(zoomBox);
 
     table.addEventListener("click", onCellClick);
     paintSelections();
@@ -576,7 +750,7 @@
       td.classList.remove("selected","nameCell");
     });
 
-    if(selected.r!=null){
+    if(selected.r != null){
       const td = table.querySelector(`td.cell[data-r="${selected.r}"][data-c="${selected.c}"]`);
       if(td) td.classList.add("selected");
     }
@@ -589,16 +763,18 @@
   }
 
   function looksLikeNameCell(v){
-    if(v==null) return false;
+    if(v == null) return false;
     if(isNum(v)) return false;
+
     const s = clean(v);
     if(!s) return false;
+
     const u = upper(s);
     if(CONCEPTS.includes(normConcept(u))) return false;
     if(u === "MENOS") return false;
     if(/^FALTA\b/.test(u)) return false;
-    if(u.length >= 3 && u.length <= 35) return true;
-    return false;
+
+    return u.length >= 3 && u.length <= 35;
   }
 
   function parseMexNumber(s){
@@ -635,7 +811,7 @@
       const s = clean(v);
       if(s){
         const num = parseMexNumber(s);
-        if(num!=null) return { value:num, valueCol:j };
+        if(num != null) return { value:num, valueCol:j };
       }
     }
     return null;
@@ -661,18 +837,18 @@
       if(num) w.values[k] = num.value;
     }
 
-    const s = Number(w.values["SUELDO"]||0);
-    const e = Number(w.values["EXT"]||0);
+    const s = Number(w.values["SUELDO"] || 0);
+    const e = Number(w.values["EXT"] || 0);
     if(!isFinite(Number(w.values["TOTAL"]))){
       w.values["TOTAL"] = round2(s + e);
     }
 
-    const total = Number(w.values["TOTAL"]||0);
-    const imss = Number(w.values["IMSS"]||0);
-    const isr = Number(w.values["ISR"]||0);
-    const info = Number(w.values["INFONAVIT"]||0);
-    const acta = Number(w.values["A CTA"]||0);
-    const falta = Number(w.values["FALTA"]||0);
+    const total = Number(w.values["TOTAL"] || 0);
+    const imss = Number(w.values["IMSS"] || 0);
+    const isr = Number(w.values["ISR"] || 0);
+    const info = Number(w.values["INFONAVIT"] || 0);
+    const acta = Number(w.values["A CTA"] || 0);
+    const falta = Number(w.values["FALTA"] || 0);
 
     if(!isFinite(Number(w.values["NETO"]))){
       w.values["NETO"] = round2(total - imss - isr - info - acta - falta);
@@ -735,15 +911,15 @@
     if(isNum(v)) val = v;
     else {
       const p = parseMexNumber(clean(v));
-      if(p!=null) val = p;
+      if(p != null) val = p;
     }
 
-    if(val==null){
+    if(val == null){
       const right = findNumberRightStrict(r, found.conceptCol);
       if(right) val = right.value;
     }
 
-    if(val==null){
+    if(val == null){
       showWarn("No encontré un número en esa fila. Haz click directamente en la celda del número.");
       paintSelections();
       return;
@@ -752,18 +928,18 @@
     currentWorker.values[found.concept] = val;
 
     if(found.concept === "SUELDO" || found.concept === "EXT"){
-      const s = Number(currentWorker.values["SUELDO"]||0);
-      const e2 = Number(currentWorker.values["EXT"]||0);
+      const s = Number(currentWorker.values["SUELDO"] || 0);
+      const e2 = Number(currentWorker.values["EXT"] || 0);
       currentWorker.values["TOTAL"] = round2(s + e2);
     }
 
     if(["TOTAL","IMSS","ISR","INFONAVIT","A CTA","FALTA","SUELDO","EXT"].includes(found.concept)){
-      const total = Number(currentWorker.values["TOTAL"]||0);
-      const imss = Number(currentWorker.values["IMSS"]||0);
-      const isr = Number(currentWorker.values["ISR"]||0);
-      const info = Number(currentWorker.values["INFONAVIT"]||0);
-      const acta = Number(currentWorker.values["A CTA"]||0);
-      const falta = Number(currentWorker.values["FALTA"]||0);
+      const total = Number(currentWorker.values["TOTAL"] || 0);
+      const imss = Number(currentWorker.values["IMSS"] || 0);
+      const isr = Number(currentWorker.values["ISR"] || 0);
+      const info = Number(currentWorker.values["INFONAVIT"] || 0);
+      const acta = Number(currentWorker.values["A CTA"] || 0);
+      const falta = Number(currentWorker.values["FALTA"] || 0);
       currentWorker.values["NETO"] = round2(total - imss - isr - info - acta - falta);
     }
 
@@ -776,6 +952,7 @@
     const buf = await file.arrayBuffer();
     wb = XLSX.read(buf, {type:"array"});
     const names = wb.SheetNames || [];
+
     $("#sheet").innerHTML = names.map(n=>`<option value="${n}">${n}</option>`).join("");
     $("#sheet").disabled = names.length === 0;
 
@@ -814,7 +991,7 @@
 
   $("#btnHelp").addEventListener("click", ()=>{
     const box = $("#helpBox");
-    box.style.display = (box.style.display==="none" ? "block" : "none");
+    box.style.display = (box.style.display === "none" ? "block" : "none");
   });
 
   $("#btnAuto").addEventListener("click", ()=>{
@@ -842,6 +1019,7 @@
   $("#file").addEventListener("change", async (e)=>{
     const f = e.target.files?.[0];
     if(!f) return;
+
     hideWarn();
     try{
       if(typeof XLSX === "undefined"){
