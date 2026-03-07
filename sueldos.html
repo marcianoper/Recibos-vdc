@@ -34,8 +34,12 @@
 
     *{box-sizing:border-box}
 
-    body{
+    html, body{
       margin:0;
+      padding:0;
+    }
+
+    body{
       font-family:var(--sans);
       color:var(--ink);
       background:
@@ -349,6 +353,7 @@
       font-family:var(--mono);
       font-weight:900;
       box-shadow:0 8px 24px rgba(15,23,42,.05);
+      display:block;
     }
 
     .ticket *{
@@ -375,43 +380,117 @@
     .ticket .big{font-size:15px;font-weight:900}
     .ticket .sig{margin-top:12px}
     .ticket .sig .mini{margin-bottom:4px}
-    .ticket .sig .box{border-top:1px solid #000;padding-top:6px}
+    .ticket .sig .box{
+      border-top:1px solid #000;
+      padding-top:6px;
+      height:16px;
+    }
 
     @media print{
-      body{background:#fff}
-      header, .noPrint, .hd{display:none !important}
-      main{padding:0 !important; margin:0 !important; max-width:none !important}
-      .grid{display:block !important}
+      html, body{
+        margin:0 !important;
+        padding:0 !important;
+        width:var(--paperW) !important;
+        min-width:var(--paperW) !important;
+        max-width:var(--paperW) !important;
+        height:auto !important;
+        min-height:0 !important;
+        overflow:hidden !important;
+        background:#fff !important;
+      }
+
+      header,
+      .noPrint,
+      .hd{
+        display:none !important;
+      }
+
+      main{
+        padding:0 !important;
+        margin:0 !important;
+        max-width:none !important;
+        width:var(--paperW) !important;
+      }
+
+      .grid{
+        display:block !important;
+        margin:0 !important;
+        padding:0 !important;
+      }
+
       .card{
         background:#fff !important;
         border:none !important;
         box-shadow:none !important;
         border-radius:0 !important;
         overflow:visible !important;
+        margin:0 !important;
+        padding:0 !important;
       }
-      .card > .bd{padding:0 !important}
-      .ticketOnly{display:block !important}
+
+      .card > .bd{
+        padding:0 !important;
+        margin:0 !important;
+      }
+
+      body *{
+        visibility:hidden !important;
+      }
+
+      .ticketOnly,
+      .ticketOnly *{
+        visibility:visible !important;
+      }
+
+      .ticketOnly{
+        position:fixed !important;
+        left:0 !important;
+        top:0 !important;
+        width:var(--paperW) !important;
+        margin:0 !important;
+        padding:0 !important;
+      }
+
       .ticket{
         width:var(--paperW) !important;
+        min-width:var(--paperW) !important;
+        max-width:var(--paperW) !important;
         border:none !important;
         border-radius:0 !important;
         margin:0 !important;
-        padding:0 !important;
+        padding:4mm 3mm 2mm 3mm !important;
         box-shadow:none !important;
+        display:block !important;
+        page-break-after:avoid !important;
+        break-after:avoid !important;
+        page-break-inside:avoid !important;
+        break-inside:avoid !important;
       }
-      body *{visibility:hidden}
-      .ticketOnly, .ticketOnly *{visibility:visible}
-      .ticketOnly{
-        position:absolute;
-        left:0;
-        top:0;
-        width:var(--paperW);
+
+      .ticket .line{
+        margin:6px 0 !important;
+      }
+
+      .ticket .sig{
+        margin-top:10px !important;
+        padding-bottom:0 !important;
+      }
+
+      .ticket .sig .box{
+        margin-bottom:0 !important;
       }
     }
 
     @page{
-      size: var(--paperW) auto;
       margin:0;
+      size:80mm auto;
+    }
+  </style>
+
+  <style id="dynamicPrintPage">
+    @page{
+      margin:0;
+      size:80mm auto;
     }
   </style>
 </head>
@@ -574,6 +653,19 @@
     w.textContent="";
   }
 
+  function updatePaperMode(){
+    const size = $("#paper").value === "58mm" ? "58mm" : "80mm";
+    document.documentElement.style.setProperty("--paperW", size);
+
+    let st = document.getElementById("dynamicPrintPage");
+    if(!st){
+      st = document.createElement("style");
+      st.id = "dynamicPrintPage";
+      document.head.appendChild(st);
+    }
+    st.innerHTML = `@page{ size:${size} auto; margin:0; }`;
+  }
+
   const CONCEPTS = [
     "SUELDO","EXT","TOTAL","IMSS","ISR","INFONAVIT","A CTA","FALTA","NETO","DEPOSITO"
   ];
@@ -628,7 +720,10 @@
 
   function renderTicketBase(){
     $("#tEmpresa").textContent = clean($("#empresa").value) || "—";
-    $("#tFecha").textContent = new Date().toISOString().slice(0,10);
+
+    const hoy = new Date();
+    const fechaTexto = hoy.toLocaleDateString("es-MX");
+    $("#tFecha").textContent = fechaTexto;
 
     if(!currentWorker){
       $("#tNombre").textContent = "—";
@@ -982,7 +1077,7 @@
   }
 
   $("#paper").addEventListener("change", ()=>{
-    document.documentElement.style.setProperty("--paperW", $("#paper").value);
+    updatePaperMode();
   });
 
   $("#empresa").addEventListener("input", ()=>{
@@ -1013,6 +1108,7 @@
       showWarn("Selecciona un trabajador primero.");
       return;
     }
+    updatePaperMode();
     window.print();
   });
 
@@ -1044,6 +1140,7 @@
     }
   });
 
+  updatePaperMode();
   setStatus("Sin archivo", true);
   renderFields();
   renderTicket();
