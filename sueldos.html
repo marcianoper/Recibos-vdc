@@ -29,7 +29,8 @@
       --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
       --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
 
-      --paperW:80mm;
+      --paperW:72mm;
+      --paper58:50mm;
     }
 
     *{box-sizing:border-box}
@@ -343,60 +344,106 @@
 
     /* ===== Ticket ===== */
     .ticket{
-      width:min(420px, 100%);
+      width:var(--paperW);
       margin:0 auto;
       background:#fff;
-      color:#111;
-      border-radius:14px;
-      border:1px dashed rgba(0,0,0,.25);
-      padding:12px 12px 10px;
-      font-family:var(--mono);
-      font-weight:900;
-      box-shadow:0 8px 24px rgba(15,23,42,.05);
+      color:#000;
+      border-radius:0;
+      border:none;
+      padding:3mm 2.8mm 1.5mm 2.8mm;
+      font-family:Arial, Helvetica, sans-serif;
+      font-weight:700;
+      box-shadow:none;
       display:block;
+      text-rendering:geometricPrecision;
+      -webkit-font-smoothing:none;
+      -moz-osx-font-smoothing:auto;
     }
 
     .ticket *{
-      font-weight:900 !important;
+      color:#000 !important;
+      letter-spacing:0 !important;
     }
 
-    .ticket .center{text-align:center}
-    .ticket .muted{color:#444}
-    .ticket .line{border-top:1px dashed rgba(0,0,0,.55);margin:8px 0}
+    .ticket .center{
+      text-align:center;
+    }
+
+    .ticket .muted{
+      color:#000 !important;
+    }
+
+    .ticket .line{
+      border-top:1px dashed #000;
+      margin:6px 0;
+    }
+
     .ticket .r{
       display:flex;
       justify-content:space-between;
-      gap:10px;
+      align-items:flex-end;
+      gap:8px;
       font-size:13px;
+      line-height:1.2;
     }
-    .ticket .r strong{font-weight:900}
+
+    .ticket .r span,
+    .ticket .r strong{
+      font-weight:700 !important;
+    }
+
     .ticket h2{
       margin:0;
-      font-size:14px;
-      letter-spacing:.4px;
-      font-weight:900;
+      font-size:15px;
+      line-height:1.15;
+      font-weight:800;
+      letter-spacing:.2px;
     }
-    .ticket .mini{font-size:11px}
-    .ticket .big{font-size:15px;font-weight:900}
-    .ticket .sig{margin-top:12px}
-    .ticket .sig .mini{margin-bottom:4px}
+
+    .ticket .mini{
+      font-size:11px;
+      line-height:1.2;
+      font-weight:700;
+    }
+
+    .ticket .big{
+      font-size:15px;
+      line-height:1.2;
+      font-weight:800 !important;
+    }
+
+    .ticket .sig{
+      margin-top:10px;
+    }
+
+    .ticket .sig .mini{
+      margin-bottom:5px;
+      font-size:11px;
+      font-weight:700;
+    }
+
     .ticket .sig .box{
       border-top:1px solid #000;
-      padding-top:6px;
-      height:16px;
+      height:14px;
+      padding-top:0;
     }
 
     @media print{
       html, body{
         margin:0 !important;
         padding:0 !important;
-        width:var(--paperW) !important;
-        min-width:var(--paperW) !important;
-        max-width:var(--paperW) !important;
+        width:100% !important;
+        min-width:0 !important;
+        max-width:none !important;
         height:auto !important;
         min-height:0 !important;
         overflow:hidden !important;
         background:#fff !important;
+      }
+
+      body{
+        -webkit-print-color-adjust:exact !important;
+        print-color-adjust:exact !important;
       }
 
       header,
@@ -409,7 +456,7 @@
         padding:0 !important;
         margin:0 !important;
         max-width:none !important;
-        width:var(--paperW) !important;
+        width:auto !important;
       }
 
       .grid{
@@ -443,7 +490,7 @@
       }
 
       .ticketOnly{
-        position:fixed !important;
+        position:absolute !important;
         left:0 !important;
         top:0 !important;
         width:var(--paperW) !important;
@@ -458,9 +505,8 @@
         border:none !important;
         border-radius:0 !important;
         margin:0 !important;
-        padding:4mm 3mm 2mm 3mm !important;
+        padding:3mm 2.8mm 1.5mm 2.8mm !important;
         box-shadow:none !important;
-        display:block !important;
         page-break-after:avoid !important;
         break-after:avoid !important;
         page-break-inside:avoid !important;
@@ -479,18 +525,24 @@
       .ticket .sig .box{
         margin-bottom:0 !important;
       }
+
+      .ticket, .ticket *{
+        color:#000 !important;
+        -webkit-print-color-adjust:exact !important;
+        print-color-adjust:exact !important;
+      }
     }
 
     @page{
       margin:0;
-      size:80mm auto;
+      size:80mm 150mm;
     }
   </style>
 
   <style id="dynamicPrintPage">
     @page{
       margin:0;
-      size:80mm auto;
+      size:80mm 150mm;
     }
   </style>
 </head>
@@ -583,24 +635,24 @@
         <div class="ticket" id="ticket">
           <div class="center">
             <h2 id="tEmpresa">CARNES Y VÍSCERAS DEL CENTRO</h2>
-            <div class="mini muted">RECIBO DE SUELDO</div>
+            <div class="mini">RECIBO DE SUELDO</div>
           </div>
 
           <div class="line"></div>
           <div class="r"><span>Empleado</span><strong id="tNombre">—</strong></div>
-          <div class="r"><span>Fecha</span><span id="tFecha" class="muted">—</span></div>
+          <div class="r"><span>Fecha</span><span id="tFecha">—</span></div>
           <div class="line"></div>
 
           <div id="tBody">
-            <div class="r"><span class="muted">Selecciona un trabajador…</span><span class="muted">—</span></div>
+            <div class="r"><span>Selecciona un trabajador…</span><span>—</span></div>
           </div>
 
           <div class="sig">
-            <div class="mini muted">Firma del trabajador</div>
+            <div class="mini">Firma del trabajador</div>
             <div class="box"></div>
           </div>
 
-          <div class="center mini muted" style="margin-top:10px">Gracias</div>
+          <div class="center mini" style="margin-top:8px">Gracias</div>
         </div>
       </div>
     </section>
@@ -654,8 +706,13 @@
   }
 
   function updatePaperMode(){
-    const size = $("#paper").value === "58mm" ? "58mm" : "80mm";
-    document.documentElement.style.setProperty("--paperW", size);
+    const is58 = $("#paper").value === "58mm";
+
+    const paperWidth = is58 ? "50mm" : "72mm";
+    const pageWidth  = is58 ? "58mm" : "80mm";
+    const pageHeight = "150mm";
+
+    document.documentElement.style.setProperty("--paperW", paperWidth);
 
     let st = document.getElementById("dynamicPrintPage");
     if(!st){
@@ -663,7 +720,8 @@
       st.id = "dynamicPrintPage";
       document.head.appendChild(st);
     }
-    st.innerHTML = `@page{ size:${size} auto; margin:0; }`;
+
+    st.innerHTML = `@page{ size:${pageWidth} ${pageHeight}; margin:0; }`;
   }
 
   const CONCEPTS = [
@@ -722,12 +780,16 @@
     $("#tEmpresa").textContent = clean($("#empresa").value) || "—";
 
     const hoy = new Date();
-    const fechaTexto = hoy.toLocaleDateString("es-MX");
+    const fechaTexto = hoy.toLocaleDateString("es-MX", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric"
+    });
     $("#tFecha").textContent = fechaTexto;
 
     if(!currentWorker){
       $("#tNombre").textContent = "—";
-      $("#tBody").innerHTML = `<div class="r"><span class="muted">Selecciona un trabajador…</span><span class="muted">—</span></div>`;
+      $("#tBody").innerHTML = `<div class="r"><span>Selecciona un trabajador…</span><span>—</span></div>`;
       $("#btnPrint").disabled = true;
       return;
     }
@@ -750,25 +812,25 @@
     const efectivo = round2(neto - depo);
 
     const rows = [];
-    rows.push(`<div class="r"><span>SUELDO</span><strong>$${money(sueldo)}</strong></div>`);
-    rows.push(`<div class="r"><span>EXT</span><strong>$${money(ext)}</strong></div>`);
-    rows.push(`<div class="r"><span>TOTAL</span><strong>$${money(total)}</strong></div>`);
+    rows.push(`<div class="r"><strong>SUELDO</strong><strong>$${money(sueldo)}</strong></div>`);
+    rows.push(`<div class="r"><strong>EXT</strong><strong>$${money(ext)}</strong></div>`);
+    rows.push(`<div class="r"><strong>TOTAL</strong><strong>$${money(total)}</strong></div>`);
 
     rows.push(`<div class="line"></div>`);
-    rows.push(`<div class="r"><span>MENOS IMSS</span><span>$${money(imss)}</span></div>`);
-    rows.push(`<div class="r"><span>MENOS ISR</span><span>$${money(isr)}</span></div>`);
-    rows.push(`<div class="r"><span>MENOS INFONAVIT</span><span>$${money(info)}</span></div>`);
+    rows.push(`<div class="r"><strong>MENOS IMSS</strong><strong>$${money(imss)}</strong></div>`);
+    rows.push(`<div class="r"><strong>MENOS ISR</strong><strong>$${money(isr)}</strong></div>`);
+    rows.push(`<div class="r"><strong>MENOS INFONAVIT</strong><strong>$${money(info)}</strong></div>`);
     if(acta){
-      rows.push(`<div class="r"><span>A CTA</span><span>$${money(acta)}</span></div>`);
+      rows.push(`<div class="r"><strong>A CTA</strong><strong>$${money(acta)}</strong></div>`);
     }
     if(falta){
-      rows.push(`<div class="r"><span>FALTA</span><span>$${money(falta)}</span></div>`);
+      rows.push(`<div class="r"><strong>FALTA</strong><strong>$${money(falta)}</strong></div>`);
     }
 
     rows.push(`<div class="line"></div>`);
-    rows.push(`<div class="r"><span class="big">TOTAL A PAGAR</span><strong class="big">$${money(neto)}</strong></div>`);
-    rows.push(`<div class="r"><span>DEPÓSITO</span><span>$${money(depo)}</span></div>`);
-    rows.push(`<div class="r"><span>EFECTIVO</span><span>$${money(efectivo)}</span></div>`);
+    rows.push(`<div class="r"><strong class="big">TOTAL A PAGAR</strong><strong class="big">$${money(neto)}</strong></div>`);
+    rows.push(`<div class="r"><strong>DEPÓSITO</strong><strong>$${money(depo)}</strong></div>`);
+    rows.push(`<div class="r"><strong>EFECTIVO</strong><strong>$${money(efectivo)}</strong></div>`);
 
     $("#tBody").innerHTML = rows.join("");
     $("#btnPrint").disabled = false;
@@ -1076,6 +1138,144 @@
     renderTicket();
   }
 
+  function imprimirTicketDirecto(){
+    if(!currentWorker){
+      showWarn("Selecciona un trabajador primero.");
+      return;
+    }
+
+    updatePaperMode();
+
+    const is58 = $("#paper").value === "58mm";
+    const pageWidth = is58 ? "58mm" : "80mm";
+    const ticketWidth = is58 ? "50mm" : "72mm";
+
+    const contenido = $("#ticket").outerHTML;
+
+    const w = window.open("", "_blank", "width=420,height=700");
+    w.document.write(`
+      <!doctype html>
+      <html lang="es">
+      <head>
+        <meta charset="utf-8">
+        <title>Imprimir Ticket</title>
+        <style>
+          html, body{
+            margin:0;
+            padding:0;
+            background:#fff;
+            font-family:Arial, Helvetica, sans-serif;
+          }
+
+          @page{
+            size:${pageWidth} 150mm;
+            margin:0;
+          }
+
+          body{
+            width:${ticketWidth};
+            color:#000;
+            -webkit-print-color-adjust:exact;
+            print-color-adjust:exact;
+          }
+
+          .ticket{
+            width:${ticketWidth};
+            box-sizing:border-box;
+            margin:0;
+            padding:3mm 2.8mm 1.5mm 2.8mm;
+            color:#000;
+            background:#fff;
+            border:none;
+            border-radius:0;
+            box-shadow:none;
+            font-family:Arial, Helvetica, sans-serif;
+            font-weight:700;
+            text-rendering:geometricPrecision;
+            -webkit-font-smoothing:none;
+          }
+
+          .ticket *{
+            color:#000 !important;
+            letter-spacing:0 !important;
+          }
+
+          .ticket .center{text-align:center}
+          .ticket .line{border-top:1px dashed #000; margin:6px 0}
+          .ticket .r{
+            display:flex;
+            justify-content:space-between;
+            align-items:flex-end;
+            gap:8px;
+            font-size:13px;
+            line-height:1.2;
+          }
+          .ticket .r span,
+          .ticket .r strong{font-weight:700 !important}
+          .ticket h2{
+            margin:0;
+            font-size:15px;
+            line-height:1.15;
+            font-weight:800;
+          }
+          .ticket .mini{
+            font-size:11px;
+            line-height:1.2;
+            font-weight:700;
+          }
+          .ticket .big{
+            font-size:15px;
+            line-height:1.2;
+            font-weight:800 !important;
+          }
+          .ticket .sig{
+            margin-top:10px;
+          }
+          .ticket .sig .mini{
+            margin-bottom:5px;
+            font-size:11px;
+            font-weight:700;
+          }
+          .ticket .sig .box{
+            border-top:1px solid #000;
+            height:14px;
+            padding-top:0;
+          }
+
+          @media print{
+            html, body{
+              width:${ticketWidth};
+              margin:0;
+              padding:0;
+              overflow:hidden;
+              background:#fff;
+            }
+            .ticket{
+              width:${ticketWidth};
+              margin:0;
+              padding:3mm 2.8mm 1.5mm 2.8mm;
+              box-shadow:none;
+              border:none;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        ${contenido}
+        <script>
+          window.onload = () => {
+            setTimeout(() => {
+              window.print();
+              setTimeout(() => window.close(), 300);
+            }, 180);
+          };
+        <\/script>
+      </body>
+      </html>
+    `);
+    w.document.close();
+  }
+
   $("#paper").addEventListener("change", ()=>{
     updatePaperMode();
   });
@@ -1108,8 +1308,7 @@
       showWarn("Selecciona un trabajador primero.");
       return;
     }
-    updatePaperMode();
-    window.print();
+    imprimirTicketDirecto();
   });
 
   $("#file").addEventListener("change", async (e)=>{
