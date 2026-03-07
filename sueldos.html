@@ -198,7 +198,6 @@
       margin-top:10px;
     }
 
-    .warn{color:#92400e}
     .danger{color:#991b1b}
     .ok{color:#15803d}
 
@@ -342,7 +341,8 @@
     }
 
     .ticket{
-      width:var(--paperW);
+      width:100%;
+      max-width:var(--paperW);
       margin:0 auto;
       background:#fff;
       color:#000;
@@ -1098,8 +1098,6 @@
       return;
     }
 
-    updatePaperMode();
-
     const is58 = $("#paper").value === "58mm";
     const pageWidth = is58 ? 58 : 80;
     const ticketWidth = is58 ? 50 : 72;
@@ -1109,10 +1107,11 @@
 
     const pxToMm = px => px * 25.4 / 96;
     const realHeightPx = ticketEl.scrollHeight;
-    const extraMm = 3;
+    const extraMm = 2;
     const pageHeightMm = Math.ceil(pxToMm(realHeightPx) + extraMm);
 
     const w = window.open("", "_blank", "width=420,height=700");
+
     w.document.write(`
       <!doctype html>
       <html lang="es">
@@ -1124,9 +1123,11 @@
             margin:0;
             padding:0;
             background:#fff;
-            font-family:Arial, Helvetica, sans-serif;
-            width:${ticketWidth}mm;
+            width:${pageWidth}mm;
+            min-width:${pageWidth}mm;
+            max-width:${pageWidth}mm;
             overflow:hidden;
+            font-family:Arial, Helvetica, sans-serif;
           }
 
           @page{
@@ -1135,22 +1136,34 @@
           }
 
           body{
-            width:${ticketWidth}mm;
-            color:#000;
             -webkit-print-color-adjust:exact;
             print-color-adjust:exact;
           }
 
-          .ticket{
-            width:${ticketWidth}mm;
-            box-sizing:border-box;
+          .page{
+            width:${pageWidth}mm;
+            min-width:${pageWidth}mm;
+            max-width:${pageWidth}mm;
             margin:0;
-            padding:2.5mm 2.8mm 0.6mm 2.8mm;
+            padding:0;
+            display:flex;
+            justify-content:center;
+            align-items:flex-start;
+            background:#fff;
+          }
+
+          .ticket{
+            width:${ticketWidth}mm !important;
+            min-width:${ticketWidth}mm !important;
+            max-width:${ticketWidth}mm !important;
+            box-sizing:border-box;
+            margin:0 !important;
+            padding:2.5mm 2.8mm 0.6mm 2.8mm !important;
             color:#000;
             background:#fff;
-            border:none;
-            border-radius:0;
-            box-shadow:none;
+            border:none !important;
+            border-radius:0 !important;
+            box-shadow:none !important;
             font-family:Arial, Helvetica, sans-serif;
             font-weight:700;
             text-rendering:geometricPrecision;
@@ -1162,8 +1175,11 @@
             letter-spacing:0 !important;
           }
 
-          .ticket .center{text-align:center}
-          .ticket .line{border-top:1px dashed #000; margin:4px 0}
+          .ticket .center{ text-align:center; }
+          .ticket .line{
+            border-top:1px dashed #000;
+            margin:4px 0;
+          }
           .ticket .r{
             display:flex;
             justify-content:space-between;
@@ -1173,7 +1189,9 @@
             line-height:1.1;
           }
           .ticket .r span,
-          .ticket .r strong{font-weight:700 !important}
+          .ticket .r strong{
+            font-weight:700 !important;
+          }
           .ticket h2{
             margin:0;
             font-size:15px;
@@ -1193,36 +1211,55 @@
 
           @media print{
             html, body{
-              margin:0;
-              padding:0;
-              width:${ticketWidth}mm;
-              overflow:hidden;
-              background:#fff;
+              width:${pageWidth}mm !important;
+              min-width:${pageWidth}mm !important;
+              max-width:${pageWidth}mm !important;
+              margin:0 !important;
+              padding:0 !important;
+              overflow:hidden !important;
+              background:#fff !important;
+            }
+
+            .page{
+              width:${pageWidth}mm !important;
+              min-width:${pageWidth}mm !important;
+              max-width:${pageWidth}mm !important;
+              margin:0 !important;
+              padding:0 !important;
+              display:flex !important;
+              justify-content:center !important;
+              align-items:flex-start !important;
             }
 
             .ticket{
-              width:${ticketWidth}mm;
-              margin:0;
-              padding:2.5mm 2.8mm 0.6mm 2.8mm;
-              border:none;
-              box-shadow:none;
+              width:${ticketWidth}mm !important;
+              min-width:${ticketWidth}mm !important;
+              max-width:${ticketWidth}mm !important;
+              margin:0 !important;
+              padding:2.5mm 2.8mm 0.6mm 2.8mm !important;
+              border:none !important;
+              box-shadow:none !important;
             }
           }
         </style>
       </head>
       <body>
-        ${contenido}
+        <div class="page">
+          ${contenido}
+        </div>
+
         <script>
           window.onload = () => {
             setTimeout(() => {
+              window.focus();
               window.print();
-              setTimeout(() => window.close(), 300);
-            }, 180);
+            }, 250);
           };
         <\/script>
       </body>
       </html>
     `);
+
     w.document.close();
   }
 
