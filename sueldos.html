@@ -255,7 +255,6 @@
       color:#334155;
     }
 
-    /* ===== Excel ===== */
     .excelWrap{
       overflow:auto;
       max-height:86vh;
@@ -342,7 +341,6 @@
       background:#dbeafe;
     }
 
-    /* ===== Ticket ===== */
     .ticket{
       width:var(--paperW);
       margin:0 auto;
@@ -350,7 +348,7 @@
       color:#000;
       border-radius:0;
       border:none;
-      padding:3mm 2.8mm 1.5mm 2.8mm;
+      padding:2.5mm 2.8mm 0.6mm 2.8mm;
       font-family:Arial, Helvetica, sans-serif;
       font-weight:700;
       box-shadow:none;
@@ -369,13 +367,9 @@
       text-align:center;
     }
 
-    .ticket .muted{
-      color:#000 !important;
-    }
-
     .ticket .line{
       border-top:1px dashed #000;
-      margin:6px 0;
+      margin:4px 0;
     }
 
     .ticket .r{
@@ -384,7 +378,7 @@
       align-items:flex-end;
       gap:8px;
       font-size:13px;
-      line-height:1.2;
+      line-height:1.1;
     }
 
     .ticket .r span,
@@ -395,37 +389,21 @@
     .ticket h2{
       margin:0;
       font-size:15px;
-      line-height:1.15;
+      line-height:1.1;
       font-weight:800;
       letter-spacing:.2px;
     }
 
     .ticket .mini{
       font-size:11px;
-      line-height:1.2;
+      line-height:1.15;
       font-weight:700;
     }
 
     .ticket .big{
       font-size:15px;
-      line-height:1.2;
+      line-height:1.1;
       font-weight:800 !important;
-    }
-
-    .ticket .sig{
-      margin-top:10px;
-    }
-
-    .ticket .sig .mini{
-      margin-bottom:5px;
-      font-size:11px;
-      font-weight:700;
-    }
-
-    .ticket .sig .box{
-      border-top:1px solid #000;
-      height:14px;
-      padding-top:0;
     }
 
     @media print{
@@ -505,25 +483,12 @@
         border:none !important;
         border-radius:0 !important;
         margin:0 !important;
-        padding:3mm 2.8mm 1.5mm 2.8mm !important;
+        padding:2.5mm 2.8mm 0.6mm 2.8mm !important;
         box-shadow:none !important;
         page-break-after:avoid !important;
         break-after:avoid !important;
         page-break-inside:avoid !important;
         break-inside:avoid !important;
-      }
-
-      .ticket .line{
-        margin:6px 0 !important;
-      }
-
-      .ticket .sig{
-        margin-top:10px !important;
-        padding-bottom:0 !important;
-      }
-
-      .ticket .sig .box{
-        margin-bottom:0 !important;
       }
 
       .ticket, .ticket *{
@@ -535,14 +500,14 @@
 
     @page{
       margin:0;
-      size:80mm 110mm;
+      size:auto;
     }
   </style>
 
   <style id="dynamicPrintPage">
     @page{
       margin:0;
-      size:80mm 110mm;
+      size:auto;
     }
   </style>
 </head>
@@ -646,13 +611,6 @@
           <div id="tBody">
             <div class="r"><span>Selecciona un trabajador…</span><span>—</span></div>
           </div>
-
-          <div class="sig">
-            <div class="mini">Firma del trabajador</div>
-            <div class="box"></div>
-          </div>
-
-          <div class="center mini" style="margin-top:8px">Gracias</div>
         </div>
       </div>
     </section>
@@ -707,11 +665,7 @@
 
   function updatePaperMode(){
     const is58 = $("#paper").value === "58mm";
-
     const paperWidth = is58 ? "50mm" : "72mm";
-    const pageWidth  = is58 ? "58mm" : "80mm";
-    const pageHeight = "150mm";
-
     document.documentElement.style.setProperty("--paperW", paperWidth);
 
     let st = document.getElementById("dynamicPrintPage");
@@ -721,7 +675,7 @@
       document.head.appendChild(st);
     }
 
-    st.innerHTML = `@page{ size:${pageWidth} ${pageHeight}; margin:0; }`;
+    st.innerHTML = `@page{ margin:0; size:auto; }`;
   }
 
   const CONCEPTS = [
@@ -1147,10 +1101,16 @@
     updatePaperMode();
 
     const is58 = $("#paper").value === "58mm";
-    const pageWidth = is58 ? "58mm" : "80mm";
-    const ticketWidth = is58 ? "50mm" : "72mm";
+    const pageWidth = is58 ? 58 : 80;
+    const ticketWidth = is58 ? 50 : 72;
 
-    const contenido = $("#ticket").outerHTML;
+    const ticketEl = $("#ticket");
+    const contenido = ticketEl.outerHTML;
+
+    const pxToMm = px => px * 25.4 / 96;
+    const realHeightPx = ticketEl.scrollHeight;
+    const extraMm = 3;
+    const pageHeightMm = Math.ceil(pxToMm(realHeightPx) + extraMm);
 
     const w = window.open("", "_blank", "width=420,height=700");
     w.document.write(`
@@ -1165,25 +1125,27 @@
             padding:0;
             background:#fff;
             font-family:Arial, Helvetica, sans-serif;
+            width:${ticketWidth}mm;
+            overflow:hidden;
           }
 
           @page{
-            size:${pageWidth} 150mm;
+            size:${pageWidth}mm ${pageHeightMm}mm;
             margin:0;
           }
 
           body{
-            width:${ticketWidth};
+            width:${ticketWidth}mm;
             color:#000;
             -webkit-print-color-adjust:exact;
             print-color-adjust:exact;
           }
 
           .ticket{
-            width:${ticketWidth};
+            width:${ticketWidth}mm;
             box-sizing:border-box;
             margin:0;
-            padding:3mm 2.8mm 1.5mm 2.8mm;
+            padding:2.5mm 2.8mm 0.6mm 2.8mm;
             color:#000;
             background:#fff;
             border:none;
@@ -1201,61 +1163,49 @@
           }
 
           .ticket .center{text-align:center}
-          .ticket .line{border-top:1px dashed #000; margin:6px 0}
+          .ticket .line{border-top:1px dashed #000; margin:4px 0}
           .ticket .r{
             display:flex;
             justify-content:space-between;
             align-items:flex-end;
             gap:8px;
             font-size:13px;
-            line-height:1.2;
+            line-height:1.1;
           }
           .ticket .r span,
           .ticket .r strong{font-weight:700 !important}
           .ticket h2{
             margin:0;
             font-size:15px;
-            line-height:1.15;
+            line-height:1.1;
             font-weight:800;
           }
           .ticket .mini{
             font-size:11px;
-            line-height:1.2;
+            line-height:1.15;
             font-weight:700;
           }
           .ticket .big{
             font-size:15px;
-            line-height:1.2;
+            line-height:1.1;
             font-weight:800 !important;
-          }
-          .ticket .sig{
-            margin-top:10px;
-          }
-          .ticket .sig .mini{
-            margin-bottom:5px;
-            font-size:11px;
-            font-weight:700;
-          }
-          .ticket .sig .box{
-            border-top:1px solid #000;
-            height:14px;
-            padding-top:0;
           }
 
           @media print{
             html, body{
-              width:${ticketWidth};
               margin:0;
               padding:0;
+              width:${ticketWidth}mm;
               overflow:hidden;
               background:#fff;
             }
+
             .ticket{
-              width:${ticketWidth};
+              width:${ticketWidth}mm;
               margin:0;
-              padding:3mm 2.8mm 1.5mm 2.8mm;
-              box-shadow:none;
+              padding:2.5mm 2.8mm 0.6mm 2.8mm;
               border:none;
+              box-shadow:none;
             }
           }
         </style>
