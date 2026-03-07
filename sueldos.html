@@ -1107,7 +1107,7 @@
 
     const pxToMm = px => px * 25.4 / 96;
     const realHeightPx = ticketEl.scrollHeight;
-    const extraMm = 2;
+    const extraMm = 0;
     const pageHeightMm = Math.ceil(pxToMm(realHeightPx) + extraMm);
 
     const w = window.open("", "_blank", "width=420,height=700");
