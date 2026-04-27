@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>VDC360° — Nómina automática desde PDF</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/exceljs/dist/exceljs.min.js"></script>
   <script>
     if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
   </script>
@@ -25,6 +26,8 @@
     <div class="row">
       <input id="pdfFile" type="file" accept="application/pdf" />
       <button class="btn" onclick="leerPDF()">Leer PDF</button>
+      <input id="excelTicketFile" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" title="Plantilla Excel de tickets" />
+      <button class="btn secondary" onclick="llenarTicketsExcel()">Llenar Excel tickets</button>
       <button class="btn secondary" onclick="agregarEmpleado()">+ Agregar empleado</button>
       <button class="btn warn" onclick="guardarConstantes()">Guardar constantes</button>
       <button class="btn secondary" onclick="pasarPrestamosSiguienteSemana()">Pasar préstamos a sig. semana</button>
@@ -34,6 +37,7 @@
     </div>
     <p class="small">Regla corregida: todos los importes se manejan en <b>pesos</b>. <b>Préstamo sem.</b> es dinero nuevo que pidieron esta semana; el descuento real en nómina se toma de <b>ACTA</b>. El <b>saldo actual</b> queda como: préstamo anterior + préstamo semanal - acta. Al pasar a la siguiente semana, ese saldo se guarda como <b>Préstamo ant.</b> y préstamo semanal vuelve a $0.</p>
     <p class="small"><b>Nueva separación:</b> Paula Pérez, Carlos Reyes, Heriberto, Jorge Martínez y Gustavo Ángel se marcan automáticamente como <b>Carnicería</b>. Puedes cambiar el área manualmente en la columna <b>Área</b>.</p>
+    <p class="small"><b>Tickets Excel:</b> carga tu archivo <b>SUELDOS.xlsx</b> en el segundo selector y presiona <b>Llenar Excel tickets</b>. El sistema descarga una copia ya llenada para imprimir, sin modificar tu archivo original.</p>
   </section>
 
   <section class="grid">
@@ -229,6 +233,86 @@ function exportCSV(){
   const orden=[...rows.filter(r=>r.area==='Carnicería'),...rows.filter(r=>r.area!=='Carnicería')];
   orden.forEach((r,i)=>lines.push([i+1,r.area,r.nombre,r.sueldo,r.extra,r.total_ingreso,r.prestamo_ant,r.prestamo_sem,r.saldo_actual,r.acta,r.faltante,r.infonavit,r.imss,r.impuestos,r.subtotal,r.deposito,r.sueldo_total,r.extra2].map(x=>`"${x}"`).join(',')));
   const blob=new Blob([lines.join('\n')],{type:'text/csv;charset=utf-8'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='nomina_vdc360_por_area.csv'; a.click();
+}
+function normalizarTicketNombre(nombre){
+  const n=normalizeName(nombre);
+  if(n==='BENJAMIN JR') return 'BENJAMIN';
+  if(n==='VICTOR') return 'VICTOR CAMPOS';
+  if(n==='OTERO') return 'ALEJANDRO OTERO';
+  if(n==='JOSE LUIS RDZ') return 'JOSE LUIS';
+  if(n==='MARCO ANTONI') return 'MARCO ANTONIO';
+  if(n==='MARIO V') return 'MARIO';
+  if(n==='ISMAEL') return 'ISMAEL PARRA';
+  return nombre;
+}
+function ponerValor(ws,row,col,value){
+  const cell=ws.getCell(row,col);
+  cell.value=value;
+  if(typeof value==='number') cell.numFmt='$#,##0.00;[Red]-$#,##0.00';
+}
+function limpiarTicket(ws,row,colLabel,colValue){
+  for(let r=row;r<=row+12;r++){
+    ws.getCell(r,colLabel).value=null;
+    ws.getCell(r,colValue).value=null;
+    if(colValue+1<=18) ws.getCell(r,colValue+1).value=null;
+  }
+}
+function llenarTicket(ws,row,colLabel,colValue,empleado){
+  calcular(empleado);
+  const antesActa=round(num(empleado.total_ingreso)-num(empleado.imss)-num(empleado.impuestos)-num(empleado.infonavit));
+  const despuesActa=round(antesActa-num(empleado.acta)-num(empleado.faltante));
+  const sinDeposito=['BENJAMIN JR','VICTOR'].includes(empleado.nombre);
+  const deposito=sinDeposito?0:num(empleado.deposito);
+  const sueldoTotal=sinDeposito?num(empleado.subtotal):num(empleado.sueldo_total);
+  ws.getCell(row,colLabel).value=normalizarTicketNombre(empleado.nombre);
+  ws.getCell(row,colLabel).font={bold:true,size:12};
+  const lineas=[
+    ['SUELDO',num(empleado.sueldo),''],
+    ['EXT',num(empleado.extra),''],
+    ['TOTAL',num(empleado.total_ingreso),''],
+    ['IMSS',num(empleado.imss),'MENOS'],
+    ['ISR',num(empleado.impuestos),'MENOS'],
+    ['INFONAVIT',num(empleado.infonavit),'MENOS'],
+    ['',antesActa,''],
+    ['A CTA',num(empleado.acta),''],
+    ['FALTANTE',num(empleado.faltante),''],
+    ['',despuesActa,''],
+    ['DEPOSITO',deposito,''],
+    ['',sueldoTotal,'']
+  ];
+  lineas.forEach((x,i)=>{
+    const rr=row+1+i;
+    ws.getCell(rr,colLabel).value=x[0]||null;
+    ponerValor(ws,rr,colValue,x[1]);
+    if(x[2]) ws.getCell(rr,colValue+1).value=x[2];
+  });
+}
+async function llenarTicketsExcel(){
+  if(!rows.length){alert('Primero lee el PDF o agrega empleados a la nómina.');return;}
+  if(!window.ExcelJS){alert('No se cargó ExcelJS. Revisa tu internet y vuelve a abrir la página.');return;}
+  const file=document.getElementById('excelTicketFile').files[0];
+  if(!file){alert('Carga primero tu archivo Excel de tickets.');return;}
+  setStatus('Llenando Excel de tickets...');
+  rows.forEach(calcular);
+  const buffer=await file.arrayBuffer();
+  const workbook=new ExcelJS.Workbook();
+  await workbook.xlsx.load(buffer);
+  const ws=workbook.worksheets[0];
+  const posiciones=[];
+  const grupos=[{l:2,v:3},{l:6,v:7},{l:11,v:12},{l:15,v:16}];
+  for(let fila=1;fila<=220;fila+=14){grupos.forEach(g=>posiciones.push({row:fila,colLabel:g.l,colValue:g.v}));}
+  const orden=[...rows.filter(r=>r.area==='Carnicería'),...rows.filter(r=>r.area!=='Carnicería')];
+  posiciones.forEach(p=>limpiarTicket(ws,p.row,p.colLabel,p.colValue));
+  orden.forEach((empleado,i)=>{if(posiciones[i]) llenarTicket(ws,posiciones[i].row,posiciones[i].colLabel,posiciones[i].colValue,empleado);});
+  const out=await workbook.xlsx.writeBuffer();
+  const blob=new Blob([out],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  const fecha=new Date().toISOString().slice(0,10);
+  a.download=`tickets_nomina_vdc360_${fecha}.xlsx`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  setStatus('Excel de tickets generado');
 }
 function limpiarTodo(){if(confirm('¿Limpiar tabla actual?')){rows=[];render();setStatus('Sin periodo detectado');}}
 render();
