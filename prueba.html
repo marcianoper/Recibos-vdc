@@ -28,6 +28,7 @@
       <button class="btn" onclick="leerPDF()">Leer PDF</button>
       <input id="excelTicketFile" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" title="Plantilla Excel de tickets" />
       <button class="btn secondary" onclick="llenarTicketsExcel()">Llenar Excel tickets</button>
+      <button class="btn secondary" onclick="enviarATickets()">Mandar a página de tickets</button>
       <button class="btn secondary" onclick="agregarEmpleado()">+ Agregar empleado</button>
       <button class="btn warn" onclick="guardarConstantes()">Guardar constantes</button>
       <button class="btn secondary" onclick="pasarPrestamosSiguienteSemana()">Pasar préstamos a sig. semana</button>
@@ -313,6 +314,55 @@ async function llenarTicketsExcel(){
   a.click();
   URL.revokeObjectURL(a.href);
   setStatus('Excel de tickets generado');
+}
+function paqueteTicketsNomina(){
+  rows.forEach(calcular);
+  const orden=[...rows.filter(r=>r.area==='Carnicería'),...rows.filter(r=>r.area!=='Carnicería')];
+  return orden.map(r=>{
+    const sinDeposito=['BENJAMIN JR','VICTOR'].includes(r.nombre);
+    const sueldo=round(num(r.sueldo));
+    const ext=round(num(r.extra));
+    const total=round(num(r.total_ingreso));
+    const imss=round(num(r.imss));
+    const isr=round(num(r.impuestos));
+    const infonavit=round(num(r.infonavit));
+    const acta=round(num(r.acta));
+    const falta=round(num(r.faltante));
+    const neto=sinDeposito?round(num(r.subtotal)):round(num(r.subtotal));
+    const deposito=sinDeposito?0:round(num(r.deposito));
+    return {
+      name: normalizarTicketNombre(r.nombre),
+      area: r.area||'General',
+      values:{
+        SUELDO:sueldo,
+        EXT:ext,
+        TOTAL:total,
+        IMSS:imss,
+        ISR:isr,
+        INFONAVIT:infonavit,
+        'A CTA':acta,
+        FALTA:falta,
+        NETO:neto,
+        DEPOSITO:deposito
+      }
+    };
+  });
+}
+function enviarATickets(){
+  if(!rows.length){alert('Primero lee el PDF o agrega empleados a la nómina.');return;}
+  const data={
+    origen:'VDC360_NOMINA',
+    version:1,
+    fecha:new Date().toISOString(),
+    periodo:periodo||'',
+    empresa:'SUELDOS',
+    empleados:paqueteTicketsNomina()
+  };
+  localStorage.setItem('vdc360:nomina:tickets:data',JSON.stringify(data));
+  alert('Datos enviados a la página de tickets. Abre o actualiza la página VDC-NOMINA para imprimir.');
+  // Si tu página de tickets tiene otra ruta, cambia esta URL:
+  const urlTickets='ticket-nomina.html';
+  window.open(urlTickets,'_blank');
 }
 function limpiarTodo(){if(confirm('¿Limpiar tabla actual?')){rows=[];render();setStatus('Sin periodo detectado');}}
 render();
