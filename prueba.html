@@ -12,7 +12,7 @@
     :root{--brand:#0a7a3b;--blue:#2f64b5;--bg:#f4f7fb;--card:#fff;--line:#d7e0ee;--ink:#071426;--muted:#64748b;--bad:#c81e1e;--ok:#007a3d;--warn:#b45309;--shadow:0 16px 45px rgba(15,23,42,.12);--r:18px}
     *{box-sizing:border-box} body{margin:0;background:var(--bg);font-family:Arial,system-ui,sans-serif;color:var(--ink)}
     header{background:linear-gradient(135deg,#0a7a3b,#0f9a52);color:#fff;padding:18px 24px;position:sticky;top:0;z-index:10;box-shadow:var(--shadow)}
-    h1{margin:0;font-size:22px}.sub{opacity:.9;font-size:13px;margin-top:4px}.wrap{padding:18px;max-width:1800px;margin:auto}.card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);border:1px solid #e5e7eb;padding:16px;margin-bottom:16px}.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.btn{border:0;border-radius:12px;padding:11px 14px;font-weight:800;cursor:pointer;background:var(--brand);color:#fff}.btn.secondary{background:#334155}.btn.danger{background:var(--bad)}.btn.warn{background:#b45309}input,select,textarea{border:1px solid #cbd5e1;border-radius:10px;padding:9px;background:#fff;font-size:14px}input[type=file]{background:#f8fafc}.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:800;background:#eaf7ef;color:#075d2f}.grid{display:grid;grid-template-columns:repeat(5,minmax(160px,1fr));gap:10px}.kpi{background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:12px}.kpi b{display:block;font-size:20px;margin-top:4px}.tableBox{overflow:auto;border-radius:16px;border:1px solid var(--line);max-height:72vh}table{border-collapse:separate;border-spacing:0;min-width:1700px;width:100%;background:#fff}th{position:sticky;top:0;background:var(--blue);color:#fff;font-size:12px;text-transform:uppercase;padding:10px 8px;border-right:1px solid rgba(255,255,255,.2);z-index:2}td{padding:6px 6px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);font-size:14px;text-align:right}td.name{text-align:left;white-space:nowrap}tbody tr:nth-child(even){background:#e9f0fa}.money{font-weight:800}.ok{color:var(--ok);font-weight:900}.bad{color:var(--bad);font-weight:900}.muted{color:var(--muted)}td input{width:100%;min-width:80px;text-align:right;padding:8px}.name input{text-align:left;min-width:180px}.delete{background:var(--bad);color:#fff;border:0;border-radius:50%;width:30px;height:30px;font-weight:900;cursor:pointer}.small{font-size:12px;color:var(--muted);line-height:1.35}.note{background:#fff7ed;border:1px solid #fed7aa;color:#7c2d12;border-radius:14px;padding:10px}.hidden{display:none}@media(max-width:900px){.grid{grid-template-columns:1fr 1fr}header{position:relative}.wrap{padding:10px}}
+    h1{margin:0;font-size:22px}.sub{opacity:.9;font-size:13px;margin-top:4px}.wrap{padding:18px;max-width:1800px;margin:auto}.card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);border:1px solid #e5e7eb;padding:16px;margin-bottom:16px}.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.btn{border:0;border-radius:12px;padding:11px 14px;font-weight:800;cursor:pointer;background:var(--brand);color:#fff}.btn.secondary{background:#334155}.btn.danger{background:var(--bad)}.btn.warn{background:#b45309}input,select,textarea{border:1px solid #cbd5e1;border-radius:10px;padding:9px;background:#fff;font-size:14px}input[type=file]{background:#f8fafc}.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:800;background:#eaf7ef;color:#075d2f}.grid{display:grid;grid-template-columns:repeat(5,minmax(160px,1fr));gap:10px}.kpi{background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:12px}.kpi b{display:block;font-size:20px;margin-top:4px}.tableBox{overflow:auto;border-radius:16px;border:1px solid var(--line);max-height:72vh}table{border-collapse:separate;border-spacing:0;min-width:1700px;width:100%;background:#fff}th{position:sticky;top:0;background:var(--blue);color:#fff;font-size:12px;text-transform:uppercase;padding:10px 8px;border-right:1px solid rgba(255,255,255,.2);z-index:2}td{padding:6px 6px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);font-size:14px;text-align:right}td.name{text-align:left;white-space:nowrap}tbody tr:nth-child(even){background:#e9f0fa}.money{font-weight:800}.ok{color:var(--ok);font-weight:900}.bad{color:var(--bad);font-weight:900}.muted{color:var(--muted)}td input{width:100%;min-width:92px;text-align:right;padding:8px;font-weight:700}.name input{text-align:left;min-width:180px}.delete{background:var(--bad);color:#fff;border:0;border-radius:50%;width:30px;height:30px;font-weight:900;cursor:pointer}.small{font-size:12px;color:var(--muted);line-height:1.35}.note{background:#fff7ed;border:1px solid #fed7aa;color:#7c2d12;border-radius:14px;padding:10px}.hidden{display:none}@media(max-width:900px){.grid{grid-template-columns:1fr 1fr}header{position:relative}.wrap{padding:10px}}
   </style>
 </head>
 <body>
@@ -27,11 +27,12 @@
       <button class="btn" onclick="leerPDF()">Leer PDF</button>
       <button class="btn secondary" onclick="agregarEmpleado()">+ Agregar empleado</button>
       <button class="btn warn" onclick="guardarConstantes()">Guardar constantes</button>
+      <button class="btn secondary" onclick="pasarPrestamosSiguienteSemana()">Pasar préstamos a sig. semana</button>
       <button class="btn secondary" onclick="exportCSV()">Exportar CSV</button>
       <button class="btn danger" onclick="limpiarTodo()">Limpiar</button>
       <span id="status" class="pill">Sin periodo detectado</span>
     </div>
-    <p class="small">Regla corregida: <b>Préstamo anterior</b> y <b>Préstamo semanal</b> son solo control de saldo. El descuento real del préstamo se hace en <b>ACTA</b>. Ahora <b>EXTRA</b>, <b>PRÉSTAMO ANT.</b> y <b>ACTA</b> quedan como constantes editables y se guardan en este navegador.</p>
+    <p class="small">Regla corregida: todos los importes se manejan en <b>pesos</b>. <b>Préstamo sem.</b> es dinero nuevo que pidieron esta semana; el descuento real en nómina se toma de <b>ACTA</b>. El <b>saldo actual</b> queda como: préstamo anterior + préstamo semanal - acta. Al pasar a la siguiente semana, ese saldo se guarda como <b>Préstamo ant.</b> y préstamo semanal vuelve a -e.</p>
   </section>
 
   <section class="grid">
@@ -101,7 +102,7 @@ const ID_MAP={
 const NAME_MAP=[
   [/ALDACO.*JUAN|JUAN.*ALDACO/,'JUAN ALDACO'],[/GARCIA OTERO|OTERO/,'OTERO'],[/CAMPOS VICTOR|VICTOR/,'VICTOR'],[/AGUILERA.*LUIS FERNANDO/,'FERNANDO'],[/PARRA.*ISMAEL|ISMAEL/,'ISMAEL'],[/CARRERA.*BENJAMIN|BENJAMIN/,'BENJAMIN JR'],[/GUZMAN.*JOSE CARLOS|JOSE CARLOS/,'JOSE'],[/OWEN|TOÑITO/,'TOÑITO'],[/CAMPOS GONZALEZ JORGE ARTURO|JORGE ARTURO/,'JORGE ARTURO'],[/RODRIGUEZ RODRIGUEZ JOSE LUIS|JOSE LUIS/,'JOSE LUIS RDZ'],[/RODRIGUEZ HERNANDEZ PABLO FERNANDO|PABLO FERNANDO|PABLO/,'PABLO'],[/VAZQUEZ PEÑA JUAN RODOLFO|JUAN RODOLFO/,'RODOLFO'],[/VAZQUEZ GUZMAN EYVYN RODOLFO|EYVYN RODOLFO|EYVYN/,'EYVYN'],[/MARTINEZ FLORES JOSE|JOSE MARTINEZ/,'JOSE MARTINEZ'],[/MARIO EDUARDO|MARIO/,'MARIO V'],[/MARCO ANTONIO|MARCO/,'MARCO ANTONI'],[/JOSE RAUL|RAUL/,'RAUL'],[/DIEGO/,'DIEGO'],[/GERMAN/,'GERMAN'],[/ALISON/,'ALISON'],[/EMILIO/,'EMILIO KURO'],[/TATAN/,'TATAN']
 ];
-function money(n){n=Number(n)||0;return n.toLocaleString('es-MX',{style:'currency',currency:'MXN'});}function num(v){if(v===null||v===undefined)return 0;return Number(String(v).replace(/[$,\s]/g,''))||0;}function round(n){return Math.round((Number(n)||0)*100)/100;}
+function money(n){n=Number(n)||0;return n.toLocaleString('es-MX',{style:'currency',currency:'MXN'});}function num(v){if(v===null||v===undefined)return 0;return Number(String(v).replace(/[$,\s]/g,''))||0;}function round(n){return Math.round((Number(n)||0)*100)/100;}function moneyInput(v){return money(v).replace('MXN','').trim();}function constKey(r){return r.empleado_id || r.nombre;}function pickConst(map,id,name){return (id && map[id]!==undefined)?map[id]:(map[name]!==undefined?map[name]:undefined)}
 function nombreCorto(n, empleadoId=''){
   if(empleadoId && ID_MAP[empleadoId]) return ID_MAP[empleadoId];
   let up=(n||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase();
@@ -133,14 +134,15 @@ function procesarTexto(text){
     const isr=num((b.match(/45\s+I\.S\.R\. \(mes\)\s+([\d,]+\.\d{2})/i)||[])[1]);
     const ajuste=num((b.match(/99\s+Ajuste al neto\s+(-?[\d,]+\.\d{2})/i)||[])[1]);
     const infonavit=num((b.match(/179\s+Infonavit CF correspondiente\s+([\d,]+\.\d{2})/i)||[])[1] || (b.match(/16\s+Préstamo infonavit \(CF\)\s+[\d,]+\.\d{2}\s+([\d,]+\.\d{2})/i)||[])[1]);
-    const extra=extras[short] ?? 0;
-    const p=prest[short]||{};
+    const extra=pickConst(extras, empleadoId, short) ?? 0;
+    const p=pickConst(prest, empleadoId, short) || {};
     rows.push({empleado_id:empleadoId,nombre:short,nombre_pdf:full,sueldo:totalPerc,extra,prestamo_ant:p.prestamo_ant||0,prestamo_sem:p.prestamo_sem||0,acta:p.acta||0,faltante:p.faltante||0,infonavit,imss,impuestos:round(isr+ajuste),deposito:neto,extra2:p.extra2||0});
   }
 }
 function calcular(r){
   r.total_ingreso=round(num(r.sueldo)+num(r.extra));
-  r.saldo_actual=round(num(r.prestamo_ant)+num(r.prestamo_sem));
+  // Saldo real del préstamo después del abono de esta semana.
+  r.saldo_actual=round(Math.max(0,num(r.prestamo_ant)+num(r.prestamo_sem)-num(r.acta)));
   // IMPORTANTE: el préstamo NO se descuenta completo; solo se descuenta lo capturado en ACTA.
   r.subtotal=round(r.total_ingreso-num(r.infonavit)-num(r.imss)-num(r.impuestos)-num(r.acta)-num(r.faltante));
   r.sueldo_total=round(r.subtotal-num(r.deposito));
@@ -155,15 +157,24 @@ function render(){
     <td class="money">${money(r.subtotal)}</td>${inp(i,'deposito',r.deposito)}<td class="${r.sueldo_total<0?'bad':'ok'}">${money(r.sueldo_total)}</td>${inp(i,'extra2',r.extra2)}
     <td><button class="delete" onclick="borrar(${i})">×</button></td>`; tb.appendChild(tr);}); totales();
 }
-function inp(i,k,v){return `<td><input type="number" step="0.01" value="${Number(v)||0}" onchange="edit(${i},'${k}',this.value)"></td>`}
+function inp(i,k,v){return `<td><input type="text" inputmode="decimal" value="${moneyInput(v)}" onfocus="this.value=String(num(this.value)||'')" onchange="edit(${i},'${k}',this.value)" onblur="this.value=moneyInput(this.value)"></td>`}
 function edit(i,k,v){rows[i][k]=k==='nombre'?v:num(v); render();}
 function borrar(i){rows.splice(i,1);render()}
-function agregarEmpleado(){rows.push({nombre:'NUEVO',sueldo:0,extra:0,prestamo_ant:0,prestamo_sem:0,acta:0,faltante:0,infonavit:0,imss:0,impuestos:0,deposito:0,extra2:0});render()}
+function agregarEmpleado(){rows.push({empleado_id:'',nombre:'NUEVO',sueldo:0,extra:0,prestamo_ant:0,prestamo_sem:0,acta:0,faltante:0,infonavit:0,imss:0,impuestos:0,deposito:0,extra2:0});render()}
 function totales(){const s={};['total_ingreso','prestamo_ant','prestamo_sem','saldo_actual','acta','faltante','infonavit','imss','impuestos','subtotal','deposito','sueldo_total','extra2'].forEach(k=>s[k]=rows.reduce((a,r)=>a+num(r[k]),0));
   document.getElementById('kPeriodo').textContent=periodo||'—'; document.getElementById('kEmpleados').textContent=rows.length; document.getElementById('kIngreso').textContent=money(s.total_ingreso); document.getElementById('kSubtotal').textContent=money(s.subtotal); document.getElementById('kExtra').textContent=money(s.sueldo_total);
   const ids={tIngreso:'total_ingreso',tPAnt:'prestamo_ant',tPSem:'prestamo_sem',tSaldo:'saldo_actual',tActa:'acta',tFaltante:'faltante',tInfo:'infonavit',tImss:'imss',tImp:'impuestos',tSub:'subtotal',tDep:'deposito',tSueldo:'sueldo_total',tExtra2:'extra2'}; for(const id in ids)document.getElementById(id).textContent=money(s[ids[id]]);
 }
-function guardarConstantes(){const e={},p={}; rows.forEach(r=>{e[r.nombre]=num(r.extra); p[r.nombre]={prestamo_ant:num(r.prestamo_ant),prestamo_sem:num(r.prestamo_sem),acta:num(r.acta),faltante:num(r.faltante),extra2:num(r.extra2)}}); localStorage.setItem(KEY_EXTRAS,JSON.stringify(e)); localStorage.setItem(KEY_PREST,JSON.stringify(p)); alert('Constantes guardadas en este navegador.');}
+function guardarConstantes(){const e={},p={}; rows.forEach(r=>{const k=constKey(r); e[k]=num(r.extra); p[k]={prestamo_ant:num(r.prestamo_ant),prestamo_sem:num(r.prestamo_sem),acta:num(r.acta),faltante:num(r.faltante),extra2:num(r.extra2)}}); localStorage.setItem(KEY_EXTRAS,JSON.stringify(e)); localStorage.setItem(KEY_PREST,JSON.stringify(p)); alert('Constantes guardadas en este navegador.');}
+function pasarPrestamosSiguienteSemana(){
+  if(!confirm('Esto guardará para la siguiente semana: Préstamo ant. = Préstamo ant. + Préstamo sem. - Acta, y Préstamo sem. = $0. ¿Continuar?')) return;
+  const e={},p={};
+  rows.forEach(r=>{calcular(r); const k=constKey(r); e[k]=num(r.extra); p[k]={prestamo_ant:num(r.saldo_actual),prestamo_sem:0,acta:num(r.saldo_actual)>0?num(r.acta):0,faltante:num(r.faltante),extra2:num(r.extra2)}});
+  localStorage.setItem(KEY_EXTRAS,JSON.stringify(e)); localStorage.setItem(KEY_PREST,JSON.stringify(p));
+  rows.forEach(r=>{r.prestamo_ant=num(r.saldo_actual); r.prestamo_sem=0; if(num(r.saldo_actual)<=0) r.acta=0;});
+  render();
+  alert('Listo. Los préstamos quedaron preparados para la siguiente semana.');
+}
 function exportCSV(){rows.forEach(calcular); const headers=['No','Nombre','Sueldo','Extra','Total ingreso','Prestamo ant','Prestamo sem','Saldo actual','Acta','Faltante','Infonavit','IMSS','Impuestos','Subtotal','Deposito','Sueldo total','Extra 2']; const lines=[headers.join(',')]; rows.forEach((r,i)=>lines.push([i+1,r.nombre,r.sueldo,r.extra,r.total_ingreso,r.prestamo_ant,r.prestamo_sem,r.saldo_actual,r.acta,r.faltante,r.infonavit,r.imss,r.impuestos,r.subtotal,r.deposito,r.sueldo_total,r.extra2].map(x=>`"${x}"`).join(','))); const blob=new Blob([lines.join('\n')],{type:'text/csv;charset=utf-8'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='nomina_vdc360.csv'; a.click();}
 function limpiarTodo(){if(confirm('¿Limpiar tabla actual?')){rows=[];render();setStatus('Sin periodo detectado')}}
 render();
