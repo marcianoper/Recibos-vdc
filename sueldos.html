@@ -35,10 +35,7 @@
 
     *{box-sizing:border-box}
 
-    html, body{
-      margin:0;
-      padding:0;
-    }
+    html, body{margin:0;padding:0}
 
     body{
       font-family:var(--sans);
@@ -63,17 +60,8 @@
       z-index:30;
     }
 
-    header .left h1{
-      margin:0;
-      font-size:16px;
-      color:#0f172a;
-    }
-
-    header .left p{
-      margin:6px 0 0;
-      color:var(--muted);
-      font-size:12px;
-    }
+    header .left h1{margin:0;font-size:16px;color:#0f172a}
+    header .left p{margin:6px 0 0;color:var(--muted);font-size:12px}
 
     header .pill{
       padding:8px 12px;
@@ -86,24 +74,10 @@
       box-shadow:0 8px 20px rgba(15,23,42,.05);
     }
 
-    main{
-      max-width:1700px;
-      margin:0 auto;
-      padding:18px;
-      display:grid;
-      gap:16px;
-    }
+    main{max-width:1700px;margin:0 auto;padding:18px;display:grid;gap:16px}
 
-    .grid{
-      display:grid;
-      grid-template-columns:320px 1.9fr 330px;
-      gap:16px;
-      align-items:start;
-    }
-
-    @media (max-width:1350px){
-      .grid{grid-template-columns:1fr}
-    }
+    .grid{display:grid;grid-template-columns:320px 1.9fr 330px;gap:16px;align-items:start}
+    @media (max-width:1350px){.grid{grid-template-columns:1fr}}
 
     .card{
       background:rgba(255,255,255,.92);
@@ -123,22 +97,10 @@
       background:linear-gradient(180deg, rgba(255,255,255,.92), rgba(248,250,252,.82));
     }
 
-    .hd .t{
-      font-weight:900;
-      color:#0f172a;
-    }
+    .hd .t{font-weight:900;color:#0f172a}
+    .bd{padding:14px}
 
-    .bd{
-      padding:14px;
-    }
-
-    label{
-      display:block;
-      font-size:12px;
-      color:var(--muted);
-      margin:10px 0 6px;
-      font-weight:700;
-    }
+    label{display:block;font-size:12px;color:var(--muted);margin:10px 0 6px;font-weight:700}
 
     input, select, button, textarea{
       width:100%;
@@ -161,11 +123,7 @@
       cursor:pointer;
     }
 
-    .row{
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      gap:12px;
-    }
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 
     .btn{
       background:linear-gradient(180deg, var(--brand2), var(--brand));
@@ -176,38 +134,13 @@
       box-shadow:0 12px 24px rgba(34,197,94,.18);
     }
 
-    .btn.secondary{
-      background:#fff;
-      color:#0f172a;
-      border:1px solid rgba(15,23,42,.12);
-      box-shadow:none;
-    }
+    .btn.secondary{background:#fff;color:#0f172a;border:1px solid rgba(15,23,42,.12);box-shadow:none}
+    .btn.bad{background:#fff5f5;color:#991b1b;border:1px solid rgba(220,38,38,.18);box-shadow:none;font-weight:900}
 
-    .btn.bad{
-      background:#fff5f5;
-      color:#991b1b;
-      border:1px solid rgba(220,38,38,.18);
-      box-shadow:none;
-      font-weight:900;
-    }
+    .hint{font-size:12px;color:var(--muted);line-height:1.4;margin-top:10px}
+    .warn{color:#92400e}.danger{color:#991b1b}.ok{color:#15803d}
 
-    .hint{
-      font-size:12px;
-      color:var(--muted);
-      line-height:1.4;
-      margin-top:10px;
-    }
-
-    .warn{color:#92400e}
-    .danger{color:#991b1b}
-    .ok{color:#15803d}
-
-    .kv{
-      display:grid;
-      grid-template-columns:1fr auto;
-      gap:8px;
-      align-items:center;
-    }
+    .kv{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}
 
     .badge{
       display:inline-flex;
@@ -222,125 +155,47 @@
       box-shadow:0 8px 20px rgba(15,23,42,.04);
     }
 
-    .small{
-      font-size:12px;
-      color:var(--muted);
-    }
+    .small{font-size:12px;color:var(--muted)}
 
-    .list{
-      margin:10px 0 0;
-      padding:0;
-      list-style:none;
-      display:grid;
-      gap:8px;
-    }
+    .list{margin:10px 0 0;padding:0;list-style:none;display:grid;gap:8px}
+    .list li{padding:10px;border:1px solid rgba(15,23,42,.08);border-radius:12px;background:#fbfdff;display:flex;justify-content:space-between;gap:10px;align-items:center}
+    .list li b{color:#0f172a}.list li .v{font-family:var(--mono);color:#334155}
 
-    .list li{
-      padding:10px;
-      border:1px solid rgba(15,23,42,.08);
-      border-radius:12px;
-      background:#fbfdff;
+    .workersPanel{display:grid;gap:8px;margin-top:12px;max-height:310px;overflow:auto;padding-right:4px}
+    .workerBtn{
+      width:100%;
+      text-align:left;
       display:flex;
       justify-content:space-between;
-      gap:10px;
       align-items:center;
-    }
-
-    .list li b{
+      gap:8px;
+      padding:10px;
+      border-radius:12px;
+      border:1px solid rgba(15,23,42,.10);
+      background:#fff;
+      cursor:pointer;
+      font-weight:800;
+      box-shadow:none;
       color:#0f172a;
     }
-
-    .list li .v{
-      font-family:var(--mono);
-      color:#334155;
-    }
+    .workerBtn:hover{background:#f0fdf4;border-color:rgba(34,197,94,.35)}
+    .workerBtn.active{background:#dcfce7;border-color:rgba(34,197,94,.70)}
+    .workerBtn small{display:block;color:#64748b;font-weight:700;margin-top:3px}
+    .workerBtn .moneyMini{font-family:var(--mono);font-size:12px;color:#166534;white-space:nowrap}
 
     /* ===== Excel ===== */
-    .excelWrap{
-      overflow:auto;
-      max-height:86vh;
-      border-radius:14px;
-      border:1px solid rgba(15,23,42,.10);
-      background:#ffffff;
-    }
+    .excelWrap{overflow:auto;max-height:86vh;border-radius:14px;border:1px solid rgba(15,23,42,.10);background:#ffffff}
+    .excelZoom{transform:scale(.78);transform-origin: top left;width:128%}
 
-    .excelZoom{
-      transform:scale(.78);
-      transform-origin: top left;
-      width:128%;
-    }
-
-    table.excel{
-      border-collapse:separate;
-      border-spacing:0;
-      width:max-content;
-      min-width:100%;
-      font-family:var(--mono);
-      font-size:10px;
-      color:#0f172a;
-      background:#fff;
-    }
-
-    .excel th, .excel td{
-      padding:3px 5px;
-      border-right:1px solid rgba(15,23,42,.08);
-      border-bottom:1px solid rgba(15,23,42,.08);
-      white-space:nowrap;
-      user-select:none;
-      line-height:1.08;
-    }
-
-    .excel th{
-      position:sticky;
-      top:0;
-      background:#f1f5f9;
-      color:#0f172a;
-      z-index:2;
-      font-weight:900;
-    }
-
-    .excel th.corner{
-      left:0;
-      z-index:3;
-      position:sticky;
-      background:#e2e8f0;
-    }
-
-    .excel td.rowhdr{
-      position:sticky;
-      left:0;
-      background:#f8fafc;
-      color:#475569;
-      z-index:1;
-      text-align:right;
-      min-width:34px;
-      font-size:10px;
-      font-weight:700;
-    }
-
-    .excel td.cell{
-      cursor:pointer;
-      min-width:58px;
-      background:#fff;
-    }
-
-    .excel td.cell:hover{
-      outline:2px solid rgba(34,197,94,.50);
-      outline-offset:-2px;
-      background:#f0fdf4;
-    }
-
-    .excel td.selected{
-      outline:2px solid rgba(34,197,94,.95);
-      outline-offset:-2px;
-      background:#dcfce7;
-    }
-
-    .excel td.nameCell{
-      outline:2px solid rgba(59,130,246,.85);
-      outline-offset:-2px;
-      background:#dbeafe;
-    }
+    table.excel{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%;font-family:var(--mono);font-size:10px;color:#0f172a;background:#fff}
+    .excel th, .excel td{padding:3px 5px;border-right:1px solid rgba(15,23,42,.08);border-bottom:1px solid rgba(15,23,42,.08);white-space:nowrap;user-select:none;line-height:1.08}
+    .excel th{position:sticky;top:0;background:#f1f5f9;color:#0f172a;z-index:2;font-weight:900}
+    .excel th.corner{left:0;z-index:3;position:sticky;background:#e2e8f0}
+    .excel td.rowhdr{position:sticky;left:0;background:#f8fafc;color:#475569;z-index:1;text-align:right;min-width:34px;font-size:10px;font-weight:700}
+    .excel td.cell{cursor:pointer;min-width:58px;background:#fff}
+    .excel td.cell:hover{outline:2px solid rgba(34,197,94,.50);outline-offset:-2px;background:#f0fdf4}
+    .excel td.selected{outline:2px solid rgba(34,197,94,.95);outline-offset:-2px;background:#dcfce7}
+    .excel td.nameCell{outline:2px solid rgba(59,130,246,.85);outline-offset:-2px;background:#dbeafe}
 
     /* ===== Ticket ===== */
     .ticket{
@@ -360,190 +215,36 @@
       -moz-osx-font-smoothing:auto;
     }
 
-    .ticket *{
-      color:#000 !important;
-      letter-spacing:0 !important;
-    }
-
-    .ticket .center{
-      text-align:center;
-    }
-
-    .ticket .muted{
-      color:#000 !important;
-    }
-
-    .ticket .line{
-      border-top:1px dashed #000;
-      margin:6px 0;
-    }
-
-    .ticket .r{
-      display:flex;
-      justify-content:space-between;
-      align-items:flex-end;
-      gap:8px;
-      font-size:13px;
-      line-height:1.2;
-    }
-
-    .ticket .r span,
-    .ticket .r strong{
-      font-weight:700 !important;
-    }
-
-    .ticket h2{
-      margin:0;
-      font-size:15px;
-      line-height:1.15;
-      font-weight:800;
-      letter-spacing:.2px;
-    }
-
-    .ticket .mini{
-      font-size:11px;
-      line-height:1.2;
-      font-weight:700;
-    }
-
-    .ticket .big{
-      font-size:15px;
-      line-height:1.2;
-      font-weight:800 !important;
-    }
-
-    .ticket .sig{
-      margin-top:10px;
-    }
-
-    .ticket .sig .mini{
-      margin-bottom:5px;
-      font-size:11px;
-      font-weight:700;
-    }
-
-    .ticket .sig .box{
-      border-top:1px solid #000;
-      height:14px;
-      padding-top:0;
-    }
+    .ticket *{color:#000 !important;letter-spacing:0 !important}
+    .ticket .center{text-align:center}.ticket .muted{color:#000 !important}.ticket .line{border-top:1px dashed #000;margin:6px 0}
+    .ticket .r{display:flex;justify-content:space-between;align-items:flex-end;gap:8px;font-size:13px;line-height:1.2}
+    .ticket .r span,.ticket .r strong{font-weight:700 !important}
+    .ticket h2{margin:0;font-size:15px;line-height:1.15;font-weight:800;letter-spacing:.2px}
+    .ticket .mini{font-size:11px;line-height:1.2;font-weight:700}
+    .ticket .big{font-size:15px;line-height:1.2;font-weight:800 !important}
+    .ticket .sig{margin-top:10px}.ticket .sig .mini{margin-bottom:5px;font-size:11px;font-weight:700}.ticket .sig .box{border-top:1px solid #000;height:14px;padding-top:0}
 
     @media print{
-      html, body{
-        margin:0 !important;
-        padding:0 !important;
-        width:100% !important;
-        min-width:0 !important;
-        max-width:none !important;
-        height:auto !important;
-        min-height:0 !important;
-        overflow:hidden !important;
-        background:#fff !important;
-      }
-
-      body{
-        -webkit-print-color-adjust:exact !important;
-        print-color-adjust:exact !important;
-      }
-
-      header,
-      .noPrint,
-      .hd{
-        display:none !important;
-      }
-
-      main{
-        padding:0 !important;
-        margin:0 !important;
-        max-width:none !important;
-        width:auto !important;
-      }
-
-      .grid{
-        display:block !important;
-        margin:0 !important;
-        padding:0 !important;
-      }
-
-      .card{
-        background:#fff !important;
-        border:none !important;
-        box-shadow:none !important;
-        border-radius:0 !important;
-        overflow:visible !important;
-        margin:0 !important;
-        padding:0 !important;
-      }
-
-      .card > .bd{
-        padding:0 !important;
-        margin:0 !important;
-      }
-
-      body *{
-        visibility:hidden !important;
-      }
-
-      .ticketOnly,
-      .ticketOnly *{
-        visibility:visible !important;
-      }
-
-      .ticketOnly{
-        position:absolute !important;
-        left:0 !important;
-        top:0 !important;
-        width:var(--paperW) !important;
-        margin:0 !important;
-        padding:0 !important;
-      }
-
-      .ticket{
-        width:var(--paperW) !important;
-        min-width:var(--paperW) !important;
-        max-width:var(--paperW) !important;
-        border:none !important;
-        border-radius:0 !important;
-        margin:0 !important;
-        padding:3mm 2.8mm 1.5mm 2.8mm !important;
-        box-shadow:none !important;
-        page-break-after:avoid !important;
-        break-after:avoid !important;
-        page-break-inside:avoid !important;
-        break-inside:avoid !important;
-      }
-
-      .ticket .line{
-        margin:6px 0 !important;
-      }
-
-      .ticket .sig{
-        margin-top:10px !important;
-        padding-bottom:0 !important;
-      }
-
-      .ticket .sig .box{
-        margin-bottom:0 !important;
-      }
-
-      .ticket, .ticket *{
-        color:#000 !important;
-        -webkit-print-color-adjust:exact !important;
-        print-color-adjust:exact !important;
-      }
+      html, body{margin:0 !important;padding:0 !important;width:100% !important;min-width:0 !important;max-width:none !important;height:auto !important;min-height:0 !important;overflow:hidden !important;background:#fff !important}
+      body{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important}
+      header,.noPrint,.hd{display:none !important}
+      main{padding:0 !important;margin:0 !important;max-width:none !important;width:auto !important}
+      .grid{display:block !important;margin:0 !important;padding:0 !important}
+      .card{background:#fff !important;border:none !important;box-shadow:none !important;border-radius:0 !important;overflow:visible !important;margin:0 !important;padding:0 !important}
+      .card > .bd{padding:0 !important;margin:0 !important}
+      body *{visibility:hidden !important}
+      .ticketOnly,.ticketOnly *{visibility:visible !important}
+      .ticketOnly{position:absolute !important;left:0 !important;top:0 !important;width:var(--paperW) !important;margin:0 !important;padding:0 !important}
+      .ticket{width:var(--paperW) !important;min-width:var(--paperW) !important;max-width:var(--paperW) !important;border:none !important;border-radius:0 !important;margin:0 !important;padding:3mm 2.8mm 1.5mm 2.8mm !important;box-shadow:none !important;page-break-after:avoid !important;break-after:avoid !important;page-break-inside:avoid !important;break-inside:avoid !important}
+      .ticket .line{margin:6px 0 !important}.ticket .sig{margin-top:10px !important;padding-bottom:0 !important}.ticket .sig .box{margin-bottom:0 !important}
+      .ticket, .ticket *{color:#000 !important;-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important}
     }
 
-    @page{
-      margin:0;
-      size:80mm 150mm;
-    }
+    @page{margin:0;size:80mm 150mm}
   </style>
 
   <style id="dynamicPrintPage">
-    @page{
-      margin:0;
-      size:80mm 150mm;
-    }
+    @page{margin:0;size:80mm 150mm}
   </style>
 </head>
 
@@ -551,7 +252,7 @@
 <header class="noPrint">
   <div class="left">
     <h1>VDC-NOMINA SISTEMA GRANDIOSO PARA TIA IVONNE</h1>
-    <p>1) Carga Excel 2) Click en el <b>nombre</b> 3) Se captura el bloque 4) Si algo falla, click en el <b>número</b> para corregir 5) Imprimir.</p>
+    <p>Ahora puede recibir datos directos desde la página de nómina. También conserva la opción de cargar Excel manualmente.</p>
   </div>
   <div class="pill" id="statusPill">Sin archivo</div>
 </header>
@@ -564,7 +265,7 @@
         <div class="badge"><span class="ok">●</span> listo para imprimir</div>
       </div>
       <div class="bd">
-        <label>Excel (.xlsx)</label>
+        <label>Excel (.xlsx) opcional</label>
         <input id="file" type="file" accept=".xlsx,.xls"/>
 
         <div class="row">
@@ -594,13 +295,19 @@
           <button id="btnHelp" class="btn secondary">Cómo usar</button>
         </div>
 
+        <button id="btnReloadNomina" class="btn secondary" style="margin-top:12px">🔄 Cargar datos enviados de nómina</button>
+
         <div class="hint" id="helpBox" style="display:none">
-          <b>Uso rápido:</b><br>
+          <b>Uso rápido con nómina:</b><br>
+          1) En la página de nómina presiona <b>Mandar a página de tickets</b>.<br>
+          2) Abre esta página o presiona <b>Cargar datos enviados de nómina</b>.<br>
+          3) Selecciona un trabajador de la lista.<br>
+          4) Imprime.<br><br>
+          <b>Uso con Excel:</b><br>
           1) Carga el Excel.<br>
           2) Haz click en el <b>nombre</b> del trabajador.<br>
-          3) El sistema detecta SUELDO, EXT, TOTAL, IMSS, ISR, INFONAVIT, A CTA, FALTA, NETO y DEPOSITO.<br>
-          4) Si algo quedó mal, haz click en el <b>número</b> de esa fila para corregir.<br>
-          5) Imprime.
+          3) Si algo quedó mal, haz click en el <b>número</b> de esa fila para corregir.<br>
+          4) Imprime.
         </div>
 
         <div class="hint danger" id="warn" style="display:none"></div>
@@ -610,18 +317,23 @@
           <div class="badge" id="currentName">—</div>
         </div>
 
+        <div id="nominaListBox" style="display:none">
+          <label>Trabajadores recibidos de nómina</label>
+          <div class="workersPanel" id="nominaWorkers"></div>
+        </div>
+
         <ul class="list" id="fieldsList"></ul>
       </div>
     </section>
 
     <section class="card noPrint">
       <div class="hd">
-        <div class="t">Vista del Excel (compacta)</div>
+        <div class="t">Vista del Excel / Datos recibidos</div>
         <div class="badge" id="cellInfo">Celda: —</div>
       </div>
       <div class="bd">
         <div class="excelWrap" id="excelWrap">
-          <div class="hint">Carga un Excel para mostrarlo aquí.</div>
+          <div class="hint">Carga un Excel o recibe datos desde la página de nómina.</div>
         </div>
       </div>
     </section>
@@ -681,9 +393,7 @@
     return s;
   };
 
-  function round2(n){
-    return Math.round((Number(n) + Number.EPSILON) * 100) / 100;
-  }
+  function round2(n){return Math.round((Number(n) + Number.EPSILON) * 100) / 100;}
 
   function setStatus(text, good=true){
     const pill = $("#statusPill");
@@ -693,55 +403,27 @@
     pill.style.color        = good ? "#166534" : "#991b1b";
   }
 
-  function showWarn(msg){
-    const w = $("#warn");
-    w.style.display="block";
-    w.textContent = msg;
-  }
-
-  function hideWarn(){
-    const w = $("#warn");
-    w.style.display="none";
-    w.textContent="";
-  }
+  function showWarn(msg){const w = $("#warn");w.style.display="block";w.textContent = msg;}
+  function hideWarn(){const w = $("#warn");w.style.display="none";w.textContent="";}
 
   function updatePaperMode(){
     const is58 = $("#paper").value === "58mm";
-
     const paperWidth = is58 ? "50mm" : "72mm";
     const pageWidth  = is58 ? "58mm" : "80mm";
     const pageHeight = "150mm";
-
     document.documentElement.style.setProperty("--paperW", paperWidth);
-
     let st = document.getElementById("dynamicPrintPage");
-    if(!st){
-      st = document.createElement("style");
-      st.id = "dynamicPrintPage";
-      document.head.appendChild(st);
-    }
-
+    if(!st){st = document.createElement("style");st.id = "dynamicPrintPage";document.head.appendChild(st);}
     st.innerHTML = `@page{ size:${pageWidth} ${pageHeight}; margin:0; }`;
   }
 
-  const CONCEPTS = [
-    "SUELDO","EXT","TOTAL","IMSS","ISR","INFONAVIT","A CTA","FALTA","NETO","DEPOSITO"
-  ];
+  const CONCEPTS = ["SUELDO","EXT","TOTAL","IMSS","ISR","INFONAVIT","A CTA","FALTA","NETO","DEPOSITO"];
 
   const CONCEPT_ALIASES = new Map([
-    ["DEPÓSITO","DEPOSITO"],
-    ["DEPOSITO ","DEPOSITO"],
-    ["A_CTA","A CTA"],
-    ["ACTA","A CTA"],
-    ["FALTA 1 DIA","FALTA"],
-    ["FALTA 2 DIAS","FALTA"],
-    ["FALTA 3 DIAS","FALTA"],
-    ["FALTA 1 DÍA","FALTA"],
-    ["FALTA 2 DÍAS","FALTA"],
-    ["FALTA 3 DÍAS","FALTA"],
-    ["FALTA DIA","FALTA"],
-    ["FALTADIA","FALTA"],
-    ["FALTA","FALTA"]
+    ["DEPÓSITO","DEPOSITO"],["DEPOSITO ","DEPOSITO"],["A_CTA","A CTA"],["ACTA","A CTA"],
+    ["FALTA 1 DIA","FALTA"],["FALTA 2 DIAS","FALTA"],["FALTA 3 DIAS","FALTA"],
+    ["FALTA 1 DÍA","FALTA"],["FALTA 2 DÍAS","FALTA"],["FALTA 3 DÍAS","FALTA"],
+    ["FALTA DIA","FALTA"],["FALTADIA","FALTA"],["FALTA","FALTA"]
   ]);
 
   function normConcept(s){
@@ -755,6 +437,7 @@
   let selected = { r:null, c:null };
   let currentWorker = null;
   const workersByAnchor = new Map();
+  let nominaMode = false;
 
   function renderFields(){
     const ul = $("#fieldsList");
@@ -780,11 +463,7 @@
     $("#tEmpresa").textContent = clean($("#empresa").value) || "—";
 
     const hoy = new Date();
-    const fechaTexto = hoy.toLocaleDateString("es-MX", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric"
-    });
+    const fechaTexto = hoy.toLocaleDateString("es-MX", {day: "2-digit",month: "2-digit",year: "numeric"});
     $("#tFecha").textContent = fechaTexto;
 
     if(!currentWorker){
@@ -820,12 +499,8 @@
     rows.push(`<div class="r"><strong>MENOS IMSS</strong><strong>$${money(imss)}</strong></div>`);
     rows.push(`<div class="r"><strong>MENOS ISR</strong><strong>$${money(isr)}</strong></div>`);
     rows.push(`<div class="r"><strong>MENOS INFONAVIT</strong><strong>$${money(info)}</strong></div>`);
-    if(acta){
-      rows.push(`<div class="r"><strong>A CTA</strong><strong>$${money(acta)}</strong></div>`);
-    }
-    if(falta){
-      rows.push(`<div class="r"><strong>FALTA</strong><strong>$${money(falta)}</strong></div>`);
-    }
+    if(acta){rows.push(`<div class="r"><strong>A CTA</strong><strong>$${money(acta)}</strong></div>`);}
+    if(falta){rows.push(`<div class="r"><strong>FALTA</strong><strong>$${money(falta)}</strong></div>`);}
 
     rows.push(`<div class="line"></div>`);
     rows.push(`<div class="r"><strong class="big">TOTAL A PAGAR</strong><strong class="big">$${money(neto)}</strong></div>`);
@@ -836,11 +511,125 @@
     $("#btnPrint").disabled = false;
   }
 
-  function renderTicket(){
-    renderTicketBase();
+  function renderTicket(){renderTicketBase();}
+
+  function renderNominaWorkers(){
+    const box = $("#nominaListBox");
+    const list = $("#nominaWorkers");
+    list.innerHTML = "";
+
+    if(!nominaMode || !workersByAnchor.size){
+      box.style.display = "none";
+      return;
+    }
+
+    box.style.display = "block";
+    let i=0;
+    for(const [key,w] of workersByAnchor.entries()){
+      const btn = document.createElement("button");
+      btn.className = "workerBtn" + (currentWorker===w ? " active" : "");
+      btn.type = "button";
+      btn.innerHTML = `<span>${i+1}. ${w.name}<small>${w.area || 'General'}</small></span><span class="moneyMini">$${money(w.values?.NETO || 0)}</span>`;
+      btn.addEventListener("click",()=>{
+        currentWorker = w;
+        selected = {r:null,c:null};
+        renderFields();
+        renderTicket();
+        renderNominaWorkers();
+      });
+      list.appendChild(btn);
+      i++;
+    }
+  }
+
+  function renderNominaPreview(data){
+    const wrap = $("#excelWrap");
+    const empleados = data?.empleados || [];
+    if(!empleados.length){
+      wrap.innerHTML = `<div class="hint">No hay empleados recibidos de nómina.</div>`;
+      return;
+    }
+
+    const rows = empleados.map((e,i)=>`
+      <tr>
+        <td>${i+1}</td>
+        <td>${e.area || 'General'}</td>
+        <td><b>${e.name}</b></td>
+        <td>$${money(e.values?.SUELDO || 0)}</td>
+        <td>$${money(e.values?.EXT || 0)}</td>
+        <td>$${money(e.values?.TOTAL || 0)}</td>
+        <td>$${money(e.values?.IMSS || 0)}</td>
+        <td>$${money(e.values?.ISR || 0)}</td>
+        <td>$${money(e.values?.INFONAVIT || 0)}</td>
+        <td>$${money(e.values?.['A CTA'] || 0)}</td>
+        <td>$${money(e.values?.FALTA || 0)}</td>
+        <td>$${money(e.values?.NETO || 0)}</td>
+        <td>$${money(e.values?.DEPOSITO || 0)}</td>
+      </tr>
+    `).join("");
+
+    wrap.innerHTML = `
+      <div style="padding:12px">
+        <div class="hint" style="margin:0 0 10px"><b>Datos recibidos desde nómina</b> · ${empleados.length} empleados · ${data.periodo || ''}</div>
+        <div class="excelWrap" style="max-height:75vh">
+          <table class="excel" style="width:100%;min-width:980px">
+            <thead><tr><th>#</th><th>Área</th><th>Empleado</th><th>Sueldo</th><th>Ext</th><th>Total</th><th>IMSS</th><th>ISR</th><th>Infonavit</th><th>A CTA</th><th>Falta</th><th>Neto</th><th>Depósito</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </div>`;
+  }
+
+  function cargarDesdeNomina(){
+    hideWarn();
+    const raw = localStorage.getItem('vdc360:nomina:tickets:data');
+    if(!raw){
+      showWarn('Todavía no hay datos enviados desde la página de nómina. Primero presiona “Mandar a página de tickets” en la página de nómina.');
+      return false;
+    }
+
+    let data;
+    try{data = JSON.parse(raw);}catch(e){showWarn('Los datos enviados de nómina están dañados. Vuelve a enviarlos desde la página de nómina.');return false;}
+
+    const empleados = Array.isArray(data.empleados) ? data.empleados : [];
+    if(!empleados.length){showWarn('El paquete de nómina no trae empleados.');return false;}
+
+    nominaMode = true;
+    wb = null;
+    aoa = null;
+    selected = {r:null,c:null};
+    workersByAnchor.clear();
+
+    $("#empresa").value = data.empresa || "SUELDOS";
+    $("#sheet").innerHTML = '<option>Datos de nómina</option>';
+    $("#sheet").disabled = true;
+    $("#cellInfo").textContent = `Nómina: ${empleados.length} empleados`;
+
+    empleados.forEach((emp,i)=>{
+      workersByAnchor.set(`nomina,${i}`, {
+        name: emp.name || `EMPLEADO ${i+1}`,
+        area: emp.area || 'General',
+        anchor:{r:i,c:0},
+        values: emp.values || {}
+      });
+    });
+
+    currentWorker = workersByAnchor.values().next().value || null;
+    renderNominaPreview(data);
+    renderNominaWorkers();
+    renderFields();
+    renderTicket();
+
+    $("#btnAuto").disabled = true;
+    $("#btnClear").disabled = false;
+    $("#btnPrint").disabled = !currentWorker;
+
+    setStatus(`Datos recibidos de nómina: ${empleados.length} empleados`, true);
+    return true;
   }
 
   function buildExcelTable(aoa){
+    nominaMode = false;
     const rows = aoa.length;
     let cols = 0;
     for(let r=0; r<rows; r++) cols = Math.max(cols, (aoa[r] || []).length);
@@ -872,7 +661,6 @@
     const tbody = document.createElement("tbody");
     for(let r=0; r<rows; r++){
       const tr = document.createElement("tr");
-
       const rh = document.createElement("td");
       rh.className = "rowhdr";
       rh.textContent = String(r+1);
@@ -883,7 +671,6 @@
         td.className = "cell";
         td.dataset.r = r;
         td.dataset.c = c;
-
         const v = aoa[r]?.[c];
         td.textContent = (v == null || v === "") ? "" : (isNum(v) ? v : v.toString());
         tr.appendChild(td);
@@ -901,11 +688,9 @@
 
   function paintSelections(){
     const table = $("#excelWrap table");
-    if(!table) return;
+    if(!table || nominaMode) return;
 
-    table.querySelectorAll("td.cell").forEach(td=>{
-      td.classList.remove("selected","nameCell");
-    });
+    table.querySelectorAll("td.cell").forEach(td=>{td.classList.remove("selected","nameCell")});
 
     if(selected.r != null){
       const td = table.querySelector(`td.cell[data-r="${selected.r}"][data-c="${selected.c}"]`);
@@ -922,29 +707,24 @@
   function looksLikeNameCell(v){
     if(v == null) return false;
     if(isNum(v)) return false;
-
     const s = clean(v);
     if(!s) return false;
-
     const u = upper(s);
     if(CONCEPTS.includes(normConcept(u))) return false;
     if(u === "MENOS") return false;
     if(/^FALTA\b/.test(u)) return false;
-
     return u.length >= 3 && u.length <= 35;
   }
 
   function parseMexNumber(s){
     const t = clean(s).replace(/\$/g,"");
     if(!t) return null;
-
     let x = t.replace(/\s/g,"");
     if(x.includes(".") && x.includes(",") && x.lastIndexOf(",") > x.lastIndexOf(".")){
       x = x.replace(/\./g,"").replace(",",".");
     } else {
       x = x.replace(/,/g,"");
     }
-
     const n = Number(x);
     return isFinite(n) ? n : null;
   }
@@ -964,7 +744,6 @@
     for(let j=startCol+1; j<=startCol+3; j++){
       const v = aoa?.[r]?.[j];
       if(isNum(v)) return { value:v, valueCol:j };
-
       const s = clean(v);
       if(s){
         const num = parseMexNumber(s);
@@ -975,30 +754,24 @@
   }
 
   function autoCaptureFromAnchor(w){
-    if(!w?.anchor) return;
+    if(!w?.anchor || !aoa) return;
     const ar = w.anchor.r, ac = w.anchor.c;
-
     w.values = w.values || {};
 
     for(let r=ar+1; r<Math.min(aoa.length, ar+120); r++){
       const cellHere = aoa[r]?.[ac];
       if(looksLikeNameCell(cellHere)) break;
-
       const label = clean(cellHere);
       if(!label) continue;
-
       const k = normConcept(label);
       if(!CONCEPTS.includes(k)) continue;
-
       const num = findNumberRightStrict(r, ac);
       if(num) w.values[k] = num.value;
     }
 
     const s = Number(w.values["SUELDO"] || 0);
     const e = Number(w.values["EXT"] || 0);
-    if(!isFinite(Number(w.values["TOTAL"]))){
-      w.values["TOTAL"] = round2(s + e);
-    }
+    if(!isFinite(Number(w.values["TOTAL"]))){w.values["TOTAL"] = round2(s + e);}
 
     const total = Number(w.values["TOTAL"] || 0);
     const imss = Number(w.values["IMSS"] || 0);
@@ -1007,15 +780,12 @@
     const acta = Number(w.values["A CTA"] || 0);
     const falta = Number(w.values["FALTA"] || 0);
 
-    if(!isFinite(Number(w.values["NETO"]))){
-      w.values["NETO"] = round2(total - imss - isr - info - acta - falta);
-    }
+    if(!isFinite(Number(w.values["NETO"]))){w.values["NETO"] = round2(total - imss - isr - info - acta - falta);}
   }
 
   function onCellClick(e){
     const td = e.target.closest("td.cell");
     if(!td) return;
-
     hideWarn();
 
     const r = Number(td.dataset.r);
@@ -1028,16 +798,9 @@
     if(looksLikeNameCell(v)){
       const name = upper(v);
       const key = `${r},${c}`;
-
       let w = workersByAnchor.get(key);
-      if(!w){
-        w = { name, anchor:{r,c}, values:{} };
-        workersByAnchor.set(key, w);
-      } else {
-        w.name = name;
-        w.anchor = {r,c};
-        w.values = w.values || {};
-      }
+      if(!w){w = { name, anchor:{r,c}, values:{} };workersByAnchor.set(key, w);}
+      else {w.name = name;w.anchor = {r,c};w.values = w.values || {};}
 
       currentWorker = w;
       autoCaptureFromAnchor(currentWorker);
@@ -1051,18 +814,10 @@
       return;
     }
 
-    if(!currentWorker){
-      showWarn("Primero haz click en el NOMBRE del trabajador.");
-      paintSelections();
-      return;
-    }
+    if(!currentWorker){showWarn("Primero haz click en el NOMBRE del trabajador.");paintSelections();return;}
 
     const found = findConceptAt(r,c);
-    if(!found){
-      showWarn("No encontré el concepto en esa fila. Haz click en el número correcto de esa fila.");
-      paintSelections();
-      return;
-    }
+    if(!found){showWarn("No encontré el concepto en esa fila. Haz click en el número correcto de esa fila.");paintSelections();return;}
 
     let val = null;
     if(isNum(v)) val = v;
@@ -1071,16 +826,8 @@
       if(p != null) val = p;
     }
 
-    if(val == null){
-      const right = findNumberRightStrict(r, found.conceptCol);
-      if(right) val = right.value;
-    }
-
-    if(val == null){
-      showWarn("No encontré un número en esa fila. Haz click directamente en la celda del número.");
-      paintSelections();
-      return;
-    }
+    if(val == null){const right = findNumberRightStrict(r, found.conceptCol);if(right) val = right.value;}
+    if(val == null){showWarn("No encontré un número en esa fila. Haz click directamente en la celda del número.");paintSelections();return;}
 
     currentWorker.values[found.concept] = val;
 
@@ -1132,6 +879,8 @@
     selected = {r:null,c:null};
     currentWorker = null;
     workersByAnchor.clear();
+    nominaMode = false;
+    renderNominaWorkers();
 
     buildExcelTable(aoa);
     renderFields();
@@ -1139,17 +888,13 @@
   }
 
   function imprimirTicketDirecto(){
-    if(!currentWorker){
-      showWarn("Selecciona un trabajador primero.");
-      return;
-    }
+    if(!currentWorker){showWarn("Selecciona un trabajador primero.");return;}
 
     updatePaperMode();
 
     const is58 = $("#paper").value === "58mm";
     const pageWidth = is58 ? "58mm" : "80mm";
     const ticketWidth = is58 ? "50mm" : "72mm";
-
     const contenido = $("#ticket").outerHTML;
 
     const w = window.open("", "_blank", "width=420,height=700");
@@ -1160,104 +905,13 @@
         <meta charset="utf-8">
         <title>Imprimir Ticket</title>
         <style>
-          html, body{
-            margin:0;
-            padding:0;
-            background:#fff;
-            font-family:Arial, Helvetica, sans-serif;
-          }
-
-          @page{
-            size:${pageWidth} 150mm;
-            margin:0;
-          }
-
-          body{
-            width:${ticketWidth};
-            color:#000;
-            -webkit-print-color-adjust:exact;
-            print-color-adjust:exact;
-          }
-
-          .ticket{
-            width:${ticketWidth};
-            box-sizing:border-box;
-            margin:0;
-            padding:3mm 2.8mm 1.5mm 2.8mm;
-            color:#000;
-            background:#fff;
-            border:none;
-            border-radius:0;
-            box-shadow:none;
-            font-family:Arial, Helvetica, sans-serif;
-            font-weight:700;
-            text-rendering:geometricPrecision;
-            -webkit-font-smoothing:none;
-          }
-
-          .ticket *{
-            color:#000 !important;
-            letter-spacing:0 !important;
-          }
-
-          .ticket .center{text-align:center}
-          .ticket .line{border-top:1px dashed #000; margin:6px 0}
-          .ticket .r{
-            display:flex;
-            justify-content:space-between;
-            align-items:flex-end;
-            gap:8px;
-            font-size:13px;
-            line-height:1.2;
-          }
-          .ticket .r span,
-          .ticket .r strong{font-weight:700 !important}
-          .ticket h2{
-            margin:0;
-            font-size:15px;
-            line-height:1.15;
-            font-weight:800;
-          }
-          .ticket .mini{
-            font-size:11px;
-            line-height:1.2;
-            font-weight:700;
-          }
-          .ticket .big{
-            font-size:15px;
-            line-height:1.2;
-            font-weight:800 !important;
-          }
-          .ticket .sig{
-            margin-top:10px;
-          }
-          .ticket .sig .mini{
-            margin-bottom:5px;
-            font-size:11px;
-            font-weight:700;
-          }
-          .ticket .sig .box{
-            border-top:1px solid #000;
-            height:14px;
-            padding-top:0;
-          }
-
-          @media print{
-            html, body{
-              width:${ticketWidth};
-              margin:0;
-              padding:0;
-              overflow:hidden;
-              background:#fff;
-            }
-            .ticket{
-              width:${ticketWidth};
-              margin:0;
-              padding:3mm 2.8mm 1.5mm 2.8mm;
-              box-shadow:none;
-              border:none;
-            }
-          }
+          html, body{margin:0;padding:0;background:#fff;font-family:Arial, Helvetica, sans-serif;}
+          @page{size:${pageWidth} 150mm;margin:0;}
+          body{width:${ticketWidth};color:#000;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+          .ticket{width:${ticketWidth};box-sizing:border-box;margin:0;padding:3mm 2.8mm 1.5mm 2.8mm;color:#000;background:#fff;border:none;border-radius:0;box-shadow:none;font-family:Arial, Helvetica, sans-serif;font-weight:700;text-rendering:geometricPrecision;-webkit-font-smoothing:none;}
+          .ticket *{color:#000 !important;letter-spacing:0 !important;}
+          .ticket .center{text-align:center}.ticket .line{border-top:1px dashed #000; margin:6px 0}.ticket .r{display:flex;justify-content:space-between;align-items:flex-end;gap:8px;font-size:13px;line-height:1.2}.ticket .r span,.ticket .r strong{font-weight:700 !important}.ticket h2{margin:0;font-size:15px;line-height:1.15;font-weight:800}.ticket .mini{font-size:11px;line-height:1.2;font-weight:700}.ticket .big{font-size:15px;line-height:1.2;font-weight:800 !important}.ticket .sig{margin-top:10px}.ticket .sig .mini{margin-bottom:5px;font-size:11px;font-weight:700}.ticket .sig .box{border-top:1px solid #000;height:14px;padding-top:0;}
+          @media print{html, body{width:${ticketWidth};margin:0;padding:0;overflow:hidden;background:#fff}.ticket{width:${ticketWidth};margin:0;padding:3mm 2.8mm 1.5mm 2.8mm;box-shadow:none;border:none}}
         </style>
       </head>
       <body>
@@ -1276,40 +930,14 @@
     w.document.close();
   }
 
-  $("#paper").addEventListener("change", ()=>{
-    updatePaperMode();
-  });
+  $("#paper").addEventListener("change", ()=>{updatePaperMode();});
+  $("#empresa").addEventListener("input", ()=>{renderTicket();});
+  $("#btnHelp").addEventListener("click", ()=>{const box = $("#helpBox");box.style.display = (box.style.display === "none" ? "block" : "none");});
+  $("#btnReloadNomina").addEventListener("click", ()=>{cargarDesdeNomina();});
 
-  $("#empresa").addEventListener("input", ()=>{
-    renderTicket();
-  });
-
-  $("#btnHelp").addEventListener("click", ()=>{
-    const box = $("#helpBox");
-    box.style.display = (box.style.display === "none" ? "block" : "none");
-  });
-
-  $("#btnAuto").addEventListener("click", ()=>{
-    if(!currentWorker) return;
-    autoCaptureFromAnchor(currentWorker);
-    renderFields();
-    renderTicket();
-  });
-
-  $("#btnClear").addEventListener("click", ()=>{
-    if(!currentWorker) return;
-    currentWorker.values = {};
-    renderFields();
-    renderTicket();
-  });
-
-  $("#btnPrint").addEventListener("click", ()=>{
-    if(!currentWorker){
-      showWarn("Selecciona un trabajador primero.");
-      return;
-    }
-    imprimirTicketDirecto();
-  });
+  $("#btnAuto").addEventListener("click", ()=>{if(!currentWorker) return;autoCaptureFromAnchor(currentWorker);renderFields();renderTicket();});
+  $("#btnClear").addEventListener("click", ()=>{if(!currentWorker) return;currentWorker.values = {};renderFields();renderTicket();renderNominaWorkers();});
+  $("#btnPrint").addEventListener("click", ()=>{if(!currentWorker){showWarn("Selecciona un trabajador primero.");return;}imprimirTicketDirecto();});
 
   $("#file").addEventListener("change", async (e)=>{
     const f = e.target.files?.[0];
@@ -1317,9 +945,7 @@
 
     hideWarn();
     try{
-      if(typeof XLSX === "undefined"){
-        throw new Error("XLSX no cargó. Revisa conexión a internet o bloqueadores.");
-      }
+      if(typeof XLSX === "undefined"){throw new Error("XLSX no cargó. Revisa conexión a internet o bloqueadores.");}
       setStatus("Leyendo Excel…", true);
       await loadWorkbook(f);
     }catch(err){
@@ -1331,18 +957,14 @@
 
   $("#sheet").addEventListener("change", async ()=>{
     if(!wb) return;
-    try{
-      await loadSheet($("#sheet").value);
-    }catch(err){
-      console.error(err);
-      showWarn("Error cambiando hoja: " + (err?.message || err));
-    }
+    try{await loadSheet($("#sheet").value);}catch(err){console.error(err);showWarn("Error cambiando hoja: " + (err?.message || err));}
   });
 
   updatePaperMode();
   setStatus("Sin archivo", true);
   renderFields();
   renderTicket();
+  cargarDesdeNomina();
 </script>
 </body>
 </html>
