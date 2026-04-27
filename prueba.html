@@ -43,7 +43,7 @@
   </section>
 
   <section class="card">
-    <div class="note"><b>Constantes editables:</b> EXTRA, PRÉSTAMO ANT. y ACTA se identifican por nombre corto. Si cambias algún dato en la tabla, presiona <b>Guardar constantes</b> para que se mantenga en las siguientes nóminas.</div>
+    <div class="note"><b>Constantes editables:</b> EXTRA, PRÉSTAMO ANT. y ACTA se identifican primero por No. de empleado del PDF y después por nombre corto. Si cambias algún dato en la tabla, presiona <b>Guardar constantes</b> para que se mantenga en las siguientes nóminas.</div>
     <br>
     <div class="tableBox">
       <table id="tabla">
@@ -74,11 +74,40 @@ const EXTRAS_DEFAULT={
 const PRESTAMOS_DEFAULT={
   'MARTIN PITAYO':{prestamo_ant:0,prestamo_sem:0,acta:0},'JUAN ALDACO':{prestamo_ant:0,prestamo_sem:0,acta:0},'OTERO':{prestamo_ant:0,prestamo_sem:0,acta:0},'VICTOR':{prestamo_ant:0,prestamo_sem:0,acta:0},'FERNANDO':{prestamo_ant:0,prestamo_sem:4000,acta:200},'ISMAEL':{prestamo_ant:0,prestamo_sem:0,acta:0},'BENJAMIN JR':{prestamo_ant:6000,prestamo_sem:0,acta:200},'JOSE':{prestamo_ant:3600,prestamo_sem:0,acta:200},'TOÑO':{prestamo_ant:0,prestamo_sem:0,acta:0},'TOÑITO':{prestamo_ant:0,prestamo_sem:0,acta:0},'JORGE ARTURO':{prestamo_ant:1100,prestamo_sem:0,acta:100},'JOSE LUIS RDZ':{prestamo_ant:1200,prestamo_sem:0,acta:100},'PABLO':{prestamo_ant:2400,prestamo_sem:0,acta:200},'RODOLFO':{prestamo_ant:5238,prestamo_sem:0,acta:200},'JOSE MARTINEZ':{prestamo_ant:0,prestamo_sem:0,acta:0},'MARIO V':{prestamo_ant:0,prestamo_sem:0,acta:0},'MARCO ANTONI':{prestamo_ant:4200,prestamo_sem:0,acta:200},'RAUL':{prestamo_ant:0,prestamo_sem:0,acta:0},'DIEGO':{prestamo_ant:2000,prestamo_sem:0,acta:100},'GERMAN':{prestamo_ant:0,prestamo_sem:0,acta:0},'EYVYN':{prestamo_ant:0,prestamo_sem:0,acta:0},'ALEX':{prestamo_ant:0,prestamo_sem:0,acta:0},'JESUS':{prestamo_ant:0,prestamo_sem:0,acta:0},'ALISON':{prestamo_ant:0,prestamo_sem:0,acta:0},'EMILIO KURO':{prestamo_ant:0,prestamo_sem:0,acta:0},'TATAN':{prestamo_ant:0,prestamo_sem:0,acta:0}
 };
+const ID_MAP={
+  // La clave principal es el No. de empleado del PDF. Esto evita confundir nombres parecidos
+  // como PABLO FERNANDO vs FERNANDO, o JUAN RODOLFO vs EYVYN RODOLFO.
+  '071':'JUAN ALDACO',
+  '072':'OTERO',
+  '003':'VICTOR',
+  '040':'FERNANDO',
+  '054':'ISMAEL',
+  '059':'BENJAMIN JR',
+  '076':'JOSE',
+  '088':'TOÑITO',
+  '004':'JORGE ARTURO',
+  '081':'JOSE LUIS RDZ',
+  '082':'PABLO',
+  '091':'RODOLFO',
+  '098':'JOSE MARTINEZ',
+  '094':'MARIO V',
+  '097':'MARCO ANTONI',
+  '030':'RAUL',
+  '102':'DIEGO',
+  '099':'GERMAN',
+  '105':'EYVYN',
+  '106':'ALISON'
+};
 const NAME_MAP=[
-  [/ALDACO.*JUAN|JUAN.*ALDACO/,'JUAN ALDACO'],[/GARCIA OTERO|OTERO/,'OTERO'],[/CAMPOS VICTOR|VICTOR/,'VICTOR'],[/AGUILERA.*LUIS FERNANDO|FERNANDO/,'FERNANDO'],[/PARRA.*ISMAEL|ISMAEL/,'ISMAEL'],[/CARRERA.*BENJAMIN|BENJAMIN/,'BENJAMIN JR'],[/GUZMAN.*JOSE CARLOS|JOSE CARLOS/,'JOSE'],[/OWEN|TOÑITO/,'TOÑITO'],[/CAMPOS GONZALEZ JORGE ARTURO|JORGE ARTURO/,'JORGE ARTURO'],[/RODRIGUEZ RODRIGUEZ JOSE LUIS|JOSE LUIS/,'JOSE LUIS RDZ'],[/PABLO FERNANDO|PABLO/,'PABLO'],[/JUAN RODOLFO|RODOLFO/,'RODOLFO'],[/MARTINEZ FLORES JOSE|JOSE MARTINEZ/,'JOSE MARTINEZ'],[/MARIO EDUARDO|MARIO/,'MARIO V'],[/MARCO ANTONIO|MARCO/,'MARCO ANTONI'],[/JOSE RAUL|RAUL/,'RAUL'],[/DIEGO/,'DIEGO'],[/GERMAN/,'GERMAN'],[/EYVYN|EYVYN/,'EYVYN'],[/ALISON/,'ALISON'],[/EMILIO/,'EMILIO KURO'],[/TATAN/,'TATAN']
+  [/ALDACO.*JUAN|JUAN.*ALDACO/,'JUAN ALDACO'],[/GARCIA OTERO|OTERO/,'OTERO'],[/CAMPOS VICTOR|VICTOR/,'VICTOR'],[/AGUILERA.*LUIS FERNANDO/,'FERNANDO'],[/PARRA.*ISMAEL|ISMAEL/,'ISMAEL'],[/CARRERA.*BENJAMIN|BENJAMIN/,'BENJAMIN JR'],[/GUZMAN.*JOSE CARLOS|JOSE CARLOS/,'JOSE'],[/OWEN|TOÑITO/,'TOÑITO'],[/CAMPOS GONZALEZ JORGE ARTURO|JORGE ARTURO/,'JORGE ARTURO'],[/RODRIGUEZ RODRIGUEZ JOSE LUIS|JOSE LUIS/,'JOSE LUIS RDZ'],[/RODRIGUEZ HERNANDEZ PABLO FERNANDO|PABLO FERNANDO|PABLO/,'PABLO'],[/VAZQUEZ PEÑA JUAN RODOLFO|JUAN RODOLFO/,'RODOLFO'],[/VAZQUEZ GUZMAN EYVYN RODOLFO|EYVYN RODOLFO|EYVYN/,'EYVYN'],[/MARTINEZ FLORES JOSE|JOSE MARTINEZ/,'JOSE MARTINEZ'],[/MARIO EDUARDO|MARIO/,'MARIO V'],[/MARCO ANTONIO|MARCO/,'MARCO ANTONI'],[/JOSE RAUL|RAUL/,'RAUL'],[/DIEGO/,'DIEGO'],[/GERMAN/,'GERMAN'],[/ALISON/,'ALISON'],[/EMILIO/,'EMILIO KURO'],[/TATAN/,'TATAN']
 ];
 function money(n){n=Number(n)||0;return n.toLocaleString('es-MX',{style:'currency',currency:'MXN'});}function num(v){if(v===null||v===undefined)return 0;return Number(String(v).replace(/[$,\s]/g,''))||0;}function round(n){return Math.round((Number(n)||0)*100)/100;}
-function nombreCorto(n){let up=(n||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase();for(const [re,val] of NAME_MAP){if(re.test(up))return val;}return up.split(/\s+/).slice(-2).join(' ');}
+function nombreCorto(n, empleadoId=''){
+  if(empleadoId && ID_MAP[empleadoId]) return ID_MAP[empleadoId];
+  let up=(n||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase();
+  for(const [re,val] of NAME_MAP){if(re.test(up))return val;}
+  return up.split(/\s+/).slice(-2).join(' ');
+}
 function extrasMap(){return {...EXTRAS_DEFAULT,...JSON.parse(localStorage.getItem(KEY_EXTRAS)||'{}')}}
 function prestamosMap(){const saved=JSON.parse(localStorage.getItem(KEY_PREST)||'{}');const merged={...PRESTAMOS_DEFAULT};Object.keys(saved).forEach(k=>{merged[k]={...(merged[k]||{}),...saved[k]}});return merged;}
 function setStatus(t){document.getElementById('status').textContent=t}
@@ -96,7 +125,8 @@ function procesarTexto(text){
   const blocks=text.split(/\s*-{10,}\s*/).filter(b=>/Total Percepciones|Neto a pagar/.test(b));
   for(const b of blocks){
     const head=b.match(/(?:^|\s)(\d{3})\s+([A-ZÁÉÍÓÚÑ\s]+?)\s+(?:EMPLEADO|CHOFER|CAJERO|VIGILANTE|RFC:)/i); if(!head) continue;
-    const full=head[2].trim().replace(/\s+/g,' '); const short=nombreCorto(full);
+    const empleadoId=head[1];
+    const full=head[2].trim().replace(/\s+/g,' '); const short=nombreCorto(full, empleadoId);
     const totalPerc=num((b.match(/Total Percepciones\s+([\d,]+\.\d{2})/i)||[])[1]);
     const neto=num((b.match(/Neto a pagar\s+([\d,]+\.\d{2})/i)||[])[1]);
     const imss=num((b.match(/52\s+I\.M\.S\.S\.\s+([\d,]+\.\d{2})/i)||[])[1]);
@@ -105,7 +135,7 @@ function procesarTexto(text){
     const infonavit=num((b.match(/179\s+Infonavit CF correspondiente\s+([\d,]+\.\d{2})/i)||[])[1] || (b.match(/16\s+Préstamo infonavit \(CF\)\s+[\d,]+\.\d{2}\s+([\d,]+\.\d{2})/i)||[])[1]);
     const extra=extras[short] ?? 0;
     const p=prest[short]||{};
-    rows.push({nombre:short,nombre_pdf:full,sueldo:totalPerc,extra,prestamo_ant:p.prestamo_ant||0,prestamo_sem:p.prestamo_sem||0,acta:p.acta||0,faltante:p.faltante||0,infonavit,imss,impuestos:round(isr+ajuste),deposito:neto,extra2:p.extra2||0});
+    rows.push({empleado_id:empleadoId,nombre:short,nombre_pdf:full,sueldo:totalPerc,extra,prestamo_ant:p.prestamo_ant||0,prestamo_sem:p.prestamo_sem||0,acta:p.acta||0,faltante:p.faltante||0,infonavit,imss,impuestos:round(isr+ajuste),deposito:neto,extra2:p.extra2||0});
   }
 }
 function calcular(r){
