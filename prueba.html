@@ -2,226 +2,182 @@
 <html lang="es">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>VDC 360° — Nómina automática desde PDF</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>VDC360° — Nómina automática desde PDF</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
   </script>
   <style>
-    :root{--brand:#0a7a3b;--brand2:#2563eb;--bg:#f6f7f8;--card:#fff;--ink:#0f172a;--muted:#64748b;--line:#dbe3ef;--danger:#b91c1c;--ok:#047857;--warn:#b45309;--r:16px;--shadow:0 18px 45px rgba(2,6,23,.10)}
-    *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--ink);font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;font-size:14px}
-    header{background:linear-gradient(135deg,var(--brand),#064e3b);color:#fff;padding:18px 22px;position:sticky;top:0;z-index:10;box-shadow:0 8px 25px rgba(0,0,0,.18)}
-    h1{margin:0;font-size:21px}.sub{opacity:.9;margin-top:4px}.wrap{max-width:1800px;margin:0 auto;padding:18px}.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:16px;margin-bottom:14px}
-    .grid{display:grid;grid-template-columns:repeat(4,minmax(180px,1fr));gap:12px}.field{display:grid;gap:6px}label{font-weight:800;color:#334155;font-size:12px}.hint{color:var(--muted);font-size:12px}
-    input,button,select{border:1px solid #cbd5e1;border-radius:10px;padding:9px 10px;font:inherit;background:#fff}input[type=file]{padding:8px}.btn{background:var(--brand);color:#fff;border:none;font-weight:900;cursor:pointer}.btn.blue{background:var(--brand2)}.btn.red{background:var(--danger)}.btn.gray{background:#334155}.btn:disabled{opacity:.55;cursor:not-allowed}.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.pill{display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border-radius:999px;background:#ecfdf5;color:#065f46;font-weight:900}.pill.warn{background:#fff7ed;color:#9a3412}.pill.blue{background:#eff6ff;color:#1d4ed8}
-    .tableWrap{overflow:auto;border:1px solid var(--line);border-radius:14px;max-height:72vh;background:#fff}table{border-collapse:separate;border-spacing:0;width:100%;min-width:1720px}th{position:sticky;top:0;background:#2f62b5;color:#fff;z-index:2;font-size:12px;text-transform:uppercase;padding:10px 7px;border-right:1px solid rgba(255,255,255,.25)}td{padding:6px 6px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);background:#fff}tr:nth-child(even) td{background:#e8eef8}.num{text-align:right}.money{font-weight:900}.good{color:#047857;font-weight:900}.bad{color:#b91c1c;font-weight:900}.name{min-width:210px}.small{width:94px}.med{width:118px}.id{width:58px;text-align:right}.cashRow td{background:#fff7ed!important}td input{width:100%;text-align:right;padding:7px 8px}.name input{text-align:left}.readonly{font-weight:900}.footerTotals{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}.kpi{border:1px solid var(--line);border-radius:14px;padding:12px;background:#fff}.kpi b{display:block;font-size:18px;margin-top:4px}.settings{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.tag{font-size:11px;padding:3px 7px;border-radius:999px;background:#f1f5f9;color:#334155;font-weight:900}.tag.cash{background:#ffedd5;color:#9a3412}.modal{position:fixed;inset:0;background:rgba(15,23,42,.55);display:none;align-items:center;justify-content:center;z-index:99;padding:16px}.modal.open{display:flex}.modalBox{background:#fff;border-radius:18px;max-width:720px;width:100%;box-shadow:var(--shadow);padding:18px}.empList{max-height:360px;overflow:auto;border:1px solid var(--line);border-radius:12px}.empItem{display:grid;grid-template-columns:80px 1fr 110px;gap:10px;padding:10px;border-bottom:1px solid var(--line);align-items:center}.right{text-align:right}@media(max-width:900px){.grid,.settings,.footerTotals{grid-template-columns:1fr}.wrap{padding:10px}header{position:relative}}
-    @media print{header,.noPrint,.card.tools{display:none!important}.wrap{max-width:none;padding:0}.tableWrap{max-height:none;overflow:visible;border:none}table{min-width:0;font-size:10px}th,td{padding:3px}input{border:none;background:transparent;padding:0}.card{box-shadow:none;border:none}}
+    :root{--brand:#0a7a3b;--blue:#2f64b5;--bg:#f4f7fb;--card:#fff;--line:#d7e0ee;--ink:#071426;--muted:#64748b;--bad:#c81e1e;--ok:#007a3d;--warn:#b45309;--shadow:0 16px 45px rgba(15,23,42,.12);--r:18px}
+    *{box-sizing:border-box} body{margin:0;background:var(--bg);font-family:Arial,system-ui,sans-serif;color:var(--ink)}
+    header{background:linear-gradient(135deg,#0a7a3b,#0f9a52);color:#fff;padding:18px 24px;position:sticky;top:0;z-index:10;box-shadow:var(--shadow)}
+    h1{margin:0;font-size:22px}.sub{opacity:.9;font-size:13px;margin-top:4px}.wrap{padding:18px;max-width:1800px;margin:auto}.card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);border:1px solid #e5e7eb;padding:16px;margin-bottom:16px}.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.btn{border:0;border-radius:12px;padding:11px 14px;font-weight:800;cursor:pointer;background:var(--brand);color:#fff}.btn.secondary{background:#334155}.btn.danger{background:var(--bad)}.btn.warn{background:#b45309}input,select,textarea{border:1px solid #cbd5e1;border-radius:10px;padding:9px;background:#fff;font-size:14px}input[type=file]{background:#f8fafc}.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:800;background:#eaf7ef;color:#075d2f}.grid{display:grid;grid-template-columns:repeat(5,minmax(160px,1fr));gap:10px}.kpi{background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:12px}.kpi b{display:block;font-size:20px;margin-top:4px}.tableBox{overflow:auto;border-radius:16px;border:1px solid var(--line);max-height:72vh}table{border-collapse:separate;border-spacing:0;min-width:1700px;width:100%;background:#fff}th{position:sticky;top:0;background:var(--blue);color:#fff;font-size:12px;text-transform:uppercase;padding:10px 8px;border-right:1px solid rgba(255,255,255,.2);z-index:2}td{padding:6px 6px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);font-size:14px;text-align:right}td.name{text-align:left;white-space:nowrap}tbody tr:nth-child(even){background:#e9f0fa}.money{font-weight:800}.ok{color:var(--ok);font-weight:900}.bad{color:var(--bad);font-weight:900}.muted{color:var(--muted)}td input{width:100%;min-width:92px;text-align:right;padding:8px;font-weight:700}.name input{text-align:left;min-width:180px}.delete{background:var(--bad);color:#fff;border:0;border-radius:50%;width:30px;height:30px;font-weight:900;cursor:pointer}.small{font-size:12px;color:var(--muted);line-height:1.35}.note{background:#fff7ed;border:1px solid #fed7aa;color:#7c2d12;border-radius:14px;padding:10px}.hidden{display:none}@media(max-width:900px){.grid{grid-template-columns:1fr 1fr}header{position:relative}.wrap{padding:10px}}
   </style>
 </head>
 <body>
 <header>
-  <h1>VDC 360° — Nómina automática desde PDF</h1>
-  <div class="sub">PDF CONTPAQi → tabla tipo Excel con constantes, préstamos, acta y caso especial VICTOR 100% efectivo.</div>
+  <h1>VDC360° — Nómina automática desde PDF</h1>
+  <div class="sub">Carga la Lista de Raya de CONTPAQi, revisa constantes editables y genera el desglose tipo Excel.</div>
 </header>
 <main class="wrap">
-  <section class="card tools noPrint">
-    <div class="grid">
-      <div class="field"><label>Cargar PDF de nómina</label><input id="pdfFile" type="file" accept="application/pdf"><div class="hint">Lee empleados, sueldo, IMSS, ISR, Infonavit, neto y periodo.</div></div>
-      <div class="field"><label>Periodo detectado</label><input id="periodo" readonly placeholder="Sin periodo detectado"></div>
-      <div class="field"><label>Depósito base semanal</label><input id="depositoBase" type="number" step="0.01" value="0"><div class="hint">Opcional. Si lo dejas 0 toma el neto del PDF como depósito normal.</div></div>
-      <div class="field"><label>Acciones</label><div class="row"><button class="btn" id="btnProcesar">Procesar PDF</button><button class="btn blue" id="btnExportCSV">CSV</button><button class="btn gray" onclick="window.print()">Imprimir</button></div></div>
-    </div>
-    <hr style="border:none;border-top:1px solid var(--line);margin:14px 0">
+  <section class="card">
     <div class="row">
-      <span class="pill" id="status">Listo para cargar PDF</span>
-      <button class="btn blue" id="btnGuardarConst">Guardar constantes</button>
-      <button class="btn gray" id="btnPasarSemana">Pasar saldos a siguiente semana</button>
-      <button class="btn red" id="btnBorrarConst">Borrar constantes</button>
-      <button class="btn gray" id="btnModalEspeciales">Empleados especiales</button>
+      <input id="pdfFile" type="file" accept="application/pdf" />
+      <button class="btn" onclick="leerPDF()">Leer PDF</button>
+      <button class="btn secondary" onclick="agregarEmpleado()">+ Agregar empleado</button>
+      <button class="btn warn" onclick="guardarConstantes()">Guardar constantes</button>
+      <button class="btn secondary" onclick="pasarPrestamosSiguienteSemana()">Pasar préstamos a sig. semana</button>
+      <button class="btn secondary" onclick="exportCSV()">Exportar CSV</button>
+      <button class="btn danger" onclick="limpiarTodo()">Limpiar</button>
+      <span id="status" class="pill">Sin periodo detectado</span>
     </div>
-    <p class="hint"><b>Fórmula:</b> Total ingreso = Sueldo + Extra. Subtotal = Total ingreso - IMSS - Impuestos - Infonavit - Acta - Faltante. El préstamo semanal solo aumenta saldo; el descuento real es ACTA. Una semana después: préstamo ant. = saldo actual.</p>
+    <p class="small">Regla corregida: todos los importes se manejan en <b>pesos</b>. <b>Préstamo sem.</b> es dinero nuevo que pidieron esta semana; el descuento real en nómina se toma de <b>ACTA</b>. El <b>saldo actual</b> queda como: préstamo anterior + préstamo semanal - acta. Al pasar a la siguiente semana, ese saldo se guarda como <b>Préstamo ant.</b> y préstamo semanal vuelve a -e.</p>
   </section>
 
-  <section class="card noPrint">
-    <div class="settings">
-      <div class="kpi"><span>Empleados</span><b id="kEmpleados">0</b></div>
-      <div class="kpi"><span>Total nómina efectivo</span><b id="kEfectivo">$ 0.00</b></div>
-      <div class="kpi"><span>Total depósito</span><b id="kDeposito">$ 0.00</b></div>
-      <div class="kpi"><span>Total ingreso</span><b id="kIngreso">$ 0.00</b></div>
-      <div class="kpi"><span>Total actas</span><b id="kActas">$ 0.00</b></div>
-      <div class="kpi"><span>Saldo préstamos</span><b id="kSaldo">$ 0.00</b></div>
-    </div>
+  <section class="grid">
+    <div class="kpi">Periodo<b id="kPeriodo">—</b></div>
+    <div class="kpi">Empleados<b id="kEmpleados">0</b></div>
+    <div class="kpi">Total ingreso<b id="kIngreso">$ 0.00</b></div>
+    <div class="kpi">Subtotal<b id="kSubtotal">$ 0.00</b></div>
+    <div class="kpi">Sueldo total / Extra<b id="kExtra">$ 0.00</b></div>
   </section>
 
   <section class="card">
-    <div class="tableWrap">
+    <div class="note"><b>Constantes editables:</b> EXTRA, PRÉSTAMO ANT. y ACTA se identifican primero por No. de empleado del PDF y después por nombre corto. Si cambias algún dato en la tabla, presiona <b>Guardar constantes</b> para que se mantenga en las siguientes nóminas.</div>
+    <br>
+    <div class="tableBox">
       <table id="tabla">
-        <thead><tr>
-          <th>No.</th><th>Clave PDF</th><th>Nombre</th><th>Sueldo</th><th>Extra</th><th>Total ingreso</th><th>Préstamo ant.</th><th>Préstamo sem.</th><th>Saldo actual</th><th>Acta</th><th>Faltante</th><th>Infonavit</th><th>IMSS</th><th>Impuestos</th><th>Subtotal</th><th>Depósito</th><th>Sueldo total</th><th>Extra 2</th><th>Forma pago</th><th class="noPrint">Quitar</th>
-        </tr></thead>
-        <tbody></tbody>
+        <thead>
+          <tr>
+            <th>No.</th><th>Nombre</th><th>Sueldo PDF</th><th>Extra</th><th>Total ingreso</th><th>Préstamo ant.</th><th>Préstamo sem.</th><th>Saldo actual</th><th>Acta</th><th>Faltante</th><th>Infonavit</th><th>IMSS</th><th>Impuestos/Ajuste</th><th>Subtotal</th><th>Depósito/Neto PDF</th><th>Sueldo total</th><th>Extra 2</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+        <tfoot>
+          <tr>
+            <th colspan="4">TOTALES</th><th id="tIngreso"></th><th id="tPAnt"></th><th id="tPSem"></th><th id="tSaldo"></th><th id="tActa"></th><th id="tFaltante"></th><th id="tInfo"></th><th id="tImss"></th><th id="tImp"></th><th id="tSub"></th><th id="tDep"></th><th id="tSueldo"></th><th id="tExtra2"></th><th></th>
+          </tr>
+        </tfoot>
       </table>
     </div>
   </section>
 </main>
-
-<div class="modal noPrint" id="modalEspeciales">
-  <div class="modalBox">
-    <h2 style="margin:0 0 8px">Empleados especiales</h2>
-    <p class="hint">Marca empleados que se pagan 100% en efectivo. Para ellos el depósito será $0 y el sueldo total será todo el subtotal. Se guarda por clave del PDF para evitar cruces de nombres.</p>
-    <div class="empList" id="listaEspeciales"></div>
-    <div class="row" style="margin-top:12px;justify-content:flex-end"><button class="btn gray" id="cerrarModal">Cerrar</button></div>
-  </div>
-</div>
-
 <script>
-const $ = s => document.querySelector(s);
-const tbody = $('#tabla tbody');
-const money = n => '$ ' + (Number(n||0)).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2});
-const num = v => Number(String(v ?? '').replace(/[$,\s]/g,'').replace(/−/g,'-')) || 0;
-const norm = s => String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
-const keyFor = emp => String(emp.clave || norm(emp.nombre));
-let empleados = [];
-let constantes = JSON.parse(localStorage.getItem('vdcNominaConstantesV3') || '{}');
-let especiales = JSON.parse(localStorage.getItem('vdcNominaEspecialesV1') || '{"003":{"soloEfectivo":true}}');
+const KEY_EXTRAS='vdc360:nomina:extrasConstantes:v1';
+const KEY_PREST='vdc360:nomina:prestamos:v1';
+let periodo='';
+let rows=[];
 
-function setStatus(txt, cls=''){$('#status').className='pill '+cls; $('#status').textContent=txt;}
-function getConst(emp, field, def=0){ const k=keyFor(emp); return constantes[k]?.[field] ?? def; }
-function setConst(emp, field, val){ const k=keyFor(emp); constantes[k] ||= {}; constantes[k][field] = num(val); }
-function isSoloEfectivo(emp){ return !!especiales[keyFor(emp)]?.soloEfectivo || norm(emp.nombre)==='CAMPOS VICTOR' || norm(emp.nombre)==='VICTOR'; }
-
-async function extractText(file){
-  const buf = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({data:buf}).promise;
-  let text = '';
-  for(let p=1;p<=pdf.numPages;p++){
-    const page = await pdf.getPage(p);
-    const content = await page.getTextContent();
-    text += '\n' + content.items.map(i=>i.str).join(' ');
-  }
-  return text;
-}
-
-function parsePDF(text){
-  const periodo = (text.match(/Lista de Raya del\s+(.+?)\s+Fecha:/i)||[])[1] || '';
-  $('#periodo').value = periodo;
-  text = text.replace(/CONTPAQi\s+Nóminas[^]+?(?=\d{3}\s+[A-ZÁÉÍÓÚÑ])/g, m=>m);
-  const re = /(\d{3})\s+([A-ZÁÉÍÓÚÑ ]+?)\s+(?:EMPLEADO GENERAL|CHOFER|VIGILANTE|CAJERO)[\s\S]*?(?=(?:\n?\s*\d{3}\s+[A-ZÁÉÍÓÚÑ ]+?\s+(?:EMPLEADO GENERAL|CHOFER|VIGILANTE|CAJERO))|Total Departamento|Total General|$)/g;
-  const arr=[]; let m;
-  while((m=re.exec(text))){
-    const clave=m[1], nombre=m[2].replace(/\s+/g,' ').trim(), block=m[0];
-    const sueldo = (block.match(/Total Percepciones\s+([\d,]+\.\d{2})/i)||[])[1];
-    const imss = (block.match(/52\s+I\.M\.S\.S\.\s+([\d,]+\.\d{2})/i)||[])[1];
-    const impuesto = (block.match(/45\s+I\.S\.R\. \(mes\)\s+([\d,]+\.\d{2})/i)||[])[1] || (block.match(/99\s+Ajuste al neto\s+(-?[\d,]+\.\d{2})/i)||[])[1] || 0;
-    const ajuste = (block.match(/99\s+Ajuste al neto\s+(-?[\d,]+\.\d{2})/i)||[])[1] || 0;
-    let inf = (block.match(/179\s+Infonavit CF correspondiente\s+([\d,]+\.\d{2})/i)||[])[1] || (block.match(/16\s+Préstamo infonavit \(CF\)\s+[\d,]+\.\d{2}\s+([\d,]+\.\d{2})/i)||[])[1] || 0;
-    const neto = (block.match(/Neto a pagar\s+([\d,]+\.\d{2})/i)||[])[1];
-    if(!sueldo && !neto) continue;
-    arr.push({clave,nombre,sueldo:num(sueldo),extra:0,prestamoAnt:0,prestamoSem:0,acta:0,faltante:0,infonavit:num(inf),imss:num(imss),impuestos:num(impuesto),ajuste:num(ajuste),deposito:num(neto),extra2:0});
-  }
-  return arr;
-}
-
-function aplicarConstantes(){
-  empleados.forEach(e=>{
-    e.extra = getConst(e,'extra',e.extra||0);
-    e.prestamoAnt = getConst(e,'prestamoAnt',e.prestamoAnt||0);
-    e.acta = getConst(e,'acta',e.acta||0);
-    e.extra2 = getConst(e,'extra2',e.extra2||0);
-    e.faltante = getConst(e,'faltante',e.faltante||0);
-  });
-}
-
-function calc(e){
-  const totalIngreso = num(e.sueldo)+num(e.extra);
-  const saldoActual = Math.max(0, num(e.prestamoAnt)+num(e.prestamoSem)-num(e.acta));
-  const subtotal = totalIngreso - num(e.infonavit) - num(e.imss) - num(e.impuestos) - num(e.acta) - num(e.faltante);
-  let deposito = num(e.deposito);
-  const base = num($('#depositoBase').value);
-  if(base>0) deposito = Math.min(base, subtotal);
-  if(isSoloEfectivo(e)) deposito = 0;
-  const sueldoTotal = subtotal - deposito;
-  return {totalIngreso,saldoActual,subtotal,deposito,sueldoTotal};
-}
-
-function render(){
-  tbody.innerHTML='';
-  empleados.forEach((e,i)=>{
-    const c=calc(e), tr=document.createElement('tr');
-    if(isSoloEfectivo(e)) tr.classList.add('cashRow');
-    tr.innerHTML=`
-      <td class="id">${i+1}</td>
-      <td class="small"><input data-i="${i}" data-f="clave" value="${e.clave}" style="text-align:center"></td>
-      <td class="name"><input data-i="${i}" data-f="nombre" value="${e.nombre}"></td>
-      <td class="small"><input data-i="${i}" data-f="sueldo" value="${num(e.sueldo).toFixed(2)}"></td>
-      <td class="small"><input data-i="${i}" data-f="extra" value="${num(e.extra).toFixed(2)}"></td>
-      <td class="med num money">${money(c.totalIngreso)}</td>
-      <td class="small"><input data-i="${i}" data-f="prestamoAnt" value="${num(e.prestamoAnt).toFixed(2)}"></td>
-      <td class="small"><input data-i="${i}" data-f="prestamoSem" value="${num(e.prestamoSem).toFixed(2)}"></td>
-      <td class="med num money">${money(c.saldoActual)}</td>
-      <td class="small"><input data-i="${i}" data-f="acta" value="${num(e.acta).toFixed(2)}"></td>
-      <td class="small"><input data-i="${i}" data-f="faltante" value="${num(e.faltante).toFixed(2)}"></td>
-      <td class="small"><input data-i="${i}" data-f="infonavit" value="${num(e.infonavit).toFixed(2)}"></td>
-      <td class="small"><input data-i="${i}" data-f="imss" value="${num(e.imss).toFixed(2)}"></td>
-      <td class="small"><input data-i="${i}" data-f="impuestos" value="${num(e.impuestos).toFixed(2)}"></td>
-      <td class="med num money">${money(c.subtotal)}</td>
-      <td class="small"><input data-i="${i}" data-f="deposito" value="${num(c.deposito).toFixed(2)}" ${isSoloEfectivo(e)?'readonly title="Empleado 100% efectivo"':''}></td>
-      <td class="med num ${c.sueldoTotal>=0?'good':'bad'}">${money(c.sueldoTotal)}</td>
-      <td class="small"><input data-i="${i}" data-f="extra2" value="${num(e.extra2).toFixed(2)}"></td>
-      <td class="med">${isSoloEfectivo(e)?'<span class="tag cash">100% EFECTIVO</span>':'<span class="tag">DEPÓSITO/MIXTO</span>'}</td>
-      <td class="noPrint right"><button class="btn red" onclick="empleados.splice(${i},1);render()">×</button></td>`;
-    tbody.appendChild(tr);
-  });
-  actualizarKPIs(); renderEspeciales();
-}
-
-function actualizarKPIs(){
-  let efectivo=0, deposito=0, ingreso=0, actas=0, saldo=0;
-  empleados.forEach(e=>{const c=calc(e); efectivo+=c.sueldoTotal; deposito+=c.deposito; ingreso+=c.totalIngreso; actas+=num(e.acta); saldo+=c.saldoActual;});
-  $('#kEmpleados').textContent=empleados.length; $('#kEfectivo').textContent=money(efectivo); $('#kDeposito').textContent=money(deposito); $('#kIngreso').textContent=money(ingreso); $('#kActas').textContent=money(actas); $('#kSaldo').textContent=money(saldo);
-}
-
-tbody.addEventListener('input', ev=>{
-  const el=ev.target, i=Number(el.dataset.i), f=el.dataset.f; if(!f || !empleados[i]) return;
-  if(['nombre','clave'].includes(f)) empleados[i][f]=el.value; else empleados[i][f]=num(el.value);
-  if(['extra','prestamoAnt','acta','extra2','faltante'].includes(f)) setConst(empleados[i],f,el.value);
-  localStorage.setItem('vdcNominaConstantesV3', JSON.stringify(constantes));
-  render();
-});
-
-$('#btnProcesar').onclick=async()=>{
-  const file=$('#pdfFile').files[0]; if(!file){alert('Primero carga el PDF de nómina.');return;}
-  try{ setStatus('Leyendo PDF...','blue'); const text=await extractText(file); empleados=parsePDF(text); aplicarConstantes(); render(); setStatus(`PDF procesado: ${empleados.length} empleados`); }
-  catch(err){ console.error(err); setStatus('Error al leer PDF','warn'); alert('No pude leer el PDF. Revisa que no esté escaneado como imagen.'); }
+const EXTRAS_DEFAULT={
+  'MARTIN PITAYO':0,'JUAN ALDACO':760,'OTERO':1260,'VICTOR':900,'FERNANDO':750,'ISMAEL':950,'BENJAMIN JR':750,'JOSE':750,'TOÑO':0,'TOÑITO':0,'JORGE ARTURO':710,'JOSE LUIS RDZ':1020,'PABLO':970,'RODOLFO':790,'JOSE MARTINEZ':610,'MARIO V':820,'MARCO ANTONI':960,'RAUL':700,'DIEGO':600,'GERMAN':0,'EYVYN':600,'ALEX':0,'JESUS':0,'ALISON':1431.33,'EMILIO KURO':0,'TATAN':0
 };
-
-$('#depositoBase').addEventListener('input', render);
-$('#btnGuardarConst').onclick=()=>{ empleados.forEach(e=>['extra','prestamoAnt','acta','extra2','faltante'].forEach(f=>setConst(e,f,e[f]))); localStorage.setItem('vdcNominaConstantesV3', JSON.stringify(constantes)); setStatus('Constantes guardadas'); };
-$('#btnBorrarConst').onclick=()=>{ if(confirm('¿Borrar constantes guardadas?')){ constantes={}; localStorage.removeItem('vdcNominaConstantesV3'); render(); setStatus('Constantes borradas','warn'); }};
-$('#btnPasarSemana').onclick=()=>{ if(!confirm('Esto pasará el saldo actual a PRÉSTAMO ANT. y limpiará préstamo semanal. ¿Continuar?')) return; empleados.forEach(e=>{ const c=calc(e); e.prestamoAnt=c.saldoActual; e.prestamoSem=0; setConst(e,'prestamoAnt',e.prestamoAnt); }); localStorage.setItem('vdcNominaConstantesV3', JSON.stringify(constantes)); render(); setStatus('Saldos pasados a la siguiente semana'); };
-$('#btnExportCSV').onclick=()=>{
-  const heads=['No','Clave PDF','Nombre','Sueldo','Extra','Total ingreso','Prestamo ant','Prestamo sem','Saldo actual','Acta','Faltante','Infonavit','IMSS','Impuestos','Subtotal','Deposito','Sueldo total','Extra 2','Forma pago'];
-  const rows=empleados.map((e,i)=>{const c=calc(e); return [i+1,e.clave,e.nombre,e.sueldo,e.extra,c.totalIngreso,e.prestamoAnt,e.prestamoSem,c.saldoActual,e.acta,e.faltante,e.infonavit,e.imss,e.impuestos,c.subtotal,c.deposito,c.sueldoTotal,e.extra2,isSoloEfectivo(e)?'100% EFECTIVO':'DEPOSITO/MIXTO'];});
-  const csv=[heads,...rows].map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
-  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})); a.download='nomina_vdc360.csv'; a.click();
+const PRESTAMOS_DEFAULT={
+  'MARTIN PITAYO':{prestamo_ant:0,prestamo_sem:0,acta:0},'JUAN ALDACO':{prestamo_ant:0,prestamo_sem:0,acta:0},'OTERO':{prestamo_ant:0,prestamo_sem:0,acta:0},'VICTOR':{prestamo_ant:0,prestamo_sem:0,acta:0},'FERNANDO':{prestamo_ant:0,prestamo_sem:4000,acta:200},'ISMAEL':{prestamo_ant:0,prestamo_sem:0,acta:0},'BENJAMIN JR':{prestamo_ant:6000,prestamo_sem:0,acta:200},'JOSE':{prestamo_ant:3600,prestamo_sem:0,acta:200},'TOÑO':{prestamo_ant:0,prestamo_sem:0,acta:0},'TOÑITO':{prestamo_ant:0,prestamo_sem:0,acta:0},'JORGE ARTURO':{prestamo_ant:1100,prestamo_sem:0,acta:100},'JOSE LUIS RDZ':{prestamo_ant:1200,prestamo_sem:0,acta:100},'PABLO':{prestamo_ant:2400,prestamo_sem:0,acta:200},'RODOLFO':{prestamo_ant:5238,prestamo_sem:0,acta:200},'JOSE MARTINEZ':{prestamo_ant:0,prestamo_sem:0,acta:0},'MARIO V':{prestamo_ant:0,prestamo_sem:0,acta:0},'MARCO ANTONI':{prestamo_ant:4200,prestamo_sem:0,acta:200},'RAUL':{prestamo_ant:0,prestamo_sem:0,acta:0},'DIEGO':{prestamo_ant:2000,prestamo_sem:0,acta:100},'GERMAN':{prestamo_ant:0,prestamo_sem:0,acta:0},'EYVYN':{prestamo_ant:0,prestamo_sem:0,acta:0},'ALEX':{prestamo_ant:0,prestamo_sem:0,acta:0},'JESUS':{prestamo_ant:0,prestamo_sem:0,acta:0},'ALISON':{prestamo_ant:0,prestamo_sem:0,acta:0},'EMILIO KURO':{prestamo_ant:0,prestamo_sem:0,acta:0},'TATAN':{prestamo_ant:0,prestamo_sem:0,acta:0}
 };
-function renderEspeciales(){
-  const box=$('#listaEspeciales'); if(!box) return; box.innerHTML='';
-  empleados.forEach(e=>{const k=keyFor(e); const div=document.createElement('div'); div.className='empItem'; div.innerHTML=`<b>${e.clave}</b><span>${e.nombre}</span><label><input type="checkbox" data-k="${k}" ${isSoloEfectivo(e)?'checked':''}> Efectivo</label>`; box.appendChild(div);});
-  box.querySelectorAll('input[type=checkbox]').forEach(ch=>ch.onchange=()=>{ especiales[ch.dataset.k]={soloEfectivo:ch.checked}; if(!ch.checked) delete especiales[ch.dataset.k]; localStorage.setItem('vdcNominaEspecialesV1', JSON.stringify(especiales)); render(); });
-}
-$('#btnModalEspeciales').onclick=()=>{$('#modalEspeciales').classList.add('open'); renderEspeciales();};
-$('#cerrarModal').onclick=()=>$('#modalEspeciales').classList.remove('open');
-$('#modalEspeciales').addEventListener('click',e=>{if(e.target.id==='modalEspeciales') $('#modalEspeciales').classList.remove('open')});
-
-// Datos iniciales opcionales según tu Excel para que al abrir se vea la estructura.
-empleados = [
- {clave:'003',nombre:'CAMPOS VICTOR',sueldo:2240,extra:900,imss:56.26,impuestos:-0.06,deposito:2183.80},
- {clave:'071',nombre:'ALDACO AGUILERA JUAN',sueldo:2240,extra:760,imss:50.40,impuestos:0.07,deposito:1816.20},
- {clave:'072',nombre:'GARCIA OTERO MANUEL ALEJANDRO',sueldo:2590,extra:1260,infonavit:379.63,imss:66.25,impuestos:33.52,deposito:2110.60},
+const ID_MAP={
+  // La clave principal es el No. de empleado del PDF. Esto evita confundir nombres parecidos
+  // como PABLO FERNANDO vs FERNANDO, o JUAN RODOLFO vs EYVYN RODOLFO.
+  '071':'JUAN ALDACO',
+  '072':'OTERO',
+  '003':'VICTOR',
+  '040':'FERNANDO',
+  '054':'ISMAEL',
+  '059':'BENJAMIN JR',
+  '076':'JOSE',
+  '088':'TOÑITO',
+  '004':'JORGE ARTURO',
+  '081':'JOSE LUIS RDZ',
+  '082':'PABLO',
+  '091':'RODOLFO',
+  '098':'JOSE MARTINEZ',
+  '094':'MARIO V',
+  '097':'MARCO ANTONI',
+  '030':'RAUL',
+  '102':'DIEGO',
+  '099':'GERMAN',
+  '105':'EYVYN',
+  '106':'ALISON'
+};
+const NAME_MAP=[
+  [/ALDACO.*JUAN|JUAN.*ALDACO/,'JUAN ALDACO'],[/GARCIA OTERO|OTERO/,'OTERO'],[/CAMPOS VICTOR|VICTOR/,'VICTOR'],[/AGUILERA.*LUIS FERNANDO/,'FERNANDO'],[/PARRA.*ISMAEL|ISMAEL/,'ISMAEL'],[/CARRERA.*BENJAMIN|BENJAMIN/,'BENJAMIN JR'],[/GUZMAN.*JOSE CARLOS|JOSE CARLOS/,'JOSE'],[/OWEN|TOÑITO/,'TOÑITO'],[/CAMPOS GONZALEZ JORGE ARTURO|JORGE ARTURO/,'JORGE ARTURO'],[/RODRIGUEZ RODRIGUEZ JOSE LUIS|JOSE LUIS/,'JOSE LUIS RDZ'],[/RODRIGUEZ HERNANDEZ PABLO FERNANDO|PABLO FERNANDO|PABLO/,'PABLO'],[/VAZQUEZ PEÑA JUAN RODOLFO|JUAN RODOLFO/,'RODOLFO'],[/VAZQUEZ GUZMAN EYVYN RODOLFO|EYVYN RODOLFO|EYVYN/,'EYVYN'],[/MARTINEZ FLORES JOSE|JOSE MARTINEZ/,'JOSE MARTINEZ'],[/MARIO EDUARDO|MARIO/,'MARIO V'],[/MARCO ANTONIO|MARCO/,'MARCO ANTONI'],[/JOSE RAUL|RAUL/,'RAUL'],[/DIEGO/,'DIEGO'],[/GERMAN/,'GERMAN'],[/ALISON/,'ALISON'],[/EMILIO/,'EMILIO KURO'],[/TATAN/,'TATAN']
 ];
-aplicarConstantes(); render();
+function money(n){n=Number(n)||0;return n.toLocaleString('es-MX',{style:'currency',currency:'MXN'});}function num(v){if(v===null||v===undefined)return 0;return Number(String(v).replace(/[$,\s]/g,''))||0;}function round(n){return Math.round((Number(n)||0)*100)/100;}function moneyInput(v){return money(v).replace('MXN','').trim();}function constKey(r){return r.empleado_id || r.nombre;}function pickConst(map,id,name){return (id && map[id]!==undefined)?map[id]:(map[name]!==undefined?map[name]:undefined)}
+function nombreCorto(n, empleadoId=''){
+  if(empleadoId && ID_MAP[empleadoId]) return ID_MAP[empleadoId];
+  let up=(n||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase();
+  for(const [re,val] of NAME_MAP){if(re.test(up))return val;}
+  return up.split(/\s+/).slice(-2).join(' ');
+}
+function extrasMap(){return {...EXTRAS_DEFAULT,...JSON.parse(localStorage.getItem(KEY_EXTRAS)||'{}')}}
+function prestamosMap(){const saved=JSON.parse(localStorage.getItem(KEY_PREST)||'{}');const merged={...PRESTAMOS_DEFAULT};Object.keys(saved).forEach(k=>{merged[k]={...(merged[k]||{}),...saved[k]}});return merged;}
+function setStatus(t){document.getElementById('status').textContent=t}
+
+async function leerPDF(){
+  const file=document.getElementById('pdfFile').files[0]; if(!file){alert('Carga primero el PDF de nómina.');return}
+  setStatus('Leyendo PDF...');
+  const buf=await file.arrayBuffer(); const pdf=await pdfjsLib.getDocument({data:buf}).promise; let text='';
+  for(let p=1;p<=pdf.numPages;p++){const page=await pdf.getPage(p); const content=await page.getTextContent(); text+='\n'+content.items.map(i=>i.str).join(' ');}
+  procesarTexto(text); render(); setStatus('PDF leído correctamente');
+}
+function procesarTexto(text){
+  periodo=(text.match(/Lista de Raya del\s+(.+?)\s+Fecha:/i)||[])[1]||'';
+  const extras=extrasMap(), prest=prestamosMap(); rows=[];
+  const blocks=text.split(/\s*-{10,}\s*/).filter(b=>/Total Percepciones|Neto a pagar/.test(b));
+  for(const b of blocks){
+    const head=b.match(/(?:^|\s)(\d{3})\s+([A-ZÁÉÍÓÚÑ\s]+?)\s+(?:EMPLEADO|CHOFER|CAJERO|VIGILANTE|RFC:)/i); if(!head) continue;
+    const empleadoId=head[1];
+    const full=head[2].trim().replace(/\s+/g,' '); const short=nombreCorto(full, empleadoId);
+    const totalPerc=num((b.match(/Total Percepciones\s+([\d,]+\.\d{2})/i)||[])[1]);
+    const neto=num((b.match(/Neto a pagar\s+([\d,]+\.\d{2})/i)||[])[1]);
+    const imss=num((b.match(/52\s+I\.M\.S\.S\.\s+([\d,]+\.\d{2})/i)||[])[1]);
+    const isr=num((b.match(/45\s+I\.S\.R\. \(mes\)\s+([\d,]+\.\d{2})/i)||[])[1]);
+    const ajuste=num((b.match(/99\s+Ajuste al neto\s+(-?[\d,]+\.\d{2})/i)||[])[1]);
+    const infonavit=num((b.match(/179\s+Infonavit CF correspondiente\s+([\d,]+\.\d{2})/i)||[])[1] || (b.match(/16\s+Préstamo infonavit \(CF\)\s+[\d,]+\.\d{2}\s+([\d,]+\.\d{2})/i)||[])[1]);
+    const extra=pickConst(extras, empleadoId, short) ?? 0;
+    const p=pickConst(prest, empleadoId, short) || {};
+    rows.push({empleado_id:empleadoId,nombre:short,nombre_pdf:full,sueldo:totalPerc,extra,prestamo_ant:p.prestamo_ant||0,prestamo_sem:p.prestamo_sem||0,acta:p.acta||0,faltante:p.faltante||0,infonavit,imss,impuestos:round(isr+ajuste),deposito:neto,extra2:p.extra2||0});
+  }
+}
+function calcular(r){
+  r.total_ingreso=round(num(r.sueldo)+num(r.extra));
+  // Saldo real del préstamo después del abono de esta semana.
+  r.saldo_actual=round(Math.max(0,num(r.prestamo_ant)+num(r.prestamo_sem)-num(r.acta)));
+  // IMPORTANTE: el préstamo NO se descuenta completo; solo se descuenta lo capturado en ACTA.
+  r.subtotal=round(r.total_ingreso-num(r.infonavit)-num(r.imss)-num(r.impuestos)-num(r.acta)-num(r.faltante));
+  r.sueldo_total=round(r.subtotal-num(r.deposito));
+}
+function render(){
+  rows.forEach(calcular); const tb=document.getElementById('tbody'); tb.innerHTML='';
+  rows.forEach((r,i)=>{const tr=document.createElement('tr'); tr.innerHTML=`
+    <td>${i+1}</td><td class="name"><input value="${r.nombre}" onchange="edit(${i},'nombre',this.value)"></td>
+    ${inp(i,'sueldo',r.sueldo)}${inp(i,'extra',r.extra)}<td class="money">${money(r.total_ingreso)}</td>
+    ${inp(i,'prestamo_ant',r.prestamo_ant)}${inp(i,'prestamo_sem',r.prestamo_sem)}<td class="money">${money(r.saldo_actual)}</td>
+    ${inp(i,'acta',r.acta)}${inp(i,'faltante',r.faltante)}${inp(i,'infonavit',r.infonavit)}${inp(i,'imss',r.imss)}${inp(i,'impuestos',r.impuestos)}
+    <td class="money">${money(r.subtotal)}</td>${inp(i,'deposito',r.deposito)}<td class="${r.sueldo_total<0?'bad':'ok'}">${money(r.sueldo_total)}</td>${inp(i,'extra2',r.extra2)}
+    <td><button class="delete" onclick="borrar(${i})">×</button></td>`; tb.appendChild(tr);}); totales();
+}
+function inp(i,k,v){return `<td><input type="text" inputmode="decimal" value="${moneyInput(v)}" onfocus="this.value=String(num(this.value)||'')" onchange="edit(${i},'${k}',this.value)" onblur="this.value=moneyInput(this.value)"></td>`}
+function edit(i,k,v){rows[i][k]=k==='nombre'?v:num(v); render();}
+function borrar(i){rows.splice(i,1);render()}
+function agregarEmpleado(){rows.push({empleado_id:'',nombre:'NUEVO',sueldo:0,extra:0,prestamo_ant:0,prestamo_sem:0,acta:0,faltante:0,infonavit:0,imss:0,impuestos:0,deposito:0,extra2:0});render()}
+function totales(){const s={};['total_ingreso','prestamo_ant','prestamo_sem','saldo_actual','acta','faltante','infonavit','imss','impuestos','subtotal','deposito','sueldo_total','extra2'].forEach(k=>s[k]=rows.reduce((a,r)=>a+num(r[k]),0));
+  document.getElementById('kPeriodo').textContent=periodo||'—'; document.getElementById('kEmpleados').textContent=rows.length; document.getElementById('kIngreso').textContent=money(s.total_ingreso); document.getElementById('kSubtotal').textContent=money(s.subtotal); document.getElementById('kExtra').textContent=money(s.sueldo_total);
+  const ids={tIngreso:'total_ingreso',tPAnt:'prestamo_ant',tPSem:'prestamo_sem',tSaldo:'saldo_actual',tActa:'acta',tFaltante:'faltante',tInfo:'infonavit',tImss:'imss',tImp:'impuestos',tSub:'subtotal',tDep:'deposito',tSueldo:'sueldo_total',tExtra2:'extra2'}; for(const id in ids)document.getElementById(id).textContent=money(s[ids[id]]);
+}
+function guardarConstantes(){const e={},p={}; rows.forEach(r=>{const k=constKey(r); e[k]=num(r.extra); p[k]={prestamo_ant:num(r.prestamo_ant),prestamo_sem:num(r.prestamo_sem),acta:num(r.acta),faltante:num(r.faltante),extra2:num(r.extra2)}}); localStorage.setItem(KEY_EXTRAS,JSON.stringify(e)); localStorage.setItem(KEY_PREST,JSON.stringify(p)); alert('Constantes guardadas en este navegador.');}
+function pasarPrestamosSiguienteSemana(){
+  if(!confirm('Esto guardará para la siguiente semana: Préstamo ant. = Préstamo ant. + Préstamo sem. - Acta, y Préstamo sem. = $0. ¿Continuar?')) return;
+  const e={},p={};
+  rows.forEach(r=>{calcular(r); const k=constKey(r); e[k]=num(r.extra); p[k]={prestamo_ant:num(r.saldo_actual),prestamo_sem:0,acta:num(r.saldo_actual)>0?num(r.acta):0,faltante:num(r.faltante),extra2:num(r.extra2)}});
+  localStorage.setItem(KEY_EXTRAS,JSON.stringify(e)); localStorage.setItem(KEY_PREST,JSON.stringify(p));
+  rows.forEach(r=>{r.prestamo_ant=num(r.saldo_actual); r.prestamo_sem=0; if(num(r.saldo_actual)<=0) r.acta=0;});
+  render();
+  alert('Listo. Los préstamos quedaron preparados para la siguiente semana.');
+}
+function exportCSV(){rows.forEach(calcular); const headers=['No','Nombre','Sueldo','Extra','Total ingreso','Prestamo ant','Prestamo sem','Saldo actual','Acta','Faltante','Infonavit','IMSS','Impuestos','Subtotal','Deposito','Sueldo total','Extra 2']; const lines=[headers.join(',')]; rows.forEach((r,i)=>lines.push([i+1,r.nombre,r.sueldo,r.extra,r.total_ingreso,r.prestamo_ant,r.prestamo_sem,r.saldo_actual,r.acta,r.faltante,r.infonavit,r.imss,r.impuestos,r.subtotal,r.deposito,r.sueldo_total,r.extra2].map(x=>`"${x}"`).join(','))); const blob=new Blob([lines.join('\n')],{type:'text/csv;charset=utf-8'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='nomina_vdc360.csv'; a.click();}
+function limpiarTodo(){if(confirm('¿Limpiar tabla actual?')){rows=[];render();setStatus('Sin periodo detectado')}}
+render();
 </script>
 </body>
 </html>
