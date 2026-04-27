@@ -36,7 +36,7 @@
           <button class="btn secondary" onclick="agregarFila()">+ Agregar empleado manual</button>
           <button class="btn warn" onclick="guardarCatalogoSueldos()">Guardar sueldos actuales</button>
         </div>
-        <p class="hint">La página extrae por empleado: nombre, sueldo/percepciones del PDF, Infonavit, IMSS, impuestos/deducciones y depósito/neto. Los campos amarillos/manuales quedan editables para que agregues extra, préstamos, acta o faltantes.</p>
+        <p class="hint">La página extrae por empleado: nombre, sueldo/percepciones del PDF, Infonavit, IMSS, impuestos/deducciones y depósito/neto. Los préstamos quedan como control de saldo; el descuento real de préstamo se captura en ACTA.</p>
       </div>
       <div class="row" style="justify-content:flex-end">
         <button class="btn secondary" onclick="exportCSV()">Exportar CSV</button>
@@ -58,7 +58,7 @@
   <section class="card">
     <div class="row noPrint" style="justify-content:space-between;margin-bottom:10px">
       <span class="pill" id="periodoPill">Sin PDF cargado</span>
-      <span class="small">Fórmula principal: SUBTOTAL = TOTAL INGRESO - INFONAVIT - IMSS - IMPUESTOS - PRÉSTAMOS/ACTAS/FALTANTES. SUELDO TOTAL = SUBTOTAL - DEPÓSITO.</span>
+      <span class="small">Fórmula principal: SUBTOTAL = TOTAL INGRESO - INFONAVIT - IMSS - IMPUESTOS - ACTA - FALTANTE. Los préstamos solo se muestran para control de saldo; no se descuentan completos. SUELDO TOTAL = SUBTOTAL - DEPÓSITO.</span>
     </div>
     <div class="tableWrap">
       <table id="tabla">
@@ -131,7 +131,7 @@ function parseNomina(text){
 function calc(r){
   const totalIngreso=round(num(r.sueldo)+num(r.extra));
   const saldoActual=round(num(r.prestamoAnt)+num(r.prestamoSem));
-  const subtotal=round(totalIngreso-num(r.infonavit)-num(r.imss)-num(r.impuestos)-saldoActual-num(r.acta)-num(r.faltante));
+  const subtotal=round(totalIngreso-num(r.infonavit)-num(r.imss)-num(r.impuestos)-num(r.acta)-num(r.faltante));
   const sueldoTotal=round(subtotal-num(r.deposito)+num(r.extra2));
   return {totalIngreso,saldoActual,subtotal,sueldoTotal};
 }
