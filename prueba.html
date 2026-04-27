@@ -361,7 +361,7 @@ function enviarATickets(){
   localStorage.setItem('vdc360:nomina:tickets:data',JSON.stringify(data));
   alert('Datos enviados a la página de tickets. Abre o actualiza la página VDC-NOMINA para imprimir.');
   // Si tu página de tickets tiene otra ruta, cambia esta URL:
-  const urlTickets='ticket-nomina.html';
+  const urlTickets='https://marcianoper.github.io/Recibos-vdc/sueldos.html';
   window.open(urlTickets,'_blank');
 }
 function limpiarTodo(){if(confirm('¿Limpiar tabla actual?')){rows=[];render();setStatus('Sin periodo detectado');}}
