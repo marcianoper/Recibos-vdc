@@ -133,7 +133,16 @@ function calcular(r){
   r.total_ingreso=round(num(r.sueldo)+num(r.extra));
   r.saldo_actual=round(Math.max(0,num(r.prestamo_ant)+num(r.prestamo_sem)-num(r.acta)));
   r.subtotal=round(r.total_ingreso-num(r.infonavit)-num(r.imss)-num(r.impuestos)-num(r.acta)-num(r.faltante));
-  r.sueldo_total=round(r.subtotal-num(r.deposito));
+
+  // 🔥 REGLA ESPECIAL: Benjamin Jr y Victor NO tienen depósito
+  const sinDeposito = ['BENJAMIN JR','VICTOR'];
+
+  if(sinDeposito.includes(r.nombre)){
+    r.sueldo_total = round(r.subtotal); // TODO se les queda completo
+    r.deposito = 0;
+  } else {
+    r.sueldo_total = round(r.subtotal-num(r.deposito));
+  }
 }
 function render(){
   rows.forEach(calcular);
