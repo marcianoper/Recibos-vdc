@@ -4,41 +4,74 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>VDC360° — Nómina automática desde PDF</title>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/exceljs/dist/exceljs.min.js"></script>
   <script>
     if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
   </script>
+
   <style>
-    :root{--brand:#0a7a3b;--blue:#2f64b5;--bg:#f4f7fb;--card:#fff;--line:#d7e0ee;--ink:#071426;--muted:#64748b;--bad:#c81e1e;--ok:#007a3d;--warn:#b45309;--shadow:0 16px 45px rgba(15,23,42,.12);--r:18px;--carn:#7c3aed;--carnbg:#f3e8ff}
-    *{box-sizing:border-box} body{margin:0;background:var(--bg);font-family:Arial,system-ui,sans-serif;color:var(--ink)}
+    :root{
+      --brand:#0a7a3b;--brand2:#0f9a52;--blue:#2f64b5;--bg:#f4f7fb;--card:#fff;--line:#d7e0ee;
+      --ink:#071426;--muted:#64748b;--bad:#c81e1e;--ok:#007a3d;--warn:#b45309;
+      --shadow:0 16px 45px rgba(15,23,42,.12);--r:18px;--carn:#7c3aed;--carnbg:#f3e8ff;
+      --faltanteBg:#fee2e2;--faltanteBorder:#dc2626;--faltanteInk:#991b1b;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);font-family:Arial,system-ui,sans-serif;color:var(--ink)}
     header{background:linear-gradient(135deg,#0a7a3b,#0f9a52);color:#fff;padding:18px 24px;position:sticky;top:0;z-index:10;box-shadow:var(--shadow)}
-    h1{margin:0;font-size:22px}.sub{opacity:.9;font-size:13px;margin-top:4px}.wrap{padding:18px;max-width:1800px;margin:auto}.card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);border:1px solid #e5e7eb;padding:16px;margin-bottom:16px}.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.btn{border:0;border-radius:12px;padding:11px 14px;font-weight:800;cursor:pointer;background:var(--brand);color:#fff}.btn.secondary{background:#334155}.btn.danger{background:var(--bad)}.btn.warn{background:#b45309}input,select,textarea{border:1px solid #cbd5e1;border-radius:10px;padding:9px;background:#fff;font-size:14px}input[type=file]{background:#f8fafc}.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:800;background:#eaf7ef;color:#075d2f}.pill.carn{background:var(--carnbg);color:#4c1d95}.grid{display:grid;grid-template-columns:repeat(5,minmax(160px,1fr));gap:10px}.grid2{display:grid;grid-template-columns:repeat(4,minmax(180px,1fr));gap:10px}.kpi{background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:12px}.kpi b{display:block;font-size:20px;margin-top:4px}.kpi.carn{background:var(--carnbg);border-color:#ddd6fe}.tableBox{overflow:auto;border-radius:16px;border:1px solid var(--line);max-height:72vh}table{border-collapse:separate;border-spacing:0;min-width:1820px;width:100%;background:#fff}th{position:sticky;top:0;background:var(--blue);color:#fff;font-size:12px;text-transform:uppercase;padding:10px 8px;border-right:1px solid rgba(255,255,255,.2);z-index:2}td{padding:6px 6px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);font-size:14px;text-align:right}td.name{text-align:left;white-space:nowrap}tbody tr:nth-child(even){background:#e9f0fa}tbody tr.carniceria{background:#faf5ff}tbody tr.carniceria:nth-child(even){background:#f3e8ff}.money{font-weight:800}.ok{color:var(--ok);font-weight:900}.bad{color:var(--bad);font-weight:900}.muted{color:var(--muted)}td input,td select{width:100%;min-width:92px;text-align:right;padding:8px;font-weight:700}.name input{text-align:left;min-width:180px}.area select{text-align:left;min-width:130px}.delete{background:var(--bad);color:#fff;border:0;border-radius:50%;width:30px;height:30px;font-weight:900;cursor:pointer}.small{font-size:12px;color:var(--muted);line-height:1.35}.note{background:#fff7ed;border:1px solid #fed7aa;color:#7c2d12;border-radius:14px;padding:10px}.sectionTitle{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:20px 0 10px;padding:12px 14px;border-radius:14px;background:#e2e8f0;font-weight:900}.sectionTitle.carn{background:var(--carnbg);color:#4c1d95}.hidden{display:none}@media(max-width:900px){.grid,.grid2{grid-template-columns:1fr 1fr}header{position:relative}.wrap{padding:10px}}
+    h1{margin:0;font-size:22px}.sub{opacity:.9;font-size:13px;margin-top:4px}
+    .wrap{padding:18px;max-width:1800px;margin:auto}
+    .card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);border:1px solid #e5e7eb;padding:16px;margin-bottom:16px}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .btn{border:0;border-radius:12px;padding:11px 14px;font-weight:800;cursor:pointer;background:var(--brand);color:#fff}
+    .btn.secondary{background:#334155}.btn.danger{background:var(--bad)}.btn.warn{background:#b45309}.btn.carn{background:#6d28d9}
+    input,select,textarea{border:1px solid #cbd5e1;border-radius:10px;padding:9px;background:#fff;font-size:14px}
+    input[type=file]{background:#f8fafc}
+    .pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:800;background:#eaf7ef;color:#075d2f}
+    .pill.carn{background:var(--carnbg);color:#4c1d95}.pill.bad{background:#fee2e2;color:#991b1b}
+    .grid{display:grid;grid-template-columns:repeat(5,minmax(160px,1fr));gap:10px}
+    .grid2{display:grid;grid-template-columns:repeat(4,minmax(180px,1fr));gap:10px;margin-top:10px}
+    .kpi{background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:12px}
+    .kpi b{display:block;font-size:20px;margin-top:4px}.kpi.carn{background:var(--carnbg);border-color:#ddd6fe}.kpi.bad{background:#fff1f2;border-color:#fecdd3}
+    .tableBox{overflow:auto;border-radius:16px;border:1px solid var(--line);max-height:72vh}
+    table{border-collapse:separate;border-spacing:0;min-width:1900px;width:100%;background:#fff}
+    th{position:sticky;top:0;background:var(--blue);color:#fff;font-size:12px;text-transform:uppercase;padding:10px 8px;border-right:1px solid rgba(255,255,255,.2);z-index:2}
+    td{padding:6px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);font-size:14px;text-align:right}
+    td.name{text-align:left;white-space:nowrap}tbody tr:nth-child(even){background:#e9f0fa}tbody tr.carniceria{background:#faf5ff}tbody tr.carniceria:nth-child(even){background:#f3e8ff}
+    .money{font-weight:800}.ok{color:var(--ok);font-weight:900}.badTxt{color:var(--bad);font-weight:900}.muted{color:var(--muted)}
+    td input,td select{width:100%;min-width:92px;text-align:right;padding:8px;font-weight:700}.name input{text-align:left;min-width:180px}.area select{text-align:left;min-width:130px}
+    .inputFaltante{background:var(--faltanteBg)!important;border:2px solid var(--faltanteBorder)!important;color:var(--faltanteInk)!important;box-shadow:0 0 0 3px rgba(220,38,38,.10)!important}
+    .delete{background:var(--bad);color:#fff;border:0;border-radius:50%;width:30px;height:30px;font-weight:900;cursor:pointer}
+    .small{font-size:12px;color:var(--muted);line-height:1.35}.note{background:#fff7ed;border:1px solid #fed7aa;color:#7c2d12;border-radius:14px;padding:10px}
+    .sectionTitle{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:20px 0 10px;padding:12px 14px;border-radius:14px;background:#e2e8f0;font-weight:900}.sectionTitle.carn{background:var(--carnbg);color:#4c1d95}
+    @media(max-width:900px){.grid,.grid2{grid-template-columns:1fr 1fr}header{position:relative}.wrap{padding:10px}}
   </style>
 </head>
 <body>
 <header>
   <h1>VDC360° — Nómina automática desde PDF</h1>
-  <div class="sub">Carga la Lista de Raya de CONTPAQi, revisa constantes editables y genera el desglose por área.</div>
+  <div class="sub">Carga la Lista de Raya de CONTPAQi, revisa constantes, detecta faltantes y manda datos a la página de tickets.</div>
 </header>
+
 <main class="wrap">
   <section class="card">
     <div class="row">
       <input id="pdfFile" type="file" accept="application/pdf" />
       <button class="btn" onclick="leerPDF()">Leer PDF</button>
-      <input id="excelTicketFile" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" title="Plantilla Excel de tickets" />
-      <button class="btn secondary" onclick="llenarTicketsExcel()">Llenar Excel tickets</button>
-      <button class="btn secondary" onclick="enviarATickets()">Mandar a página de tickets</button>
       <button class="btn secondary" onclick="agregarEmpleado()">+ Agregar empleado</button>
       <button class="btn warn" onclick="guardarConstantes()">Guardar constantes</button>
       <button class="btn secondary" onclick="pasarPrestamosSiguienteSemana()">Pasar préstamos a sig. semana</button>
+      <button class="btn carn" onclick="enviarATickets()">Mandar a página de tickets</button>
       <button class="btn secondary" onclick="exportCSV()">Exportar CSV</button>
       <button class="btn danger" onclick="limpiarTodo()">Limpiar</button>
       <span id="status" class="pill">Sin periodo detectado</span>
     </div>
-    <p class="small">Regla corregida: todos los importes se manejan en <b>pesos</b>. <b>Préstamo sem.</b> es dinero nuevo que pidieron esta semana; el descuento real en nómina se toma de <b>ACTA</b>. El <b>saldo actual</b> queda como: préstamo anterior + préstamo semanal - acta. Al pasar a la siguiente semana, ese saldo se guarda como <b>Préstamo ant.</b> y préstamo semanal vuelve a $0.</p>
-    <p class="small"><b>Nueva separación:</b> Paula Pérez, Carlos Reyes, Heriberto, Jorge Martínez y Gustavo Ángel se marcan automáticamente como <b>Carnicería</b>. Puedes cambiar el área manualmente en la columna <b>Área</b>.</p>
-    <p class="small"><b>Tickets Excel:</b> carga tu archivo <b>SUELDOS.xlsx</b> en el segundo selector y presiona <b>Llenar Excel tickets</b>. El sistema descarga una copia ya llenada para imprimir, sin modificar tu archivo original.</p>
+    <p class="small">
+      <b>Regla de préstamo:</b> préstamo anterior + préstamo semanal - ACTA = saldo actual. En nómina solo se descuenta ACTA.
+      <br><b>Regla especial:</b> Benjamin Jr y Victor no tienen depósito; su sueldo total queda completo.
+      <br><b>Faltantes:</b> si en el PDF el concepto <b>1 Sueldo</b> trae menos de <b>6.00 días</b>, la casilla <b>Faltante</b> se pinta en rojo para revisión.
+    </p>
   </section>
 
   <section class="grid">
@@ -53,19 +86,24 @@
     <div class="kpi carn">Carnicería empleados<b id="kCarnEmpleados">0</b></div>
     <div class="kpi carn">Carnicería ingreso<b id="kCarnIngreso">$ 0.00</b></div>
     <div class="kpi carn">Carnicería subtotal<b id="kCarnSubtotal">$ 0.00</b></div>
-    <div class="kpi carn">Carnicería sueldo total<b id="kCarnSueldo">$ 0.00</b></div>
+    <div class="kpi bad">Alertas faltante<b id="kAlertasFaltante">0</b></div>
   </section>
 
   <section class="card">
-    <div class="note"><b>Constantes editables:</b> EXTRA, PRÉSTAMO ANT., ACTA, FALTANTE, EXTRA 2 y ÁREA se identifican primero por No. de empleado del PDF y después por nombre corto. Si cambias algún dato en la tabla, presiona <b>Guardar constantes</b> para que se mantenga en las siguientes nóminas.</div>
+    <div class="note">
+      <b>Importante:</b> si el PDF dice 1 Sueldo = 5.00, 4.00, etc., el sistema no descuenta automáticamente dinero; solamente marca <b>Faltante</b> en rojo para que lo revises y captures el importe correcto.
+    </div>
     <br>
     <div id="tablasSeparadas"></div>
   </section>
 </main>
+
 <script>
 const KEY_EXTRAS='vdc360:nomina:extrasConstantes:v1';
 const KEY_PREST='vdc360:nomina:prestamos:v1';
 const KEY_AREAS='vdc360:nomina:areas:v1';
+const URL_TICKETS='https://marcianoper.github.io/Recibos-vdc/sueldos.html';
+
 let periodo='';
 let rows=[];
 
@@ -75,20 +113,25 @@ const EXTRAS_DEFAULT={
   'MARTIN PITAYO':0,'JUAN ALDACO':760,'OTERO':1260,'VICTOR':900,'FERNANDO':750,'ISMAEL':950,'BENJAMIN JR':750,'JOSE':750,'TOÑO':0,'TOÑITO':0,'JORGE ARTURO':710,'JOSE LUIS RDZ':1020,'PABLO':970,'RODOLFO':790,'JOSE MARTINEZ':610,'MARIO V':820,'MARCO ANTONI':960,'RAUL':700,'DIEGO':600,'GERMAN':0,'EYVYN':600,'ALEX':0,'JESUS':0,'ALISON':1431.33,'EMILIO KURO':0,'TATAN':0,
   'PAULA PEREZ':0,'CARLOS REYES':0,'HERIBERTO':0,'JORGE MARTINEZ':0,'GUSTAVO ANGEL':0
 };
+
 const PRESTAMOS_DEFAULT={
   'MARTIN PITAYO':{prestamo_ant:0,prestamo_sem:0,acta:0},'JUAN ALDACO':{prestamo_ant:0,prestamo_sem:0,acta:0},'OTERO':{prestamo_ant:0,prestamo_sem:0,acta:0},'VICTOR':{prestamo_ant:0,prestamo_sem:0,acta:0},'FERNANDO':{prestamo_ant:0,prestamo_sem:4000,acta:200},'ISMAEL':{prestamo_ant:0,prestamo_sem:0,acta:0},'BENJAMIN JR':{prestamo_ant:6000,prestamo_sem:0,acta:200},'JOSE':{prestamo_ant:3600,prestamo_sem:0,acta:200},'TOÑO':{prestamo_ant:0,prestamo_sem:0,acta:0},'TOÑITO':{prestamo_ant:0,prestamo_sem:0,acta:0},'JORGE ARTURO':{prestamo_ant:1100,prestamo_sem:0,acta:100},'JOSE LUIS RDZ':{prestamo_ant:1200,prestamo_sem:0,acta:100},'PABLO':{prestamo_ant:2400,prestamo_sem:0,acta:200},'RODOLFO':{prestamo_ant:5238,prestamo_sem:0,acta:200},'JOSE MARTINEZ':{prestamo_ant:0,prestamo_sem:0,acta:0},'MARIO V':{prestamo_ant:0,prestamo_sem:0,acta:0},'MARCO ANTONI':{prestamo_ant:4200,prestamo_sem:0,acta:200},'RAUL':{prestamo_ant:0,prestamo_sem:0,acta:0},'DIEGO':{prestamo_ant:2000,prestamo_sem:0,acta:100},'GERMAN':{prestamo_ant:0,prestamo_sem:0,acta:0},'EYVYN':{prestamo_ant:0,prestamo_sem:0,acta:0},'ALEX':{prestamo_ant:0,prestamo_sem:0,acta:0},'JESUS':{prestamo_ant:0,prestamo_sem:0,acta:0},'ALISON':{prestamo_ant:0,prestamo_sem:0,acta:0},'EMILIO KURO':{prestamo_ant:0,prestamo_sem:0,acta:0},'TATAN':{prestamo_ant:0,prestamo_sem:0,acta:0},
   'PAULA PEREZ':{prestamo_ant:0,prestamo_sem:0,acta:0},'CARLOS REYES':{prestamo_ant:0,prestamo_sem:0,acta:0},'HERIBERTO':{prestamo_ant:0,prestamo_sem:0,acta:0},'JORGE MARTINEZ':{prestamo_ant:0,prestamo_sem:0,acta:0},'GUSTAVO ANGEL':{prestamo_ant:0,prestamo_sem:0,acta:0}
 };
+
 const AREAS_DEFAULT={
   'PAULA PEREZ':'Carnicería','CARLOS REYES':'Carnicería','HERIBERTO':'Carnicería','JORGE MARTINEZ':'Carnicería','GUSTAVO ANGEL':'Carnicería'
 };
+
 const ID_MAP={
-  '071':'JUAN ALDACO','072':'OTERO','003':'VICTOR','040':'FERNANDO','054':'ISMAEL','059':'BENJAMIN JR','076':'JOSE','088':'TOÑITO','004':'JORGE ARTURO','081':'JOSE LUIS RDZ','082':'PABLO','091':'RODOLFO','098':'JOSE MARTINEZ','094':'MARIO V','097':'MARCO ANTONI','030':'RAUL','102':'DIEGO','099':'GERMAN','105':'EYVYN','106':'ALISON'
+  '071':'JUAN ALDACO','072':'OTERO','003':'VICTOR','040':'FERNANDO','054':'ISMAEL','059':'BENJAMIN JR','076':'JOSE','088':'TOÑITO','004':'JORGE ARTURO','081':'JOSE LUIS RDZ','082':'PABLO','091':'RODOLFO','098':'JOSE MARTINEZ','094':'MARIO V','097':'MARCO ANTONI','030':'RAUL','102':'DIEGO','099':'GERMAN','103':'GUSTAVO ANGEL','105':'EYVYN','106':'ALISON'
 };
+
 const NAME_MAP=[
-  [/PAULA.*PEREZ|PEREZ.*PAULA/,'PAULA PEREZ'],[/CARLOS.*REYES|REYES.*CARLOS/,'CARLOS REYES'],[/HERIBERTO/,'HERIBERTO'],[/JORGE.*MARTINEZ|MARTINEZ.*JORGE/,'JORGE MARTINEZ'],[/GUSTAVO.*ANGEL|ANGEL.*GUSTAVO/,'GUSTAVO ANGEL'],
-  [/ALDACO.*JUAN|JUAN.*ALDACO/,'JUAN ALDACO'],[/GARCIA OTERO|OTERO/,'OTERO'],[/CAMPOS VICTOR|VICTOR/,'VICTOR'],[/AGUILERA.*LUIS FERNANDO/,'FERNANDO'],[/PARRA.*ISMAEL|ISMAEL/,'ISMAEL'],[/CARRERA.*BENJAMIN|BENJAMIN/,'BENJAMIN JR'],[/GUZMAN.*JOSE CARLOS|JOSE CARLOS/,'JOSE'],[/OWEN|TOÑITO/,'TOÑITO'],[/CAMPOS GONZALEZ JORGE ARTURO|JORGE ARTURO/,'JORGE ARTURO'],[/RODRIGUEZ RODRIGUEZ JOSE LUIS|JOSE LUIS/,'JOSE LUIS RDZ'],[/RODRIGUEZ HERNANDEZ PABLO FERNANDO|PABLO FERNANDO|PABLO/,'PABLO'],[/VAZQUEZ PEÑA JUAN RODOLFO|JUAN RODOLFO/,'RODOLFO'],[/VAZQUEZ GUZMAN EYVYN RODOLFO|EYVYN RODOLFO|EYVYN/,'EYVYN'],[/MARTINEZ FLORES JOSE|JOSE MARTINEZ/,'JOSE MARTINEZ'],[/MARIO EDUARDO|MARIO/,'MARIO V'],[/MARCO ANTONIO|MARCO/,'MARCO ANTONI'],[/JOSE RAUL|RAUL/,'RAUL'],[/DIEGO/,'DIEGO'],[/GERMAN/,'GERMAN'],[/ALISON/,'ALISON'],[/EMILIO/,'EMILIO KURO'],[/TATAN/,'TATAN']
+  [/PAULA.*PEREZ|PEREZ.*PAULA/,'PAULA PEREZ'],[/CARLOS.*REYES|REYES.*CARLOS/,'CARLOS REYES'],[/HERIBERTO/,'HERIBERTO'],[/JORGE.*MARTINEZ|MARTINEZ.*JORGE/,'JORGE MARTINEZ'],[/GUSTAVO.*ANGEL|ANGEL.*GUSTAVO|ROSAS VAZQUEZ GUSTAVO ANGEL/,'GUSTAVO ANGEL'],
+  [/ALDACO.*JUAN|JUAN.*ALDACO/,'JUAN ALDACO'],[/GARCIA OTERO|OTERO/,'OTERO'],[/CAMPOS VICTOR|VICTOR/,'VICTOR'],[/AGUILERA.*LUIS FERNANDO/,'FERNANDO'],[/PARRA.*ISMAEL|ISMAEL/,'ISMAEL'],[/CARRERA.*BENJAMIN|BENJAMIN/,'BENJAMIN JR'],[/GUZMAN.*JOSE CARLOS|JOSE CARLOS/,'JOSE'],[/OWEN|TOÑITO/,'TOÑITO'],[/CAMPOS GONZALEZ JORGE ARTURO|JORGE ARTURO/,'JORGE ARTURO'],[/RODRIGUEZ RODRIGUEZ JOSE LUIS|JOSE LUIS/,'JOSE LUIS RDZ'],[/RODRIGUEZ HERNANDEZ PABLO FERNANDO|PABLO FERNANDO|PABLO/,'PABLO'],[/VAZQUEZ PEÑA JUAN RODOLFO|JUAN RODOLFO/,'RODOLFO'],[/VAZQUEZ GUZMAN EYVYN RODOLFO|EYVYN RODOLFO|EYVYN/,'EYVYN'],[/MARTINEZ FLORES JOSE|JOSE MARTINEZ/,'JOSE MARTINEZ'],[/MARIO EDUARDO|MARIO/,'MARIO V'],[/MARCO ANTONIO|MARCO/,'MARCO ANTONI'],[/JOSE RAUL|RAUL/,'RAUL'],[/DIEGO/,'DIEGO'],[/GERMAN/,'GERMAN'],[/ALISON|MARTINEZ CASTELLANOS ALISON ELIZABETH/,'ALISON'],[/EMILIO/,'EMILIO KURO'],[/TATAN/,'TATAN']
 ];
+
 function money(n){n=Number(n)||0;return n.toLocaleString('es-MX',{style:'currency',currency:'MXN'});}
 function num(v){if(v===null||v===undefined)return 0;return Number(String(v).replace(/[$,\s]/g,''))||0;}
 function round(n){return Math.round((Number(n)||0)*100)/100;}
@@ -96,6 +139,8 @@ function moneyInput(v){return money(v).replace('MXN','').trim();}
 function normalizeName(n){return (n||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().trim().replace(/\s+/g,' ');}
 function constKey(r){return r.empleado_id || r.nombre;}
 function pickConst(map,id,name){return (id && map[id]!==undefined)?map[id]:(map[name]!==undefined?map[name]:undefined);}
+function setStatus(t){document.getElementById('status').textContent=t;}
+
 function nombreCorto(n, empleadoId=''){
   if(empleadoId && ID_MAP[empleadoId]) return ID_MAP[empleadoId];
   let up=normalizeName(n);
@@ -106,79 +151,118 @@ function extrasMap(){return {...EXTRAS_DEFAULT,...JSON.parse(localStorage.getIte
 function prestamosMap(){const saved=JSON.parse(localStorage.getItem(KEY_PREST)||'{}');const merged={...PRESTAMOS_DEFAULT};Object.keys(saved).forEach(k=>{merged[k]={...(merged[k]||{}),...saved[k]};});return merged;}
 function areasMap(){return {...AREAS_DEFAULT,...JSON.parse(localStorage.getItem(KEY_AREAS)||'{}')};}
 function detectarArea(id,nombre){const areas=areasMap(); if(id && areas[id]) return areas[id]; if(areas[nombre]) return areas[nombre]; return CARNICERIA_NOMBRES.includes(normalizeName(nombre))?'Carnicería':'General';}
-function setStatus(t){document.getElementById('status').textContent=t;}
 
 async function leerPDF(){
-  const file=document.getElementById('pdfFile').files[0]; if(!file){alert('Carga primero el PDF de nómina.');return;}
+  const file=document.getElementById('pdfFile').files[0];
+  if(!file){alert('Carga primero el PDF de nómina.');return;}
   setStatus('Leyendo PDF...');
-  const buf=await file.arrayBuffer(); const pdf=await pdfjsLib.getDocument({data:buf}).promise; let text='';
-  for(let p=1;p<=pdf.numPages;p++){const page=await pdf.getPage(p); const content=await page.getTextContent(); text+='\n'+content.items.map(i=>i.str).join(' ');}
-  procesarTexto(text); render(); setStatus('PDF leído correctamente');
+  const buf=await file.arrayBuffer();
+  const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+  let text='';
+  for(let p=1;p<=pdf.numPages;p++){
+    const page=await pdf.getPage(p);
+    const content=await page.getTextContent();
+    text+='\n'+content.items.map(i=>i.str).join(' ');
+  }
+  procesarTexto(text);
+  render();
+  setStatus('PDF leído correctamente');
 }
+
 function procesarTexto(text){
   periodo=(text.match(/Lista de Raya del\s+(.+?)\s+Fecha:/i)||[])[1]||'';
-  const extras=extrasMap(), prest=prestamosMap(); rows=[];
+  const extras=extrasMap(), prest=prestamosMap();
+  rows=[];
   const blocks=text.split(/\s*-{10,}\s*/).filter(b=>/Total Percepciones|Neto a pagar/.test(b));
+
   for(const b of blocks){
-    const head=b.match(/(?:^|\s)(\d{3})\s+([A-ZÁÉÍÓÚÑ\s]+?)\s+(?:EMPLEADO|CHOFER|CAJERO|VIGILANTE|RFC:)/i); if(!head) continue;
+    const head=b.match(/(?:^|\s)(\d{3})\s+([A-ZÁÉÍÓÚÑ\s]+?)\s+(?:EMPLEADO|CHOFER|CAJERO|VIGILANTE|RFC:)/i);
+    if(!head) continue;
+
     const empleadoId=head[1];
-    const full=head[2].trim().replace(/\s+/g,' '); const short=nombreCorto(full, empleadoId);
+    const full=head[2].trim().replace(/\s+/g,' ');
+    const short=nombreCorto(full, empleadoId);
+
     const totalPerc=num((b.match(/Total Percepciones\s+([\d,]+\.\d{2})/i)||[])[1]);
     const neto=num((b.match(/Neto a pagar\s+([\d,]+\.\d{2})/i)||[])[1]);
     const imss=num((b.match(/52\s+I\.M\.S\.S\.\s+([\d,]+\.\d{2})/i)||[])[1]);
     const isr=num((b.match(/45\s+I\.S\.R\. \(mes\)\s+([\d,]+\.\d{2})/i)||[])[1]);
     const ajuste=num((b.match(/99\s+Ajuste al neto\s+(-?[\d,]+\.\d{2})/i)||[])[1]);
     const infonavit=num((b.match(/179\s+Infonavit CF correspondiente\s+([\d,]+\.\d{2})/i)||[])[1] || (b.match(/16\s+Préstamo infonavit \(CF\)\s+[\d,]+\.\d{2}\s+([\d,]+\.\d{2})/i)||[])[1]);
+
+    // Detecta los días trabajados del concepto: 1 Sueldo 6.00 / 5.00 / etc.
+    const diasSueldo=num((b.match(/1\s+Sueldo\s+([\d,]+\.\d{2})/i)||[])[1]);
+    const faltanteAlerta=diasSueldo>0 && diasSueldo<6;
+
     const extra=pickConst(extras, empleadoId, short) ?? 0;
     const p=pickConst(prest, empleadoId, short) || {};
-    rows.push({empleado_id:empleadoId,nombre:short,nombre_pdf:full,area:detectarArea(empleadoId,short),sueldo:totalPerc,extra,prestamo_ant:p.prestamo_ant||0,prestamo_sem:p.prestamo_sem||0,acta:p.acta||0,faltante:p.faltante||0,infonavit,imss,impuestos:round(isr+ajuste),deposito:neto,extra2:p.extra2||0});
+
+    rows.push({
+      empleado_id:empleadoId,
+      nombre:short,
+      nombre_pdf:full,
+      area:detectarArea(empleadoId,short),
+      dias_sueldo:diasSueldo,
+      faltante_alerta:faltanteAlerta,
+      sueldo:totalPerc,
+      extra,
+      prestamo_ant:p.prestamo_ant||0,
+      prestamo_sem:p.prestamo_sem||0,
+      acta:p.acta||0,
+      faltante:p.faltante||0,
+      infonavit,
+      imss,
+      impuestos:round(isr+ajuste),
+      deposito:neto,
+      extra2:p.extra2||0
+    });
   }
 }
+
 function calcular(r){
   r.total_ingreso=round(num(r.sueldo)+num(r.extra));
   r.saldo_actual=round(Math.max(0,num(r.prestamo_ant)+num(r.prestamo_sem)-num(r.acta)));
   r.subtotal=round(r.total_ingreso-num(r.infonavit)-num(r.imss)-num(r.impuestos)-num(r.acta)-num(r.faltante));
 
-  // 🔥 REGLA ESPECIAL: Benjamin Jr y Victor NO tienen depósito
-  const sinDeposito = ['BENJAMIN JR','VICTOR'];
-
+  const sinDeposito=['BENJAMIN JR','VICTOR'];
   if(sinDeposito.includes(r.nombre)){
-    r.sueldo_total = round(r.subtotal); // TODO se les queda completo
-    r.deposito = 0;
-  } else {
-    r.sueldo_total = round(r.subtotal-num(r.deposito));
+    r.deposito=0;
+    r.sueldo_total=round(r.subtotal);
+  }else{
+    r.sueldo_total=round(r.subtotal-num(r.deposito));
   }
 }
+
 function render(){
   rows.forEach(calcular);
-  const cont=document.getElementById('tablasSeparadas'); cont.innerHTML='';
+  const cont=document.getElementById('tablasSeparadas');
+  cont.innerHTML='';
   cont.appendChild(crearTablaArea('Carnicería', rows.map((r,i)=>({r,i})).filter(x=>x.r.area==='Carnicería'), true));
   cont.appendChild(crearTablaArea('General', rows.map((r,i)=>({r,i})).filter(x=>x.r.area!=='Carnicería'), false));
   totales();
 }
+
 function crearTablaArea(titulo, items, esCarniceria){
   const wrap=document.createElement('div');
   const total=items.reduce((a,x)=>a+num(x.r.subtotal),0);
+  const alertas=items.filter(x=>x.r.faltante_alerta).length;
+
   wrap.innerHTML=`
     <div class="sectionTitle ${esCarniceria?'carn':''}">
       <span>${titulo}</span>
-      <span class="pill ${esCarniceria?'carn':''}">${items.length} empleados · Subtotal ${money(total)}</span>
+      <span class="pill ${alertas?'bad':(esCarniceria?'carn':'')}">${items.length} empleados · Subtotal ${money(total)}${alertas?` · ${alertas} alerta(s) faltante`:''}</span>
     </div>
     <div class="tableBox">
       <table>
         <thead>
           <tr>
-            <th>No.</th><th>Área</th><th>Nombre</th><th>Sueldo PDF</th><th>Extra</th><th>Total ingreso</th><th>Préstamo ant.</th><th>Préstamo sem.</th><th>Saldo actual</th><th>Acta</th><th>Faltante</th><th>Infonavit</th><th>IMSS</th><th>Impuestos/Ajuste</th><th>Subtotal</th><th>Depósito/Neto PDF</th><th>Sueldo total</th><th>Extra 2</th><th></th>
+            <th>No.</th><th>Área</th><th>Nombre</th><th>Días sueldo</th><th>Sueldo PDF</th><th>Extra</th><th>Total ingreso</th><th>Préstamo ant.</th><th>Préstamo sem.</th><th>Saldo actual</th><th>Acta</th><th>Faltante</th><th>Infonavit</th><th>IMSS</th><th>Impuestos/Ajuste</th><th>Subtotal</th><th>Depósito/Neto PDF</th><th>Sueldo total</th><th>Extra 2</th><th></th>
           </tr>
         </thead>
         <tbody></tbody>
-        <tfoot>
-          <tr>
-            <th colspan="5">TOTALES ${titulo.toUpperCase()}</th><th data-t="total_ingreso"></th><th data-t="prestamo_ant"></th><th data-t="prestamo_sem"></th><th data-t="saldo_actual"></th><th data-t="acta"></th><th data-t="faltante"></th><th data-t="infonavit"></th><th data-t="imss"></th><th data-t="impuestos"></th><th data-t="subtotal"></th><th data-t="deposito"></th><th data-t="sueldo_total"></th><th data-t="extra2"></th><th></th>
-          </tr>
-        </tfoot>
       </table>
     </div>`;
+
   const tb=wrap.querySelector('tbody');
   items.forEach(({r,i},idx)=>{
     const tr=document.createElement('tr');
@@ -187,54 +271,84 @@ function crearTablaArea(titulo, items, esCarniceria){
       <td>${idx+1}</td>
       <td class="area"><select onchange="edit(${i},'area',this.value)"><option ${r.area==='General'?'selected':''}>General</option><option ${r.area==='Carnicería'?'selected':''}>Carnicería</option></select></td>
       <td class="name"><input value="${r.nombre}" onchange="edit(${i},'nombre',this.value)"></td>
+      <td class="${r.faltante_alerta?'badTxt':'money'}" title="${r.faltante_alerta?'Trabajó menos de 6 días según PDF':''}">${r.dias_sueldo?Number(r.dias_sueldo).toFixed(2):'—'}</td>
       ${inp(i,'sueldo',r.sueldo)}${inp(i,'extra',r.extra)}<td class="money">${money(r.total_ingreso)}</td>
       ${inp(i,'prestamo_ant',r.prestamo_ant)}${inp(i,'prestamo_sem',r.prestamo_sem)}<td class="money">${money(r.saldo_actual)}</td>
       ${inp(i,'acta',r.acta)}${inp(i,'faltante',r.faltante)}${inp(i,'infonavit',r.infonavit)}${inp(i,'imss',r.imss)}${inp(i,'impuestos',r.impuestos)}
-      <td class="money">${money(r.subtotal)}</td>${inp(i,'deposito',r.deposito)}<td class="${r.sueldo_total<0?'bad':'ok'}">${money(r.sueldo_total)}</td>${inp(i,'extra2',r.extra2)}
+      <td class="money">${money(r.subtotal)}</td>${inp(i,'deposito',r.deposito)}<td class="${r.sueldo_total<0?'badTxt':'ok'}">${money(r.sueldo_total)}</td>${inp(i,'extra2',r.extra2)}
       <td><button class="delete" onclick="borrar(${i})">×</button></td>`;
     tb.appendChild(tr);
   });
-  const sum={}; ['total_ingreso','prestamo_ant','prestamo_sem','saldo_actual','acta','faltante','infonavit','imss','impuestos','subtotal','deposito','sueldo_total','extra2'].forEach(k=>sum[k]=items.reduce((a,x)=>a+num(x.r[k]),0));
-  wrap.querySelectorAll('[data-t]').forEach(el=>el.textContent=money(sum[el.dataset.t]||0));
   return wrap;
 }
-function inp(i,k,v){return `<td><input type="text" inputmode="decimal" value="${moneyInput(v)}" onfocus="this.value=String(num(this.value)||'')" onchange="edit(${i},'${k}',this.value)" onblur="this.value=moneyInput(this.value)"></td>`;}
+
+function inp(i,k,v){
+  const r=rows[i]||{};
+  const alertaFaltante=k==='faltante' && r.faltante_alerta;
+  const clase=alertaFaltante?'inputFaltante':'';
+  const titulo=alertaFaltante?`Alerta: ${r.nombre} trabajó ${Number(r.dias_sueldo||0).toFixed(2)} días. Revisar faltante.`:'';
+  return `<td><input class="${clase}" type="text" inputmode="decimal" title="${titulo}" value="${moneyInput(v)}" onfocus="this.value=String(num(this.value)||'')" onchange="edit(${i},'${k}',this.value)" onblur="this.value=moneyInput(this.value)"></td>`;
+}
+
 function edit(i,k,v){
   rows[i][k]=(k==='nombre'||k==='area')?v:num(v);
   if(k==='nombre' && CARNICERIA_NOMBRES.includes(normalizeName(v))) rows[i].area='Carnicería';
   render();
 }
 function borrar(i){rows.splice(i,1);render();}
-function agregarEmpleado(){rows.push({empleado_id:'',nombre:'NUEVO',area:'General',sueldo:0,extra:0,prestamo_ant:0,prestamo_sem:0,acta:0,faltante:0,infonavit:0,imss:0,impuestos:0,deposito:0,extra2:0});render();}
+function agregarEmpleado(){rows.push({empleado_id:'',nombre:'NUEVO',area:'General',dias_sueldo:0,faltante_alerta:false,sueldo:0,extra:0,prestamo_ant:0,prestamo_sem:0,acta:0,faltante:0,infonavit:0,imss:0,impuestos:0,deposito:0,extra2:0});render();}
+
 function totales(){
-  const s={};['total_ingreso','prestamo_ant','prestamo_sem','saldo_actual','acta','faltante','infonavit','imss','impuestos','subtotal','deposito','sueldo_total','extra2'].forEach(k=>s[k]=rows.reduce((a,r)=>a+num(r[k]),0));
-  const carn=rows.filter(r=>r.area==='Carnicería'); const c={}; ['total_ingreso','subtotal','sueldo_total'].forEach(k=>c[k]=carn.reduce((a,r)=>a+num(r[k]),0));
-  document.getElementById('kPeriodo').textContent=periodo||'—'; document.getElementById('kEmpleados').textContent=rows.length; document.getElementById('kIngreso').textContent=money(s.total_ingreso); document.getElementById('kSubtotal').textContent=money(s.subtotal); document.getElementById('kExtra').textContent=money(s.sueldo_total);
-  document.getElementById('kCarnEmpleados').textContent=carn.length; document.getElementById('kCarnIngreso').textContent=money(c.total_ingreso); document.getElementById('kCarnSubtotal').textContent=money(c.subtotal); document.getElementById('kCarnSueldo').textContent=money(c.sueldo_total);
+  const s={};
+  ['total_ingreso','subtotal','sueldo_total'].forEach(k=>s[k]=rows.reduce((a,r)=>a+num(r[k]),0));
+  const carn=rows.filter(r=>r.area==='Carnicería');
+  const c={};
+  ['total_ingreso','subtotal'].forEach(k=>c[k]=carn.reduce((a,r)=>a+num(r[k]),0));
+
+  document.getElementById('kPeriodo').textContent=periodo||'—';
+  document.getElementById('kEmpleados').textContent=rows.length;
+  document.getElementById('kIngreso').textContent=money(s.total_ingreso);
+  document.getElementById('kSubtotal').textContent=money(s.subtotal);
+  document.getElementById('kExtra').textContent=money(s.sueldo_total);
+
+  document.getElementById('kCarnEmpleados').textContent=carn.length;
+  document.getElementById('kCarnIngreso').textContent=money(c.total_ingreso);
+  document.getElementById('kCarnSubtotal').textContent=money(c.subtotal);
+  document.getElementById('kAlertasFaltante').textContent=rows.filter(r=>r.faltante_alerta).length;
 }
+
 function guardarConstantes(){
   const e={},p={},a={};
-  rows.forEach(r=>{const k=constKey(r); e[k]=num(r.extra); p[k]={prestamo_ant:num(r.prestamo_ant),prestamo_sem:num(r.prestamo_sem),acta:num(r.acta),faltante:num(r.faltante),extra2:num(r.extra2)}; a[k]=r.area||'General';});
-  localStorage.setItem(KEY_EXTRAS,JSON.stringify(e)); localStorage.setItem(KEY_PREST,JSON.stringify(p)); localStorage.setItem(KEY_AREAS,JSON.stringify(a));
+  rows.forEach(r=>{
+    const k=constKey(r);
+    e[k]=num(r.extra);
+    p[k]={prestamo_ant:num(r.prestamo_ant),prestamo_sem:num(r.prestamo_sem),acta:num(r.acta),faltante:num(r.faltante),extra2:num(r.extra2)};
+    a[k]=r.area||'General';
+  });
+  localStorage.setItem(KEY_EXTRAS,JSON.stringify(e));
+  localStorage.setItem(KEY_PREST,JSON.stringify(p));
+  localStorage.setItem(KEY_AREAS,JSON.stringify(a));
   alert('Constantes y áreas guardadas en este navegador.');
 }
+
 function pasarPrestamosSiguienteSemana(){
   if(!confirm('Esto guardará para la siguiente semana: Préstamo ant. = Préstamo ant. + Préstamo sem. - Acta, y Préstamo sem. = $0. ¿Continuar?')) return;
   const e={},p={},a={};
-  rows.forEach(r=>{calcular(r); const k=constKey(r); e[k]=num(r.extra); p[k]={prestamo_ant:num(r.saldo_actual),prestamo_sem:0,acta:num(r.saldo_actual)>0?num(r.acta):0,faltante:num(r.faltante),extra2:num(r.extra2)}; a[k]=r.area||'General';});
-  localStorage.setItem(KEY_EXTRAS,JSON.stringify(e)); localStorage.setItem(KEY_PREST,JSON.stringify(p)); localStorage.setItem(KEY_AREAS,JSON.stringify(a));
+  rows.forEach(r=>{
+    calcular(r);
+    const k=constKey(r);
+    e[k]=num(r.extra);
+    p[k]={prestamo_ant:num(r.saldo_actual),prestamo_sem:0,acta:num(r.saldo_actual)>0?num(r.acta):0,faltante:num(r.faltante),extra2:num(r.extra2)};
+    a[k]=r.area||'General';
+  });
+  localStorage.setItem(KEY_EXTRAS,JSON.stringify(e));
+  localStorage.setItem(KEY_PREST,JSON.stringify(p));
+  localStorage.setItem(KEY_AREAS,JSON.stringify(a));
   rows.forEach(r=>{r.prestamo_ant=num(r.saldo_actual); r.prestamo_sem=0; if(num(r.saldo_actual)<=0) r.acta=0;});
   render();
   alert('Listo. Los préstamos quedaron preparados para la siguiente semana.');
 }
-function exportCSV(){
-  rows.forEach(calcular);
-  const headers=['No','Area','Nombre','Sueldo','Extra','Total ingreso','Prestamo ant','Prestamo sem','Saldo actual','Acta','Faltante','Infonavit','IMSS','Impuestos','Subtotal','Deposito','Sueldo total','Extra 2'];
-  const lines=[headers.join(',')];
-  const orden=[...rows.filter(r=>r.area==='Carnicería'),...rows.filter(r=>r.area!=='Carnicería')];
-  orden.forEach((r,i)=>lines.push([i+1,r.area,r.nombre,r.sueldo,r.extra,r.total_ingreso,r.prestamo_ant,r.prestamo_sem,r.saldo_actual,r.acta,r.faltante,r.infonavit,r.imss,r.impuestos,r.subtotal,r.deposito,r.sueldo_total,r.extra2].map(x=>`"${x}"`).join(',')));
-  const blob=new Blob([lines.join('\n')],{type:'text/csv;charset=utf-8'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='nomina_vdc360_por_area.csv'; a.click();
-}
+
 function normalizarTicketNombre(nombre){
   const n=normalizeName(nombre);
   if(n==='BENJAMIN JR') return 'BENJAMIN';
@@ -246,108 +360,33 @@ function normalizarTicketNombre(nombre){
   if(n==='ISMAEL') return 'ISMAEL PARRA';
   return nombre;
 }
-function ponerValor(ws,row,col,value){
-  const cell=ws.getCell(row,col);
-  cell.value=value;
-  if(typeof value==='number') cell.numFmt='$#,##0.00;[Red]-$#,##0.00';
-}
-function limpiarTicket(ws,row,colLabel,colValue){
-  for(let r=row;r<=row+12;r++){
-    ws.getCell(r,colLabel).value=null;
-    ws.getCell(r,colValue).value=null;
-    if(colValue+1<=18) ws.getCell(r,colValue+1).value=null;
-  }
-}
-function llenarTicket(ws,row,colLabel,colValue,empleado){
-  calcular(empleado);
-  const antesActa=round(num(empleado.total_ingreso)-num(empleado.imss)-num(empleado.impuestos)-num(empleado.infonavit));
-  const despuesActa=round(antesActa-num(empleado.acta)-num(empleado.faltante));
-  const sinDeposito=['BENJAMIN JR','VICTOR'].includes(empleado.nombre);
-  const deposito=sinDeposito?0:num(empleado.deposito);
-  const sueldoTotal=sinDeposito?num(empleado.subtotal):num(empleado.sueldo_total);
-  ws.getCell(row,colLabel).value=normalizarTicketNombre(empleado.nombre);
-  ws.getCell(row,colLabel).font={bold:true,size:12};
-  const lineas=[
-    ['SUELDO',num(empleado.sueldo),''],
-    ['EXT',num(empleado.extra),''],
-    ['TOTAL',num(empleado.total_ingreso),''],
-    ['IMSS',num(empleado.imss),'MENOS'],
-    ['ISR',num(empleado.impuestos),'MENOS'],
-    ['INFONAVIT',num(empleado.infonavit),'MENOS'],
-    ['',antesActa,''],
-    ['A CTA',num(empleado.acta),''],
-    ['FALTANTE',num(empleado.faltante),''],
-    ['',despuesActa,''],
-    ['DEPOSITO',deposito,''],
-    ['',sueldoTotal,'']
-  ];
-  lineas.forEach((x,i)=>{
-    const rr=row+1+i;
-    ws.getCell(rr,colLabel).value=x[0]||null;
-    ponerValor(ws,rr,colValue,x[1]);
-    if(x[2]) ws.getCell(rr,colValue+1).value=x[2];
-  });
-}
-async function llenarTicketsExcel(){
-  if(!rows.length){alert('Primero lee el PDF o agrega empleados a la nómina.');return;}
-  if(!window.ExcelJS){alert('No se cargó ExcelJS. Revisa tu internet y vuelve a abrir la página.');return;}
-  const file=document.getElementById('excelTicketFile').files[0];
-  if(!file){alert('Carga primero tu archivo Excel de tickets.');return;}
-  setStatus('Llenando Excel de tickets...');
-  rows.forEach(calcular);
-  const buffer=await file.arrayBuffer();
-  const workbook=new ExcelJS.Workbook();
-  await workbook.xlsx.load(buffer);
-  const ws=workbook.worksheets[0];
-  const posiciones=[];
-  const grupos=[{l:2,v:3},{l:6,v:7},{l:11,v:12},{l:15,v:16}];
-  for(let fila=1;fila<=220;fila+=14){grupos.forEach(g=>posiciones.push({row:fila,colLabel:g.l,colValue:g.v}));}
-  const orden=[...rows.filter(r=>r.area==='Carnicería'),...rows.filter(r=>r.area!=='Carnicería')];
-  posiciones.forEach(p=>limpiarTicket(ws,p.row,p.colLabel,p.colValue));
-  orden.forEach((empleado,i)=>{if(posiciones[i]) llenarTicket(ws,posiciones[i].row,posiciones[i].colLabel,posiciones[i].colValue,empleado);});
-  const out=await workbook.xlsx.writeBuffer();
-  const blob=new Blob([out],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  const fecha=new Date().toISOString().slice(0,10);
-  a.download=`tickets_nomina_vdc360_${fecha}.xlsx`;
-  a.click();
-  URL.revokeObjectURL(a.href);
-  setStatus('Excel de tickets generado');
-}
+
 function paqueteTicketsNomina(){
   rows.forEach(calcular);
   const orden=[...rows.filter(r=>r.area==='Carnicería'),...rows.filter(r=>r.area!=='Carnicería')];
   return orden.map(r=>{
     const sinDeposito=['BENJAMIN JR','VICTOR'].includes(r.nombre);
-    const sueldo=round(num(r.sueldo));
-    const ext=round(num(r.extra));
-    const total=round(num(r.total_ingreso));
-    const imss=round(num(r.imss));
-    const isr=round(num(r.impuestos));
-    const infonavit=round(num(r.infonavit));
-    const acta=round(num(r.acta));
-    const falta=round(num(r.faltante));
-    const neto=sinDeposito?round(num(r.subtotal)):round(num(r.subtotal));
-    const deposito=sinDeposito?0:round(num(r.deposito));
     return {
-      name: normalizarTicketNombre(r.nombre),
-      area: r.area||'General',
+      name:normalizarTicketNombre(r.nombre),
+      area:r.area||'General',
+      faltante_alerta:!!r.faltante_alerta,
+      dias_sueldo:num(r.dias_sueldo),
       values:{
-        SUELDO:sueldo,
-        EXT:ext,
-        TOTAL:total,
-        IMSS:imss,
-        ISR:isr,
-        INFONAVIT:infonavit,
-        'A CTA':acta,
-        FALTA:falta,
-        NETO:neto,
-        DEPOSITO:deposito
+        SUELDO:round(num(r.sueldo)),
+        EXT:round(num(r.extra)),
+        TOTAL:round(num(r.total_ingreso)),
+        IMSS:round(num(r.imss)),
+        ISR:round(num(r.impuestos)),
+        INFONAVIT:round(num(r.infonavit)),
+        'A CTA':round(num(r.acta)),
+        FALTA:round(num(r.faltante)),
+        NETO:round(num(r.subtotal)),
+        DEPOSITO:sinDeposito?0:round(num(r.deposito))
       }
     };
   });
 }
+
 function enviarATickets(){
   if(!rows.length){alert('Primero lee el PDF o agrega empleados a la nómina.');return;}
   const data={
@@ -359,12 +398,33 @@ function enviarATickets(){
     empleados:paqueteTicketsNomina()
   };
   localStorage.setItem('vdc360:nomina:tickets:data',JSON.stringify(data));
-  alert('Datos enviados a la página de tickets. Abre o actualiza la página VDC-NOMINA para imprimir.');
-  // Si tu página de tickets tiene otra ruta, cambia esta URL:
-  const urlTickets='https://marcianoper.github.io/Recibos-vdc/sueldos.html';
-  window.open(urlTickets,'_blank');
+  alert('Datos enviados a la página de tickets. Se abrirá la página para imprimir.');
+  window.open(URL_TICKETS,'_blank');
 }
-function limpiarTodo(){if(confirm('¿Limpiar tabla actual?')){rows=[];render();setStatus('Sin periodo detectado');}}
+
+function exportCSV(){
+  rows.forEach(calcular);
+  const headers=['No','Area','Nombre','Dias sueldo','Alerta faltante','Sueldo','Extra','Total ingreso','Prestamo ant','Prestamo sem','Saldo actual','Acta','Faltante','Infonavit','IMSS','Impuestos','Subtotal','Deposito','Sueldo total','Extra 2'];
+  const lines=[headers.join(',')];
+  const orden=[...rows.filter(r=>r.area==='Carnicería'),...rows.filter(r=>r.area!=='Carnicería')];
+  orden.forEach((r,i)=>lines.push([i+1,r.area,r.nombre,r.dias_sueldo,r.faltante_alerta?'SI':'NO',r.sueldo,r.extra,r.total_ingreso,r.prestamo_ant,r.prestamo_sem,r.saldo_actual,r.acta,r.faltante,r.infonavit,r.imss,r.impuestos,r.subtotal,r.deposito,r.sueldo_total,r.extra2].map(x=>`"${x}"`).join(',')));
+  const blob=new Blob([lines.join('\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='nomina_vdc360_por_area.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function limpiarTodo(){
+  if(confirm('¿Limpiar tabla actual?')){
+    rows=[];
+    periodo='';
+    render();
+    setStatus('Sin periodo detectado');
+  }
+}
+
 render();
 </script>
 </body>
