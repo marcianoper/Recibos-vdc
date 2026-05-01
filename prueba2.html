@@ -338,6 +338,7 @@
       <input id="pdfFile" type="file" accept="application/pdf" />
       <button class="btn" onclick="leerPDF()">Leer PDF</button>
       <button class="btn carn" onclick="enviarATickets()">Mandar a tickets</button>
+      <button class="btn warn" onclick="imprimirTodasNominas()">Imprimir todas</button>
     </div>
   </section>
 
@@ -398,6 +399,7 @@ const KEY_EXTRAS='vdc360:nomina:extrasConstantes:v1';
 const KEY_PREST='vdc360:nomina:prestamos:v1';
 const KEY_AREAS='vdc360:nomina:areas:v1';
 const URL_TICKETS='https://marcianoper.github.io/Recibos-vdc/sueldos.html';
+const PRINT_SERVER_URL='http://127.0.0.1:5050/imprimir-nomina';
 
 let periodo='';
 let rows=[];
@@ -877,6 +879,173 @@ function limpiarTodo(){
     setStatus('Sin periodo detectado');
   }
 }
+
+
+function escapeHTML(v){
+  return String(v ?? '')
+    .replaceAll('&','&amp;')
+    .replaceAll('<','&lt;')
+    .replaceAll('>','&gt;')
+    .replaceAll('"','&quot;')
+    .replaceAll("'","&#039;");
+}
+
+function ticketNominaHTML(emp){
+  const v=emp.values||{};
+
+  return `
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @page{
+    size:80mm auto;
+    margin:0;
+  }
+
+  *{box-sizing:border-box}
+
+  body{
+    margin:0;
+    padding:0;
+    width:80mm;
+    font-family:Arial, sans-serif;
+    font-size:12px;
+    color:#000;
+    background:#fff;
+  }
+
+  .ticket{
+    width:80mm;
+    padding:8px 10px;
+  }
+
+  .center{text-align:center}
+  .bold{font-weight:900}
+  .small{font-size:10px}
+  .line{
+    border-top:1px dashed #000;
+    margin:7px 0;
+  }
+
+  .row{
+    display:flex;
+    justify-content:space-between;
+    gap:8px;
+    margin:3px 0;
+  }
+
+  .big{
+    font-size:15px;
+    font-weight:900;
+  }
+
+  .alerta{
+    margin-top:8px;
+    padding:5px;
+    border:1px solid #000;
+    text-align:center;
+    font-weight:900;
+  }
+
+  .firma{
+    margin-top:12px;
+    text-align:center;
+  }
+</style>
+</head>
+
+<body>
+  <div class="ticket">
+    <div class="center bold">CARNES Y VÍSCERAS DEL CENTRO</div>
+    <div class="center">RECIBO DE NÓMINA</div>
+
+    <div class="line"></div>
+
+    <div class="bold">${escapeHTML(emp.name)}</div>
+    <div>Área: ${escapeHTML(emp.area||'General')}</div>
+    <div>Periodo: ${escapeHTML(periodo||'')}</div>
+    <div>Días sueldo: ${Number(emp.dias_sueldo||0).toFixed(2)}</div>
+
+    <div class="line"></div>
+
+    <div class="row"><span>Sueldo</span><b>${money(v.SUELDO)}</b></div>
+    <div class="row"><span>Extra</span><b>${money(v.EXT)}</b></div>
+    <div class="row"><span>Total ingreso</span><b>${money(v.TOTAL)}</b></div>
+
+    <div class="line"></div>
+
+    <div class="row"><span>IMSS</span><b>${money(v.IMSS)}</b></div>
+    <div class="row"><span>ISR/Ajuste</span><b>${money(v.ISR)}</b></div>
+    <div class="row"><span>Infonavit</span><b>${money(v.INFONAVIT)}</b></div>
+    <div class="row"><span>A CTA</span><b>${money(v['A CTA'])}</b></div>
+    <div class="row"><span>Faltante</span><b>${money(v.FALTA)}</b></div>
+
+    <div class="line"></div>
+
+    <div class="row big"><span>Neto</span><b>${money(v.NETO)}</b></div>
+    <div class="row"><span>Depósito</span><b>${money(v.DEPOSITO)}</b></div>
+
+    ${emp.faltante_alerta?'<div class="alerta">REVISAR FALTANTE</div>':''}
+
+    <div class="line"></div>
+    <div class="firma">Firma: __________________</div>
+    <br>
+    <div class="center small">Gracias</div>
+  </div>
+</body>
+</html>`;
+}
+
+async function imprimirTodasNominas(){
+  if(!rows.length){
+    alert('Primero lee el PDF de nómina.');
+    return;
+  }
+
+  if(!confirm('¿Imprimir todas las nóminas desde esta página?')){
+    return;
+  }
+
+  rows.forEach(calcular);
+  const empleados=paqueteTicketsNomina();
+
+  try{
+    setStatus('Imprimiendo nóminas...');
+
+    for(const emp of empleados){
+      const html=ticketNominaHTML(emp);
+
+      const res=await fetch(PRINT_SERVER_URL,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({html})
+      });
+
+      const data=await res.json().catch(()=>({}));
+
+      if(!res.ok || data.ok===false){
+        throw new Error(data.error || 'Error imprimiendo '+emp.name);
+      }
+
+      await new Promise(resolve=>setTimeout(resolve,350));
+    }
+
+    setStatus('Nóminas impresas correctamente');
+    alert('Listo. Todas las nóminas fueron enviadas a impresión.');
+
+  }catch(err){
+    console.error(err);
+    setStatus('Error de impresión');
+    alert(
+      'No se pudo imprimir.\n\nRevisa que tu servidor Python esté abierto en:\n' +
+      PRINT_SERVER_URL +
+      '\n\nDetalle: ' + err.message
+    );
+  }
+}
+
 
 render();
 </script>
