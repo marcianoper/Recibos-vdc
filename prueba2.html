@@ -3,12 +3,15 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>VDC360° — Nómina automática desde PDF</title>
+  <title>VDC360° — Nómina automática LIVE desde PDF</title>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>
     if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
   </script>
+
+  <!-- SUPABASE LIVE -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
     :root{
@@ -99,6 +102,7 @@
     .btn.danger{background:var(--bad)}
     .btn.warn{background:#b45309}
     .btn.carn{background:#6d28d9}
+    .btn.live{background:#0ea5e9}
 
     input,select,textarea{
       border:1px solid #cbd5e1;
@@ -124,6 +128,8 @@
 
     .pill.carn{background:var(--carnbg);color:#4c1d95}
     .pill.bad{background:#fee2e2;color:#991b1b}
+    .pill.live{background:#e0f2fe;color:#075985}
+    .pill.ready{background:#dcfce7;color:#166534}
 
     .grid{
       display:grid;
@@ -163,6 +169,7 @@
 
     .kpi.carn{background:var(--carnbg);border-color:#ddd6fe}
     .kpi.bad{background:#fff1f2;border-color:#fecdd3}
+    .kpi.live{background:#f0f9ff;border-color:#bae6fd}
 
     .tableBox{
       overflow:auto;
@@ -294,6 +301,22 @@
 
     .sectionTitle.carn{background:var(--carnbg);color:#4c1d95}
 
+    .liveBox{
+      background:#f0f9ff;
+      border:1px solid #bae6fd;
+      color:#075985;
+      border-radius:16px;
+      padding:12px 14px;
+      margin-bottom:16px;
+      display:grid;
+      grid-template-columns:1fr auto;
+      gap:12px;
+      align-items:center;
+    }
+
+    .liveBox strong{display:block}
+    .liveBox p{margin:3px 0 0;font-size:13px;color:#0369a1}
+
     @media(max-width:1000px){
       .hero{grid-template-columns:1fr}
       .accionesPrincipales{justify-content:flex-start}
@@ -310,36 +333,50 @@
       input[type=file]{max-width:100%;width:100%}
       .btn{width:100%}
       .accionesPrincipales{width:100%}
-      .infoBar{grid-template-columns:1fr}
+      .infoBar,.liveBox{grid-template-columns:1fr}
     }
   </style>
 </head>
 
 <body>
 <header>
-  <h1>VDC360° — Nómina automática desde PDF</h1>
-  <div class="sub">Carga la Lista de Raya de CONTPAQi, revisa faltantes y manda datos a la página de tickets.</div>
+  <h1>VDC360° — Nómina automática LIVE desde PDF</h1>
+  <div class="sub">Carga la Lista de Raya de CONTPAQi, revisa faltantes y sincroniza cambios en tiempo real.</div>
 </header>
 
 <main class="wrap">
 
   <section class="card hero">
     <div>
-      <h2>Nómina semanal</h2>
+      <h2>Nómina semanal en vivo</h2>
       <p>
-        Sube el PDF, revisa empleados con faltantes y manda la información directo a la página de tickets.
+        Oficina puede cargar el PDF y ajustar extras/faltantes. En otro equipo se ven los cambios en tiempo real para imprimir tickets.
       </p>
-      <div style="margin-top:10px">
+      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
         <span id="status" class="pill">Sin periodo detectado</span>
+        <span id="liveStatus" class="pill live">Live sin iniciar</span>
+        <span id="readyStatus" class="pill">No lista</span>
       </div>
     </div>
 
     <div class="accionesPrincipales">
       <input id="pdfFile" type="file" accept="application/pdf" />
       <button class="btn" onclick="leerPDF()">Leer PDF</button>
+      <button class="btn live" onclick="guardarNominaLive()">Guardar live</button>
+      <button class="btn carn" onclick="marcarListaParaImprimir()">Lista para imprimir</button>
       <button class="btn carn" onclick="enviarATickets()">Mandar a tickets</button>
       <button class="btn warn" onclick="imprimirTodasNominas()">Imprimir todas</button>
     </div>
+  </section>
+
+  <section class="liveBox">
+    <div>
+      <strong>Modo live Supabase</strong>
+      <p>
+        Todos los cambios se guardan en la tabla <b>nomina_live</b>. Abre esta misma página en oficina y en tu equipo para ver la misma nómina.
+      </p>
+    </div>
+    <button class="btn secondary" onclick="cargarNominaLive()">Recargar live</button>
   </section>
 
   <section class="grid">
@@ -395,6 +432,29 @@
 </main>
 
 <script>
+/* ======================================================
+   CONFIGURACIÓN SUPABASE
+   IMPORTANTE:
+   Cambia estas 2 variables por las de tu proyecto.
+   En Supabase: Project Settings > API.
+====================================================== */
+
+const SUPABASE_URL = 'TU_URL_SUPABASE';
+const SUPABASE_ANON_KEY = 'TU_ANON_KEY';
+
+let sb = null;
+try{
+  if(SUPABASE_URL !== 'TU_URL_SUPABASE' && SUPABASE_ANON_KEY !== 'TU_ANON_KEY'){
+    sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  }
+}catch(e){
+  console.warn('Supabase no configurado', e);
+}
+
+/* ======================================================
+   VARIABLES BASE
+====================================================== */
+
 const KEY_EXTRAS='vdc360:nomina:extrasConstantes:v1';
 const KEY_PREST='vdc360:nomina:prestamos:v1';
 const KEY_AREAS='vdc360:nomina:areas:v1';
@@ -403,6 +463,11 @@ const PRINT_SERVER_URL='http://127.0.0.1:5050/imprimir-nomina';
 
 let periodo='';
 let rows=[];
+let NOMINA_SEMANA_ID='';
+let guardandoLive=false;
+let aplicandoCambioRemoto=false;
+let liveChannel=null;
+let listoParaImprimir=false;
 
 const CARNICERIA_NOMBRES=['PAULA PEREZ','CARLOS REYES','HERIBERTO','JORGE MARTINEZ','GUSTAVO ANGEL'];
 
@@ -437,6 +502,12 @@ function normalizeName(n){return (n||'').normalize('NFD').replace(/[\u0300-\u036
 function constKey(r){return r.empleado_id || r.nombre;}
 function pickConst(map,id,name){return (id && map[id]!==undefined)?map[id]:(map[name]!==undefined?map[name]:undefined);}
 function setStatus(t){document.getElementById('status').textContent=t;}
+function setLiveStatus(t){document.getElementById('liveStatus').textContent=t;}
+function setReadyStatus(t, ready=false){
+  const el=document.getElementById('readyStatus');
+  el.textContent=t;
+  el.className=ready?'pill ready':'pill';
+}
 
 function nombreCorto(n, empleadoId=''){
   if(empleadoId && ID_MAP[empleadoId]) return ID_MAP[empleadoId];
@@ -463,6 +534,206 @@ function detectarArea(id,nombre){
   return CARNICERIA_NOMBRES.includes(normalizeName(nombre))?'Carnicería':'General';
 }
 
+/* ======================================================
+   LIVE SUPABASE
+====================================================== */
+
+function semanaActualKey(){
+  const d = new Date();
+  const year = d.getFullYear();
+  const oneJan = new Date(year,0,1);
+  const week = Math.ceil((((d - oneJan) / 86400000) + oneJan.getDay()+1) / 7);
+  return `${year}-SEM-${String(week).padStart(2,'0')}`;
+}
+
+function paqueteNominaLive(){
+  rows.forEach(calcular);
+  return {
+    periodo,
+    rows,
+    updated_at:new Date().toISOString()
+  };
+}
+
+async function guardarNominaLive(){
+  if(!sb){
+    setLiveStatus('Supabase no configurado');
+    alert('Primero coloca SUPABASE_URL y SUPABASE_ANON_KEY dentro del HTML.');
+    return;
+  }
+
+  if(guardandoLive || aplicandoCambioRemoto) return;
+
+  if(!rows.length){
+    setLiveStatus('No hay datos para guardar');
+    return;
+  }
+
+  guardandoLive=true;
+
+  try{
+    const semana=NOMINA_SEMANA_ID || semanaActualKey();
+    NOMINA_SEMANA_ID=semana;
+
+    const payload={
+      semana,
+      periodo:periodo||'',
+      data:paqueteNominaLive(),
+      listo_para_imprimir:listoParaImprimir,
+      updated_at:new Date().toISOString()
+    };
+
+    const {error}=await sb
+      .from('nomina_live')
+      .upsert(payload,{onConflict:'semana'});
+
+    if(error) throw error;
+
+    setLiveStatus('Guardado live · '+new Date().toLocaleTimeString('es-MX'));
+  }catch(err){
+    console.error(err);
+    setLiveStatus('Error guardando live');
+  }finally{
+    guardandoLive=false;
+  }
+}
+
+async function cargarNominaLive(){
+  if(!sb){
+    setLiveStatus('Supabase no configurado');
+    return;
+  }
+
+  const semana=NOMINA_SEMANA_ID || semanaActualKey();
+  NOMINA_SEMANA_ID=semana;
+
+  try{
+    const {data,error}=await sb
+      .from('nomina_live')
+      .select('*')
+      .eq('semana',semana)
+      .maybeSingle();
+
+    if(error) throw error;
+
+    if(data?.data?.rows){
+      aplicandoCambioRemoto=true;
+
+      periodo=data.data.periodo || data.periodo || '';
+      rows=data.data.rows || [];
+      listoParaImprimir=!!data.listo_para_imprimir;
+
+      render();
+
+      setLiveStatus('Nómina live cargada');
+      setReadyStatus(listoParaImprimir?'Lista para imprimir':'No lista', listoParaImprimir);
+
+      aplicandoCambioRemoto=false;
+    }else{
+      setLiveStatus('Sin nómina live esta semana');
+    }
+  }catch(err){
+    console.error(err);
+    setLiveStatus('Error cargando live');
+    aplicandoCambioRemoto=false;
+  }
+}
+
+function escucharNominaLive(){
+  if(!sb){
+    setLiveStatus('Supabase no configurado');
+    return;
+  }
+
+  const semana=NOMINA_SEMANA_ID || semanaActualKey();
+  NOMINA_SEMANA_ID=semana;
+
+  if(liveChannel){
+    sb.removeChannel(liveChannel);
+    liveChannel=null;
+  }
+
+  liveChannel=sb.channel('nomina-live-'+semana)
+    .on(
+      'postgres_changes',
+      {
+        event:'*',
+        schema:'public',
+        table:'nomina_live',
+        filter:`semana=eq.${semana}`
+      },
+      payload=>{
+        const nueva=payload.new;
+        if(!nueva?.data?.rows) return;
+
+        aplicandoCambioRemoto=true;
+
+        periodo=nueva.data.periodo || nueva.periodo || '';
+        rows=nueva.data.rows || [];
+        listoParaImprimir=!!nueva.listo_para_imprimir;
+
+        render();
+
+        setLiveStatus('Actualizado desde oficina · '+new Date().toLocaleTimeString('es-MX'));
+        setReadyStatus(listoParaImprimir?'Lista para imprimir':'No lista', listoParaImprimir);
+
+        aplicandoCambioRemoto=false;
+      }
+    )
+    .subscribe((status)=>{
+      if(status==='SUBSCRIBED'){
+        setLiveStatus('Live conectado');
+      }else{
+        setLiveStatus('Live: '+status);
+      }
+    });
+}
+
+async function marcarListaParaImprimir(){
+  if(!sb){
+    alert('Supabase no está configurado.');
+    return;
+  }
+
+  if(!rows.length){
+    alert('No hay nómina cargada.');
+    return;
+  }
+
+  const semana=NOMINA_SEMANA_ID || semanaActualKey();
+  NOMINA_SEMANA_ID=semana;
+
+  try{
+    rows.forEach(calcular);
+
+    const payload={
+      semana,
+      periodo:periodo||'',
+      data:paqueteNominaLive(),
+      listo_para_imprimir:true,
+      updated_at:new Date().toISOString()
+    };
+
+    const {error}=await sb
+      .from('nomina_live')
+      .upsert(payload,{onConflict:'semana'});
+
+    if(error) throw error;
+
+    listoParaImprimir=true;
+    setReadyStatus('Lista para imprimir',true);
+    setLiveStatus('Marcada lista para imprimir');
+    alert('Nómina marcada como lista para imprimir.');
+  }catch(err){
+    console.error(err);
+    alert('Error al marcar lista: '+err.message);
+  }
+}
+
+/* ======================================================
+   LECTURA PDF
+====================================================== */
+
 async function leerPDF(){
   const file=document.getElementById('pdfFile').files[0];
   if(!file){alert('Carga primero el PDF de nómina.');return;}
@@ -480,8 +751,11 @@ async function leerPDF(){
   }
 
   procesarTexto(text);
+  listoParaImprimir=false;
   render();
   setStatus('PDF leído correctamente');
+  setReadyStatus('No lista',false);
+  guardarNominaLive();
 }
 
 function procesarTexto(text){
@@ -533,6 +807,10 @@ function procesarTexto(text){
     });
   }
 }
+
+/* ======================================================
+   TABLA Y CÁLCULOS
+====================================================== */
 
 function calcular(r){
   r.total_ingreso=round(num(r.sueldo)+num(r.extra));
@@ -615,7 +893,7 @@ function crearTablaArea(titulo, items, esCarniceria){
           <option ${r.area==='Carnicería'?'selected':''}>Carnicería</option>
         </select>
       </td>
-      <td class="name"><input value="${r.nombre}" onchange="edit(${i},'nombre',this.value)"></td>
+      <td class="name"><input value="${escapeHTML(r.nombre)}" onchange="edit(${i},'nombre',this.value)"></td>
       <td class="${r.faltante_alerta?'badTxt':'money'}" title="${r.faltante_alerta?'Trabajó menos de 6 días según PDF':''}">${r.dias_sueldo?Number(r.dias_sueldo).toFixed(2):'—'}</td>
       ${inp(i,'sueldo',r.sueldo)}
       ${inp(i,'extra',r.extra)}
@@ -652,13 +930,23 @@ function inp(i,k,v){
 
 function edit(i,k,v){
   rows[i][k]=(k==='nombre'||k==='area')?v:num(v);
-  if(k==='nombre' && CARNICERIA_NOMBRES.includes(normalizeName(v))) rows[i].area='Carnicería';
+
+  if(k==='nombre' && CARNICERIA_NOMBRES.includes(normalizeName(v))){
+    rows[i].area='Carnicería';
+  }
+
+  listoParaImprimir=false;
   render();
+  setReadyStatus('No lista',false);
+  guardarNominaLive();
 }
 
 function borrar(i){
   rows.splice(i,1);
+  listoParaImprimir=false;
   render();
+  setReadyStatus('No lista',false);
+  guardarNominaLive();
 }
 
 function agregarEmpleado(){
@@ -680,7 +968,10 @@ function agregarEmpleado(){
     deposito:0,
     extra2:0
   });
+  listoParaImprimir=false;
   render();
+  setReadyStatus('No lista',false);
+  guardarNominaLive();
 }
 
 function totales(){
@@ -729,6 +1020,7 @@ function guardarConstantes(){
   localStorage.setItem(KEY_PREST,JSON.stringify(p));
   localStorage.setItem(KEY_AREAS,JSON.stringify(a));
 
+  guardarNominaLive();
   alert('Constantes y áreas guardadas en este navegador.');
 }
 
@@ -765,9 +1057,16 @@ function pasarPrestamosSiguienteSemana(){
     if(num(r.saldo_actual)<=0) r.acta=0;
   });
 
+  listoParaImprimir=false;
   render();
+  setReadyStatus('No lista',false);
+  guardarNominaLive();
   alert('Listo. Los préstamos quedaron preparados para la siguiente semana.');
 }
+
+/* ======================================================
+   TICKETS
+====================================================== */
 
 function normalizarTicketNombre(nombre){
   const n=normalizeName(nombre);
@@ -875,11 +1174,13 @@ function limpiarTodo(){
   if(confirm('¿Limpiar tabla actual?')){
     rows=[];
     periodo='';
+    listoParaImprimir=false;
     render();
     setStatus('Sin periodo detectado');
+    setReadyStatus('No lista',false);
+    guardarNominaLive();
   }
 }
-
 
 function escapeHTML(v){
   return String(v ?? '')
@@ -1004,6 +1305,11 @@ async function imprimirTodasNominas(){
     return;
   }
 
+  if(!listoParaImprimir){
+    const seguir=confirm('La nómina todavía NO está marcada como lista para imprimir. ¿Deseas imprimir de todos modos?');
+    if(!seguir) return;
+  }
+
   if(!confirm('¿Imprimir todas las nóminas desde esta página?')){
     return;
   }
@@ -1046,8 +1352,22 @@ async function imprimirTodasNominas(){
   }
 }
 
+/* ======================================================
+   INICIO
+====================================================== */
 
 render();
+
+if(sb){
+  cargarNominaLive();
+  escucharNominaLive();
+}else{
+  setLiveStatus('Configura Supabase');
+}
 </script>
 </body>
-</html>
+</html>'''
+path = '/mnt/data/nomina_vdc360_live.html'
+with open(path, 'w', encoding='utf-8') as f:
+    f.write(html)
+path
