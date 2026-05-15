@@ -813,7 +813,7 @@ function procesarTexto(text){
   const blocks=text.split(/\s*-{10,}\s*/).filter(b=>/Total Percepciones|Neto a pagar/.test(b));
 
   for(const b of blocks){
-    const head=b.match(/(?:^|\s)(\d{3})\s+([A-ZÁÉÍÓÚÑ\s]+?)\s+(?:EMPLEADO|CHOFER|CAJERO|VIGILANTE|RFC:)/i);
+    const head=b.match(/(?:^|\s)(\d{3})\s+([A-ZÁÉÍÓÚÑ\s]+?)(?=\s+RFC:|\s+CURP:|\s+NSS:|\s+Total|\s+Puesto)/i);
     if(!head) continue;
 
     const empleadoId=head[1];
