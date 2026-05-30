@@ -417,20 +417,134 @@
     st.innerHTML = `@page{ size:${pageWidth} ${pageHeight}; margin:0; }`;
   }
 
-  const CONCEPTS = ["SUELDO","EXT","TOTAL","IMSS","ISR","INFONAVIT","A CTA","FALTA","NETO","DEPOSITO"];
+  const CONCEPTS = ["SUELDO","EXT","TOTAL","TOTAL DEDUCCIONES","IMSS","ISR","INFONAVIT","A CTA","FALTA","NETO","DEPOSITO"];
+
+  const DEDUCCION_LABELS = [
+    "TOTAL DEDUCCIONES",
+    "SUBS AL EMPLEO ACREDITADO",
+    "ISR ANTES DE SUBS AL EMPLEO",
+    "ISR",
+    "IMSS",
+    "AJUSTE AL NETO",
+    "PRESTAMO INFONAVIT",
+    "INFONAVIT CF CORRESPONDIENTE",
+    "ISR A COMPENSAR",
+    "ISR DE AJUSTE MENSUAL",
+    "ISR AJUSTADO POR SUBSIDIO",
+    "AJUSTE AL SUBSIDIO CAUSADO"
+  ];
 
   const CONCEPT_ALIASES = new Map([
     ["DEPÓSITO","DEPOSITO"],["DEPOSITO ","DEPOSITO"],["A_CTA","A CTA"],["ACTA","A CTA"],
+    ["A CUENTA","A CTA"],["A CTA.","A CTA"],
     ["FALTA 1 DIA","FALTA"],["FALTA 2 DIAS","FALTA"],["FALTA 3 DIAS","FALTA"],
     ["FALTA 1 DÍA","FALTA"],["FALTA 2 DÍAS","FALTA"],["FALTA 3 DÍAS","FALTA"],
-    ["FALTA DIA","FALTA"],["FALTADIA","FALTA"],["FALTA","FALTA"]
+    ["FALTA DIA","FALTA"],["FALTADIA","FALTA"],["FALTA","FALTA"],
+    ["TOTAL DEDUCCIONES","TOTAL DEDUCCIONES"],["TOTAL DEDUCCION","TOTAL DEDUCCIONES"],
+    ["TOTAL DEDUCCIÓN","TOTAL DEDUCCIONES"],["DEDUCCIONES","TOTAL DEDUCCIONES"],
+    ["TOTAL DED","TOTAL DEDUCCIONES"],["TOTAL DEDS","TOTAL DEDUCCIONES"],
+    ["I.S.R. (MES)","ISR"],["I.S.R.","ISR"],["ISR MES","ISR"],["MENOS ISR","ISR"],
+    ["I.M.S.S.","IMSS"],["MENOS IMSS","IMSS"],
+    ["INFONAVIT CF CORRESPONDIENTE","INFONAVIT"],["PRESTAMO INFONAVIT","INFONAVIT"],["PRÉSTAMO INFONAVIT","INFONAVIT"],["MENOS INFONAVIT","INFONAVIT"]
   ]);
 
   function normConcept(s){
-    const u = upper(s);
+    const u = upper(s)
+      .replace(/\./g,".")
+      .replace(/\s+/g," ")
+      .trim();
+
     if(CONCEPT_ALIASES.has(u)) return CONCEPT_ALIASES.get(u);
     if(/^FALTA\b/.test(u)) return "FALTA";
+    if(/TOTAL\s+DEDUCC/.test(u)) return "TOTAL DEDUCCIONES";
+    if(/I\.S\.R|\bISR\b/.test(u)) return "ISR";
+    if(/I\.M\.S\.S|\bIMSS\b/.test(u)) return "IMSS";
+    if(/INFONAVIT/.test(u)) return "INFONAVIT";
+
     return u;
+  }
+
+  function getVal(values, keys, fallback=0){
+    values = values || {};
+    for(const k of keys){
+      if(values[k] !== undefined && values[k] !== null && values[k] !== ""){
+        const n = Number(values[k]);
+        return isFinite(n) ? n : fallback;
+      }
+    }
+    return fallback;
+  }
+
+  function getDeduccionesDetalle(worker){
+    const v = worker?.values || {};
+    let detalle = worker?.deducciones || worker?.deducciones_detalle || v.DEDUCCIONES_DETALLE || v.deducciones_detalle || v.deducciones || [];
+
+    if(typeof detalle === "string"){
+      try{ detalle = JSON.parse(detalle); }catch(e){ detalle = []; }
+    }
+
+    if(!Array.isArray(detalle)) detalle = [];
+
+    return detalle.map(d=>{
+      if(Array.isArray(d)){
+        return {
+          codigo: clean(d[0] || ""),
+          concepto: clean(d[1] || "Deducción"),
+          valor: d.length > 3 ? d[2] : "",
+          importe: Number(d.length > 3 ? d[3] : d[2]) || 0
+        };
+      }
+
+      return {
+        codigo: clean(d.codigo || d.code || ""),
+        concepto: clean(d.concepto || d.nombre || d.name || d.descripcion || "Deducción"),
+        valor: clean(d.valor || d.value || ""),
+        importe: Number(d.importe ?? d.monto ?? d.amount ?? 0) || 0
+      };
+    }).filter(d=>d.concepto || d.importe);
+  }
+
+  function totalDeduccionesPDF(worker){
+    const v = worker?.values || {};
+    const directo = getVal(v, ["TOTAL DEDUCCIONES","TOTAL_DEDUCCIONES","total_deducciones","DEDUCCIONES","DEDUCCION_TOTAL"], null);
+    if(directo !== null) return round2(directo);
+
+    const detalle = getDeduccionesDetalle(worker);
+    if(detalle.length){
+      return round2(detalle.reduce((a,d)=>a + Number(d.importe || 0), 0));
+    }
+
+    return round2(
+      getVal(v, ["IMSS"], 0) +
+      getVal(v, ["ISR"], 0) +
+      getVal(v, ["INFONAVIT"], 0)
+    );
+  }
+
+  function hydrateWorkerValues(worker){
+    worker = worker || {};
+    worker.values = worker.values || {};
+    const v = worker.values;
+
+    if(v["TOTAL DEDUCCIONES"] === undefined){
+      v["TOTAL DEDUCCIONES"] = totalDeduccionesPDF(worker);
+    }
+
+    const sueldo = getVal(v, ["SUELDO"], 0);
+    const ext = getVal(v, ["EXT"], 0);
+    if(v["TOTAL"] === undefined || !isFinite(Number(v["TOTAL"]))){
+      v["TOTAL"] = round2(sueldo + ext);
+    }
+
+    const acta = getVal(v, ["A CTA"], 0);
+    const falta = getVal(v, ["FALTA"], 0);
+    const netoCalc = round2(getVal(v, ["TOTAL"], 0) - getVal(v, ["TOTAL DEDUCCIONES"], 0) - acta - falta);
+
+    if(v["NETO"] === undefined || !isFinite(Number(v["NETO"]))){
+      v["NETO"] = netoCalc;
+    }
+
+    return worker;
   }
 
   let wb = null, aoa = null, sheetName = null;
@@ -449,13 +563,29 @@
       return;
     }
 
+    hydrateWorkerValues(currentWorker);
     $("#currentName").textContent = currentWorker.name;
 
     for(const k of CONCEPTS){
       const v = currentWorker.values?.[k];
       const li = document.createElement("li");
-      li.innerHTML = `<b>${k}</b><span class="v">$${v==null ? "—" : money(v)}</span>`;
+      const etiqueta = k === "TOTAL DEDUCCIONES" ? "TOTAL DEDUCCIONES PDF" : k;
+      li.innerHTML = `<b>${etiqueta}</b><span class="v">$${v==null ? "—" : money(v)}</span>`;
       ul.appendChild(li);
+    }
+
+    const detalle = getDeduccionesDetalle(currentWorker);
+    if(detalle.length){
+      const head = document.createElement("li");
+      head.innerHTML = `<b>DESGLOSE PDF</b><span class="v">${detalle.length} conceptos</span>`;
+      ul.appendChild(head);
+
+      detalle.forEach(d=>{
+        const li = document.createElement("li");
+        const concepto = `${d.codigo ? d.codigo + " " : ""}${d.concepto}`;
+        li.innerHTML = `<b style="font-size:11px">${concepto}</b><span class="v">$${money(d.importe)}</span>`;
+        ul.appendChild(li);
+      });
     }
   }
 
@@ -473,34 +603,55 @@
       return;
     }
 
+    hydrateWorkerValues(currentWorker);
     $("#tNombre").textContent = currentWorker.name;
 
     const V = currentWorker.values || {};
-    const sueldo = isFinite(Number(V["SUELDO"])) ? Number(V["SUELDO"]) : 0;
-    const ext    = isFinite(Number(V["EXT"])) ? Number(V["EXT"]) : 0;
-    const total  = isFinite(Number(V["TOTAL"])) ? Number(V["TOTAL"]) : round2(sueldo + ext);
-    const imss   = isFinite(Number(V["IMSS"])) ? Number(V["IMSS"]) : 0;
-    const isr    = isFinite(Number(V["ISR"])) ? Number(V["ISR"]) : 0;
-    const info   = isFinite(Number(V["INFONAVIT"])) ? Number(V["INFONAVIT"]) : 0;
-    const acta   = isFinite(Number(V["A CTA"])) ? Number(V["A CTA"]) : 0;
-    const falta  = isFinite(Number(V["FALTA"])) ? Number(V["FALTA"]) : 0;
+    const sueldo = getVal(V, ["SUELDO"], 0);
+    const ext    = getVal(V, ["EXT"], 0);
+    const total  = getVal(V, ["TOTAL"], round2(sueldo + ext));
+    const totalDeducciones = totalDeduccionesPDF(currentWorker);
+    const acta   = getVal(V, ["A CTA"], 0);
+    const falta  = getVal(V, ["FALTA"], 0);
 
-    const netoCalculado = round2(total - imss - isr - info - acta - falta);
+    const netoCalculado = round2(total - totalDeducciones - acta - falta);
     const neto = isFinite(Number(V["NETO"])) ? round2(Number(V["NETO"])) : netoCalculado;
-    const depo = isFinite(Number(V["DEPOSITO"])) ? round2(Number(V["DEPOSITO"])) : 0;
+    const depo = getVal(V, ["DEPOSITO"], 0);
     const efectivo = round2(neto - depo);
+
+    const detalle = getDeduccionesDetalle(currentWorker);
 
     const rows = [];
     rows.push(`<div class="r"><strong>SUELDO</strong><strong>$${money(sueldo)}</strong></div>`);
     rows.push(`<div class="r"><strong>EXT</strong><strong>$${money(ext)}</strong></div>`);
-    rows.push(`<div class="r"><strong>TOTAL</strong><strong>$${money(total)}</strong></div>`);
+    rows.push(`<div class="r"><strong>TOTAL INGRESO</strong><strong>$${money(total)}</strong></div>`);
 
     rows.push(`<div class="line"></div>`);
-    rows.push(`<div class="r"><strong>MENOS IMSS</strong><strong>$${money(imss)}</strong></div>`);
-    rows.push(`<div class="r"><strong>MENOS ISR</strong><strong>$${money(isr)}</strong></div>`);
-    rows.push(`<div class="r"><strong>MENOS INFONAVIT</strong><strong>$${money(info)}</strong></div>`);
-    if(acta){rows.push(`<div class="r"><strong>A CTA</strong><strong>$${money(acta)}</strong></div>`);}
-    if(falta){rows.push(`<div class="r"><strong>FALTA</strong><strong>$${money(falta)}</strong></div>`);}
+    rows.push(`<div class="r"><strong>DEDUCCIONES PDF</strong><strong>$${money(totalDeducciones)}</strong></div>`);
+
+    if(detalle.length){
+      rows.push(`<div class="mini" style="margin-top:4px"><b>Desglose del documento:</b></div>`);
+      detalle.forEach(d=>{
+        const concepto = `${d.codigo ? d.codigo + " " : ""}${d.concepto}`;
+        rows.push(`<div class="r mini"><span>${concepto}</span><span>$${money(d.importe)}</span></div>`);
+      });
+    }else{
+      const imss = getVal(V, ["IMSS"], 0);
+      const isr  = getVal(V, ["ISR"], 0);
+      const info = getVal(V, ["INFONAVIT"], 0);
+      if(imss || isr || info){
+        rows.push(`<div class="r mini"><span>IMSS mostrado</span><span>$${money(imss)}</span></div>`);
+        rows.push(`<div class="r mini"><span>ISR mostrado</span><span>$${money(isr)}</span></div>`);
+        rows.push(`<div class="r mini"><span>Infonavit mostrado</span><span>$${money(info)}</span></div>`);
+      }
+    }
+
+    if(acta || falta){
+      rows.push(`<div class="line"></div>`);
+      rows.push(`<div class="mini"><b>Descuentos internos:</b></div>`);
+      if(acta){rows.push(`<div class="r"><strong>A CTA</strong><strong>$${money(acta)}</strong></div>`);}
+      if(falta){rows.push(`<div class="r"><strong>FALTA</strong><strong>$${money(falta)}</strong></div>`);}
+    }
 
     rows.push(`<div class="line"></div>`);
     rows.push(`<div class="r"><strong class="big">TOTAL A PAGAR</strong><strong class="big">$${money(neto)}</strong></div>`);
@@ -529,6 +680,7 @@
       const btn = document.createElement("button");
       btn.className = "workerBtn" + (currentWorker===w ? " active" : "");
       btn.type = "button";
+      hydrateWorkerValues(w);
       btn.innerHTML = `<span>${i+1}. ${w.name}<small>${w.area || 'General'}</small></span><span class="moneyMini">$${money(w.values?.NETO || 0)}</span>`;
       btn.addEventListener("click",()=>{
         currentWorker = w;
@@ -550,7 +702,10 @@
       return;
     }
 
-    const rows = empleados.map((e,i)=>`
+    const rows = empleados.map((e,i)=>{
+      hydrateWorkerValues(e);
+      const detalle = getDeduccionesDetalle(e);
+      return `
       <tr>
         <td>${i+1}</td>
         <td>${e.area || 'General'}</td>
@@ -558,22 +713,21 @@
         <td>$${money(e.values?.SUELDO || 0)}</td>
         <td>$${money(e.values?.EXT || 0)}</td>
         <td>$${money(e.values?.TOTAL || 0)}</td>
-        <td>$${money(e.values?.IMSS || 0)}</td>
-        <td>$${money(e.values?.ISR || 0)}</td>
-        <td>$${money(e.values?.INFONAVIT || 0)}</td>
+        <td>$${money(e.values?.["TOTAL DEDUCCIONES"] || totalDeduccionesPDF(e))}</td>
+        <td>${detalle.length ? detalle.map(d=>`${d.codigo ? d.codigo + ' ' : ''}${d.concepto}: $${money(d.importe)}`).join('<br>') : '—'}</td>
         <td>$${money(e.values?.['A CTA'] || 0)}</td>
         <td>$${money(e.values?.FALTA || 0)}</td>
         <td>$${money(e.values?.NETO || 0)}</td>
         <td>$${money(e.values?.DEPOSITO || 0)}</td>
-      </tr>
-    `).join("");
+      </tr>`;
+    }).join("");
 
     wrap.innerHTML = `
       <div style="padding:12px">
         <div class="hint" style="margin:0 0 10px"><b>Datos recibidos desde nómina</b> · ${empleados.length} empleados · ${data.periodo || ''}</div>
         <div class="excelWrap" style="max-height:75vh">
           <table class="excel" style="width:100%;min-width:980px">
-            <thead><tr><th>#</th><th>Área</th><th>Empleado</th><th>Sueldo</th><th>Ext</th><th>Total</th><th>IMSS</th><th>ISR</th><th>Infonavit</th><th>A CTA</th><th>Falta</th><th>Neto</th><th>Depósito</th></tr></thead>
+            <thead><tr><th>#</th><th>Área</th><th>Empleado</th><th>Sueldo</th><th>Ext</th><th>Total</th><th>Total deducciones PDF</th><th>Desglose mostrado</th><th>A CTA</th><th>Falta</th><th>Neto</th><th>Depósito</th></tr></thead>
             <tbody>${rows}</tbody>
           </table>
         </div>
@@ -606,12 +760,14 @@
     $("#cellInfo").textContent = `Nómina: ${empleados.length} empleados`;
 
     empleados.forEach((emp,i)=>{
-      workersByAnchor.set(`nomina,${i}`, {
+      const w = hydrateWorkerValues({
         name: emp.name || `EMPLEADO ${i+1}`,
         area: emp.area || 'General',
         anchor:{r:i,c:0},
-        values: emp.values || {}
+        values: emp.values || {},
+        deducciones: emp.deducciones || emp.deducciones_detalle || emp.values?.DEDUCCIONES_DETALLE || []
       });
+      workersByAnchor.set(`nomina,${i}`, w);
     });
 
     currentWorker = workersByAnchor.values().next().value || null;
@@ -774,13 +930,12 @@
     if(!isFinite(Number(w.values["TOTAL"]))){w.values["TOTAL"] = round2(s + e);}
 
     const total = Number(w.values["TOTAL"] || 0);
-    const imss = Number(w.values["IMSS"] || 0);
-    const isr = Number(w.values["ISR"] || 0);
-    const info = Number(w.values["INFONAVIT"] || 0);
+    const totalDed = totalDeduccionesPDF(w);
     const acta = Number(w.values["A CTA"] || 0);
     const falta = Number(w.values["FALTA"] || 0);
 
-    if(!isFinite(Number(w.values["NETO"]))){w.values["NETO"] = round2(total - imss - isr - info - acta - falta);}
+    w.values["TOTAL DEDUCCIONES"] = totalDed;
+    if(!isFinite(Number(w.values["NETO"]))){w.values["NETO"] = round2(total - totalDed - acta - falta);}
   }
 
   function onCellClick(e){
@@ -837,14 +992,15 @@
       currentWorker.values["TOTAL"] = round2(s + e2);
     }
 
-    if(["TOTAL","IMSS","ISR","INFONAVIT","A CTA","FALTA","SUELDO","EXT"].includes(found.concept)){
+    if(["TOTAL","TOTAL DEDUCCIONES","IMSS","ISR","INFONAVIT","A CTA","FALTA","SUELDO","EXT"].includes(found.concept)){
       const total = Number(currentWorker.values["TOTAL"] || 0);
-      const imss = Number(currentWorker.values["IMSS"] || 0);
-      const isr = Number(currentWorker.values["ISR"] || 0);
-      const info = Number(currentWorker.values["INFONAVIT"] || 0);
+      if(found.concept !== "IMSS" && found.concept !== "ISR" && found.concept !== "INFONAVIT"){
+        currentWorker.values["TOTAL DEDUCCIONES"] = totalDeduccionesPDF(currentWorker);
+      }
+      const totalDed = totalDeduccionesPDF(currentWorker);
       const acta = Number(currentWorker.values["A CTA"] || 0);
       const falta = Number(currentWorker.values["FALTA"] || 0);
-      currentWorker.values["NETO"] = round2(total - imss - isr - info - acta - falta);
+      currentWorker.values["NETO"] = round2(total - totalDed - acta - falta);
     }
 
     renderFields();
