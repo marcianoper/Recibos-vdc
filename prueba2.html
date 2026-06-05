@@ -425,7 +425,7 @@
         <b>Revisión rápida</b>
         <p>
           El sistema toma el <b>Sueldo PDF</b> y asigna automáticamente el <b>Extra</b> necesario para completar el <b>Total ingreso objetivo</b> de cada empleado.
-          Si el PDF trae <b>1 Sueldo</b> menor a <b>6.00 días</b>, marca el campo <b>Faltante</b> en rojo para revisión.
+          Si el PDF trae <b>Días pagados</b> menor a <b>7.00 días</b>, marca el campo <b>Faltante</b> en rojo para revisión.
         </p>
       </div>
       <span class="pill bad">Revisar faltantes antes de imprimir</span>
@@ -1081,19 +1081,55 @@ async function leerPDF(){
   guardarNominaLive();
 }
 
+function limpiarCabecerasNomina(text){
+  return String(text||'')
+    // Quita encabezados repetidos de cada página. Esto ayuda cuando un empleado queda partido entre dos páginas,
+    // como GERMAN: el nombre queda al final de una hoja y el puesto/RFC al inicio de la siguiente.
+    .replace(/CONTPAQi\s+Nóminas®[\s\S]*?MANZANO\s+109\s+FRACC\s+DEL\s+BOSQUE\s+\.\s+IRAPUATO/gi,' ')
+    .replace(/CONTPAQi[\s\S]{0,450}?MANZANO\s+109\s+FRACC\s+DEL\s+BOSQUE\s+\.\s+IRAPUATO/gi,' ')
+    .replace(/Lista de Raya del\s+.+?Hora:\s*\d{2}:\d{2}:\d{2}:\d+/gi,' ')
+    .replace(/Percepción\s+Valor\s+Importe\s+Deducción\s+Valor\s+Importe/gi,' ')
+    .replace(/\s+/g,' ')
+    .trim();
+}
+
+function separarBloquesEmpleados(textoLimpio){
+  // Detecta cada inicio de empleado por su número de 3 dígitos y corta hasta el siguiente empleado.
+  // Es más seguro que partir solo por líneas de guiones, porque a veces el PDF corta un empleado entre páginas.
+  const employeeStart=/\b(\d{3})\s+([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ\s\.]{3,}?)(?=\s+(?:\([^)]+\)|EMPLEADO|CHOFER|CAJERO|VIGILANTE|RFC:))/gi;
+  const starts=[];
+  let m;
+
+  while((m=employeeStart.exec(textoLimpio))!==null){
+    // Evita falsos positivos en totales, obligaciones o reparto monetario.
+    const preview=textoLimpio.slice(m.index, m.index+850);
+    if(/Total Percepciones\s+[\d,]+\.\d{2}/i.test(preview) && /Neto a pagar\s+[\d,]+\.\d{2}/i.test(preview)){
+      starts.push({idx:m.index, id:m[1], full:m[2].trim().replace(/\s+/g,' ')});
+    }
+  }
+
+  return starts.map((st,i)=>{
+    const next=starts[i+1]?.idx ?? textoLimpio.length;
+    return {
+      empleadoId:st.id,
+      full:st.full,
+      block:textoLimpio.slice(st.idx,next)
+    };
+  });
+}
+
 function procesarTexto(text){
   periodo=(text.match(/Lista de Raya del\s+(.+?)\s+Fecha:/i)||[])[1]||'';
   const extras=extrasMap(), prest=prestamosMap();
 
   rows=[];
-  const blocks=text.split(/\s*-{10,}\s*/).filter(b=>/Total Percepciones|Neto a pagar/.test(b));
+  const textoLimpio=limpiarCabecerasNomina(text);
+  const blocks=separarBloquesEmpleados(textoLimpio);
 
-  for(const b of blocks){
-    const head=b.match(/(?:^|\s)(\d{3})\s+([A-ZÁÉÍÓÚÑ\s]+?)\s+(?:\([^)]+\)|EMPLEADO|CHOFER|CAJERO|VIGILANTE|RFC:)/i);
-    if(!head) continue;
-
-    const empleadoId=head[1];
-    const full=head[2].trim().replace(/\s+/g,' ');
+  for(const item of blocks){
+    const b=item.block;
+    const empleadoId=item.empleadoId;
+    const full=item.full;
     const short=nombreCorto(full, empleadoId);
 
     const totalPerc=num((b.match(/Total Percepciones\s+([\d,]+\.\d{2})/i)||[])[1]);
@@ -1105,8 +1141,11 @@ function procesarTexto(text){
     const ajuste=num((b.match(/99\s+Ajuste al neto\s+(-?[\d,]+\.\d{2})/i)||[])[1]);
     const infonavit=num((b.match(/179\s+Infonavit CF correspondiente\s+([\d,]+\.\d{2})/i)||[])[1] || (b.match(/16\s+Préstamo infonavit \(CF\)\s+[\d,]+\.\d{2}\s+([\d,]+\.\d{2})/i)||[])[1]);
 
-    const diasSueldo=num((b.match(/1\s+Sueldo\s+([\d,]+\.\d{2})/i)||[])[1]);
-    const faltanteAlerta=diasSueldo>0 && diasSueldo<6;
+    // Días reales pagados/trabajados del PDF. Antes se tomaba "1 Sueldo 6.00",
+    // por eso Victor aparecía con 6.00 aunque su PDF dice Días pagados: 7.00.
+    const diasPagados=num((b.match(/Días pagados:\s*([\d,]+\.\d{2})/i)||[])[1]);
+    const diasSueldoConcepto=num((b.match(/1\s+Sueldo\s+([\d,]+\.\d{2})/i)||[])[1]);
+    const faltanteAlerta=diasPagados>0 && diasPagados<7;
 
     // Extra automático:
     // Si el empleado tiene TOTAL_OBJETIVO, el extra se recalcula cada vez desde el sueldo PDF.
@@ -1120,7 +1159,8 @@ function procesarTexto(text){
       nombre:short,
       nombre_pdf:full,
       area:detectarArea(empleadoId,short),
-      dias_sueldo:diasSueldo,
+      dias_sueldo:diasPagados || diasSueldoConcepto,
+      dias_sueldo_concepto:diasSueldoConcepto,
       faltante_alerta:faltanteAlerta,
       sueldo:totalPerc,
       total_deducciones:totalDeducciones,
@@ -1188,7 +1228,7 @@ function crearTablaArea(titulo, items, esCarniceria){
             <th>No.</th>
             <th>Área</th>
             <th>Nombre</th>
-            <th>Días sueldo</th>
+            <th>Días pagados</th>
             <th>Sueldo PDF</th>
             <th>Extra</th>
             <th>Total ingreso</th>
@@ -1225,7 +1265,7 @@ function crearTablaArea(titulo, items, esCarniceria){
         </select>
       </td>
       <td class="name"><input value="${escapeHTML(r.nombre)}" onchange="edit(${i},'nombre',this.value)"></td>
-      <td class="${r.faltante_alerta?'badTxt':'money'}" title="${r.faltante_alerta?'Trabajó menos de 6 días según PDF':''}">${r.dias_sueldo?Number(r.dias_sueldo).toFixed(2):'—'}</td>
+      <td class="${r.faltante_alerta?'badTxt':'money'}" title="${r.faltante_alerta?'Tiene menos de 7 días pagados según PDF':''}">${r.dias_sueldo?Number(r.dias_sueldo).toFixed(2):'—'}</td>
       ${inp(i,'sueldo',r.sueldo)}
       ${inp(i,'extra',r.extra)}
       <td class="money">${money(r.total_ingreso)}</td>
@@ -1495,7 +1535,7 @@ function exportCSV(){
   rows.forEach(calcular);
 
   const headers=[
-    'No','Area','Nombre','Dias sueldo','Alerta faltante','Sueldo','Extra','Total ingreso',
+    'No','Area','Nombre','Dias pagados','Alerta faltante','Sueldo','Extra','Total ingreso',
     'Prestamo ant','Prestamo sem','Saldo actual','Acta','Faltante','Total deducciones PDF',
     'Desglose deducciones PDF','Subtotal','Deposito','Sueldo total','Extra 2'
   ];
@@ -1624,7 +1664,7 @@ function ticketNominaHTML(emp){
     <div class="bold">${escapeHTML(emp.name)}</div>
     <div>Área: ${escapeHTML(emp.area||'General')}</div>
     <div>Periodo: ${escapeHTML(periodo||'')}</div>
-    <div>Días sueldo: ${Number(emp.dias_sueldo||0).toFixed(2)}</div>
+    <div>Días pagados: ${Number(emp.dias_sueldo||0).toFixed(2)}</div>
 
     <div class="line"></div>
 
