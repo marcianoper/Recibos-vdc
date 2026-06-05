@@ -424,8 +424,8 @@
       <div>
         <b>Revisión rápida</b>
         <p>
-          Si el PDF trae <b>1 Sueldo</b> menor a <b>6.00 días</b>, el sistema marca el campo <b>Faltante</b> en rojo.
-          No descuenta automáticamente; solo te avisa para que captures el importe correcto.
+          El sistema toma el <b>Sueldo PDF</b> y asigna automáticamente el <b>Extra</b> necesario para completar el <b>Total ingreso objetivo</b> de cada empleado.
+          Si el PDF trae <b>1 Sueldo</b> menor a <b>6.00 días</b>, marca el campo <b>Faltante</b> en rojo para revisión.
         </p>
       </div>
       <span class="pill bad">Revisar faltantes antes de imprimir</span>
@@ -499,6 +499,51 @@ let constantesGlobales={
 };
 
 const CARNICERIA_NOMBRES=['PAULA PEREZ','CARLOS REYES','HERIBERTO','JORGE MARTINEZ','GUSTAVO ANGEL'];
+
+
+// Total de ingreso objetivo por empleado.
+// El sistema toma el Sueldo PDF y calcula automáticamente el Extra necesario para llegar a este total.
+const TOTAL_OBJETIVO={
+  'JORGE MARTINEZ':3600,
+  'CARLOS REYES':3600,
+  'HERIBERTO':3600,
+  'PAULA PEREZ':3600,
+  'GUSTAVO ANGEL':3600,
+
+  'EMILIO EFRAIN':3200,
+  'VICTOR':3140,
+  'JORGE ARTURO':3300,
+  'RAUL':3290,
+  'FERNANDO':2990,
+  'ISMAEL':3190,
+  'BENJAMIN JR':2990,
+  'JUAN ALDACO':3000,
+  'OTERO':3850,
+  'JOSE':2990,
+  'JOSE LUIS RDZ':3710,
+  'PABLO':3280,
+  'TOÑITO':5500,
+  'RODOLFO':3380,
+  'MARIO V':3410,
+  'MARCO ANTONI':3200,
+  'JOSE MARTINEZ':3200,
+  'DIEGO':2940,
+  'ALISON':3000,
+  'GERMAN':7000,
+  'MIGUEL ANGEL':2840
+};
+
+function calcularExtraAutomatico(nombre, sueldoPDF){
+  const nombreNormalizado=normalizeName(nombre);
+  const objetivo=TOTAL_OBJETIVO[nombreNormalizado];
+  const sueldo=num(sueldoPDF);
+
+  if(objetivo===undefined || objetivo===null){
+    return null;
+  }
+
+  return round(Math.max(0, objetivo - sueldo));
+}
 
 const EXTRAS_DEFAULT={
   'JORGE MARTINEZ':0,
@@ -1063,7 +1108,11 @@ function procesarTexto(text){
     const diasSueldo=num((b.match(/1\s+Sueldo\s+([\d,]+\.\d{2})/i)||[])[1]);
     const faltanteAlerta=diasSueldo>0 && diasSueldo<6;
 
-    const extra=pickConst(extras, empleadoId, short) ?? 0;
+    // Extra automático:
+    // Si el empleado tiene TOTAL_OBJETIVO, el extra se recalcula cada vez desde el sueldo PDF.
+    // Si el empleado no tiene TOTAL_OBJETIVO, usa el extra guardado/manual.
+    const extraAuto=calcularExtraAutomatico(short, totalPerc);
+    const extra=extraAuto!==null ? extraAuto : (pickConst(extras, empleadoId, short) ?? 0);
     const p=pickConst(prest, empleadoId, short) || {};
 
     rows.push({
