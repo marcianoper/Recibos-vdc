@@ -181,7 +181,7 @@
     table{
       border-collapse:separate;
       border-spacing:0;
-      min-width:1900px;
+      min-width:2350px;
       width:100%;
       background:#fff;
     }
@@ -246,6 +246,29 @@
     }
 
     .small{font-size:12px;color:var(--muted);line-height:1.35}
+
+    .deduccionBox{
+      min-width:260px;
+      max-width:340px;
+      text-align:left;
+      font-size:12px;
+      line-height:1.25;
+    }
+
+    .deduccionItem{
+      display:grid;
+      grid-template-columns:auto 1fr auto;
+      gap:6px;
+      padding:3px 0;
+      border-bottom:1px dashed #e2e8f0;
+      align-items:start;
+    }
+
+    .deduccionItem:last-child{border-bottom:0}
+    .deduccionCode{font-weight:900;color:#334155}
+    .deduccionConcepto{color:#334155}
+    .deduccionMonto{font-weight:900;white-space:nowrap}
+
 
     .note{
       background:#fff7ed;
@@ -401,8 +424,8 @@
       <div>
         <b>Revisión rápida</b>
         <p>
-          Si el PDF trae <b>1 Sueldo</b> menor a <b>6.00 días</b>, el sistema marca el campo <b>Faltante</b> en rojo.
-          No descuenta automáticamente; solo te avisa para que captures el importe correcto.
+          El sistema toma el <b>Sueldo PDF</b> y asigna automáticamente el <b>Extra</b> necesario para completar el <b>Total ingreso objetivo</b> de cada empleado.
+          Si el PDF trae <b>Días pagados</b> menor a <b>7.00 días</b>, marca el campo <b>Faltante</b> en rojo para revisión.
         </p>
       </div>
       <span class="pill bad">Revisar faltantes antes de imprimir</span>
@@ -423,7 +446,7 @@
       </div>
 
       <p class="small" style="margin-top:12px">
-        <b>Regla de préstamo:</b> préstamo anterior + préstamo semanal - ACTA = saldo actual. En nómina solo se descuenta ACTA.
+        <b>Regla de deducciones PDF:</b> se muestra el desglose completo, pero el descuento real se toma del campo Total Deducciones. <br><b>Regla de préstamo:</b> préstamo anterior + préstamo semanal - ACTA = saldo actual. En nómina solo se descuenta ACTA.
         <br><b>Regla especial:</b> Benjamin Jr y Victor no tienen depósito; su sueldo total queda completo.
       </p>
     </div>
@@ -467,7 +490,60 @@ let aplicandoCambioRemoto=false;
 let liveChannel=null;
 let listoParaImprimir=false;
 
+// Constantes globales: se cargan desde Supabase para que sirvan en cualquier navegador.
+// También se guarda una copia local como respaldo si no hay internet.
+let constantesGlobales={
+  extras:{},
+  prestamos:{},
+  areas:{}
+};
+
 const CARNICERIA_NOMBRES=['PAULA PEREZ','CARLOS REYES','HERIBERTO','JORGE MARTINEZ','GUSTAVO ANGEL'];
+
+
+// Total de ingreso objetivo por empleado.
+// El sistema toma el Sueldo PDF y calcula automáticamente el Extra necesario para llegar a este total.
+const TOTAL_OBJETIVO={
+  'JORGE MARTINEZ':3600,
+  'CARLOS REYES':3600,
+  'HERIBERTO':3600,
+  'PAULA PEREZ':3600,
+  'GUSTAVO ANGEL':3600,
+
+  'EMILIO EFRAIN':3200,
+  'VICTOR':3140,
+  'JORGE ARTURO':3300,
+  'RAUL':3290,
+  'FERNANDO':2990,
+  'ISMAEL':3190,
+  'BENJAMIN JR':2990,
+  'JUAN ALDACO':3000,
+  'OTERO':3850,
+  'JOSE':2990,
+  'JOSE LUIS RDZ':3710,
+  'PABLO':3280,
+  'TOÑITO':5500,
+  'RODOLFO':3380,
+  'MARIO V':3410,
+  'MARCO ANTONI':3200,
+  'JOSE MARTINEZ':3200,
+  'DIEGO':2940,
+  'ALISON':3000,
+  'GERMAN':7000,
+  'MIGUEL ANGEL':2840
+};
+
+function calcularExtraAutomatico(nombre, sueldoPDF){
+  const nombreNormalizado=normalizeName(nombre);
+  const objetivo=TOTAL_OBJETIVO[nombreNormalizado];
+  const sueldo=num(sueldoPDF);
+
+  if(objetivo===undefined || objetivo===null){
+    return null;
+  }
+
+  return round(Math.max(0, objetivo - sueldo));
+}
 
 const EXTRAS_DEFAULT={
   'JORGE MARTINEZ':0,
@@ -621,22 +697,95 @@ function nombreCorto(n, empleadoId=''){
   return up.split(/\s+/).slice(-2).join(' ');
 }
 
+function safeJSON(key, fallback){
+  try{
+    return JSON.parse(localStorage.getItem(key)||JSON.stringify(fallback));
+  }catch(e){
+    return fallback;
+  }
+}
+
 function extrasMap(){
   return {
     ...EXTRAS_DEFAULT,
     ...EXTRAS_DEFAULT_ID,
-    ...JSON.parse(localStorage.getItem(KEY_EXTRAS)||'{}')
+    ...safeJSON(KEY_EXTRAS,{}),
+    ...(constantesGlobales.extras||{})
   };
 }
 
 function prestamosMap(){
-  const saved=JSON.parse(localStorage.getItem(KEY_PREST)||'{}');
+  const saved={
+    ...safeJSON(KEY_PREST,{}),
+    ...(constantesGlobales.prestamos||{})
+  };
+
   const merged={...PRESTAMOS_DEFAULT};
-  Object.keys(saved).forEach(k=>{merged[k]={...(merged[k]||{}),...saved[k]};});
+
+  Object.keys(saved).forEach(k=>{
+    merged[k]={...(merged[k]||{}),...saved[k]};
+  });
+
   return merged;
 }
 
-function areasMap(){return {...AREAS_DEFAULT,...JSON.parse(localStorage.getItem(KEY_AREAS)||'{}')};}
+function areasMap(){
+  return {
+    ...AREAS_DEFAULT,
+    ...safeJSON(KEY_AREAS,{}),
+    ...(constantesGlobales.areas||{})
+  };
+}
+
+async function cargarConstantesGlobales(){
+  if(!sb){
+    constantesGlobales={
+      extras:safeJSON(KEY_EXTRAS,{}),
+      prestamos:safeJSON(KEY_PREST,{}),
+      areas:safeJSON(KEY_AREAS,{})
+    };
+    return;
+  }
+
+  try{
+    const {data,error}=await sb
+      .from('nomina_constantes')
+      .select('data')
+      .eq('id','global')
+      .maybeSingle();
+
+    if(error) throw error;
+
+    if(data?.data){
+      constantesGlobales={
+        extras:data.data.extras||{},
+        prestamos:data.data.prestamos||{},
+        areas:data.data.areas||{}
+      };
+
+      localStorage.setItem(KEY_EXTRAS,JSON.stringify(constantesGlobales.extras));
+      localStorage.setItem(KEY_PREST,JSON.stringify(constantesGlobales.prestamos));
+      localStorage.setItem(KEY_AREAS,JSON.stringify(constantesGlobales.areas));
+
+      setLiveStatus('Constantes globales cargadas');
+    }else{
+      constantesGlobales={
+        extras:safeJSON(KEY_EXTRAS,{}),
+        prestamos:safeJSON(KEY_PREST,{}),
+        areas:safeJSON(KEY_AREAS,{})
+      };
+      setLiveStatus('Sin constantes globales guardadas');
+    }
+  }catch(err){
+    console.error('Error cargando constantes globales',err);
+    constantesGlobales={
+      extras:safeJSON(KEY_EXTRAS,{}),
+      prestamos:safeJSON(KEY_PREST,{}),
+      areas:safeJSON(KEY_AREAS,{})
+    };
+    setLiveStatus('Error cargando constantes globales');
+  }
+}
 
 function detectarArea(id,nombre){
   const areas=areasMap();
@@ -845,6 +994,69 @@ async function marcarListaParaImprimir(){
    LECTURA PDF
 ====================================================== */
 
+function limpiarTextoPDF(s){
+  return String(s||'').replace(/\s+/g,' ').trim();
+}
+
+function extraerDeduccionesDetalle(b){
+  const detalles=[];
+  const codigosDeduccion=['16','32','41','45','52','55','99','104','105','107','179'];
+  const conceptos={
+    '16':'Préstamo infonavit (CF)',
+    '32':'Subs al Empleo acreditado',
+    '41':'I.S.R. antes de Subs al Empleo',
+    '45':'I.S.R. (mes)',
+    '52':'I.M.S.S.',
+    '55':'I.S.R. a compensar',
+    '99':'Ajuste al neto',
+    '104':'ISR de ajuste mensual',
+    '105':'ISR ajustado por subsidio',
+    '107':'Ajuste al Subsidio Causado',
+    '179':'Infonavit CF correspondiente'
+  };
+
+  const limpio=limpiarTextoPDF(b.split(/Total Percepciones/i)[0]||b);
+
+  for(let idx=0; idx<codigosDeduccion.length; idx++){
+    const code=codigosDeduccion[idx];
+    const concept=conceptos[code];
+    const safeConcept=concept.replace(/[.*+?^${}()|[\]\\]/g,'\\$&').replace(/\s+/g,'\\s+');
+    const re=new RegExp('(?:^|\\s)'+code+'\\s+'+safeConcept+'\\s+([^A-ZÁÉÍÓÚÑ]*?)(-?[\\d,]+\\.\\d{2})(?=\\s+(?:'+codigosDeduccion.join('|')+')\\s|\\s+\\.\\.\\.|$)','gi');
+
+    let m;
+    while((m=re.exec(limpio))!==null){
+      const nums=(m[0].match(/-?[\d,]+\.\d{2}/g)||[]).map(num);
+      if(!nums.length) continue;
+      const importe=nums[nums.length-1];
+      const valor=nums.length>1?nums[nums.length-2]:null;
+
+      detalles.push({
+        codigo:code,
+        concepto:concept,
+        valor:valor,
+        importe:round(importe)
+      });
+    }
+  }
+
+  detalles.sort((a,b)=>codigosDeduccion.indexOf(a.codigo)-codigosDeduccion.indexOf(b.codigo));
+  return detalles;
+}
+
+function renderDeduccionesDetalle(detalles){
+  if(!Array.isArray(detalles) || !detalles.length){
+    return '<div class="deduccionBox muted">Sin desglose detectado</div>';
+  }
+
+  return `<div class="deduccionBox">${detalles.map(d=>`
+    <div class="deduccionItem">
+      <span class="deduccionCode">${escapeHTML(d.codigo)}</span>
+      <span class="deduccionConcepto">${escapeHTML(d.concepto)}</span>
+      <span class="deduccionMonto">${money(d.importe)}</span>
+    </div>`).join('')}</div>`;
+}
+
+
 async function leerPDF(){
   const file=document.getElementById('pdfFile').files[0];
   if(!file){alert('Carga primero el PDF de nómina.');return;}
@@ -869,32 +1081,77 @@ async function leerPDF(){
   guardarNominaLive();
 }
 
+function limpiarCabecerasNomina(text){
+  return String(text||'')
+    // Quita encabezados repetidos de cada página. Esto ayuda cuando un empleado queda partido entre dos páginas,
+    // como GERMAN: el nombre queda al final de una hoja y el puesto/RFC al inicio de la siguiente.
+    .replace(/CONTPAQi\s+Nóminas®[\s\S]*?MANZANO\s+109\s+FRACC\s+DEL\s+BOSQUE\s+\.\s+IRAPUATO/gi,' ')
+    .replace(/CONTPAQi[\s\S]{0,450}?MANZANO\s+109\s+FRACC\s+DEL\s+BOSQUE\s+\.\s+IRAPUATO/gi,' ')
+    .replace(/Lista de Raya del\s+.+?Hora:\s*\d{2}:\d{2}:\d{2}:\d+/gi,' ')
+    .replace(/Percepción\s+Valor\s+Importe\s+Deducción\s+Valor\s+Importe/gi,' ')
+    .replace(/\s+/g,' ')
+    .trim();
+}
+
+function separarBloquesEmpleados(textoLimpio){
+  // Detecta cada inicio de empleado por su número de 3 dígitos y corta hasta el siguiente empleado.
+  // Es más seguro que partir solo por líneas de guiones, porque a veces el PDF corta un empleado entre páginas.
+  const employeeStart=/\b(\d{3})\s+([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ\s\.]{3,}?)(?=\s+(?:\([^)]+\)|EMPLEADO|CHOFER|CAJERO|VIGILANTE|RFC:))/gi;
+  const starts=[];
+  let m;
+
+  while((m=employeeStart.exec(textoLimpio))!==null){
+    // Evita falsos positivos en totales, obligaciones o reparto monetario.
+    const preview=textoLimpio.slice(m.index, m.index+850);
+    if(/Total Percepciones\s+[\d,]+\.\d{2}/i.test(preview) && /Neto a pagar\s+[\d,]+\.\d{2}/i.test(preview)){
+      starts.push({idx:m.index, id:m[1], full:m[2].trim().replace(/\s+/g,' ')});
+    }
+  }
+
+  return starts.map((st,i)=>{
+    const next=starts[i+1]?.idx ?? textoLimpio.length;
+    return {
+      empleadoId:st.id,
+      full:st.full,
+      block:textoLimpio.slice(st.idx,next)
+    };
+  });
+}
+
 function procesarTexto(text){
   periodo=(text.match(/Lista de Raya del\s+(.+?)\s+Fecha:/i)||[])[1]||'';
   const extras=extrasMap(), prest=prestamosMap();
 
   rows=[];
-  const blocks=text.split(/\s*-{10,}\s*/).filter(b=>/Total Percepciones|Neto a pagar/.test(b));
+  const textoLimpio=limpiarCabecerasNomina(text);
+  const blocks=separarBloquesEmpleados(textoLimpio);
 
-  for(const b of blocks){
-    const head=b.match(/(?:^|\s)(\d{3})\s+([A-ZÁÉÍÓÚÑ\s]+?)\s+(?:\([^)]+\)|EMPLEADO|CHOFER|CAJERO|VIGILANTE|RFC:)/i);
-    if(!head) continue;
-
-    const empleadoId=head[1];
-    const full=head[2].trim().replace(/\s+/g,' ');
+  for(const item of blocks){
+    const b=item.block;
+    const empleadoId=item.empleadoId;
+    const full=item.full;
     const short=nombreCorto(full, empleadoId);
 
     const totalPerc=num((b.match(/Total Percepciones\s+([\d,]+\.\d{2})/i)||[])[1]);
+    const totalDeducciones=num((b.match(/Total Deducciones\s+([\d,]+\.\d{2})/i)||[])[1]);
     const neto=num((b.match(/Neto a pagar\s+([\d,]+\.\d{2})/i)||[])[1]);
+    const deducciones_detalle=extraerDeduccionesDetalle(b);
     const imss=num((b.match(/52\s+I\.M\.S\.S\.\s+([\d,]+\.\d{2})/i)||[])[1]);
     const isr=num((b.match(/45\s+I\.S\.R\. \(mes\)\s+([\d,]+\.\d{2})/i)||[])[1]);
     const ajuste=num((b.match(/99\s+Ajuste al neto\s+(-?[\d,]+\.\d{2})/i)||[])[1]);
     const infonavit=num((b.match(/179\s+Infonavit CF correspondiente\s+([\d,]+\.\d{2})/i)||[])[1] || (b.match(/16\s+Préstamo infonavit \(CF\)\s+[\d,]+\.\d{2}\s+([\d,]+\.\d{2})/i)||[])[1]);
 
-    const diasSueldo=num((b.match(/1\s+Sueldo\s+([\d,]+\.\d{2})/i)||[])[1]);
-    const faltanteAlerta=diasSueldo>0 && diasSueldo<6;
+    // Días reales pagados/trabajados del PDF. Antes se tomaba "1 Sueldo 6.00",
+    // por eso Victor aparecía con 6.00 aunque su PDF dice Días pagados: 7.00.
+    const diasPagados=num((b.match(/Días pagados:\s*([\d,]+\.\d{2})/i)||[])[1]);
+    const diasSueldoConcepto=num((b.match(/1\s+Sueldo\s+([\d,]+\.\d{2})/i)||[])[1]);
+    const faltanteAlerta=diasPagados>0 && diasPagados<7;
 
-    const extra=pickConst(extras, empleadoId, short) ?? 0;
+    // Extra automático:
+    // Si el empleado tiene TOTAL_OBJETIVO, el extra se recalcula cada vez desde el sueldo PDF.
+    // Si el empleado no tiene TOTAL_OBJETIVO, usa el extra guardado/manual.
+    const extraAuto=calcularExtraAutomatico(short, totalPerc);
+    const extra=extraAuto!==null ? extraAuto : (pickConst(extras, empleadoId, short) ?? 0);
     const p=pickConst(prest, empleadoId, short) || {};
 
     rows.push({
@@ -902,9 +1159,12 @@ function procesarTexto(text){
       nombre:short,
       nombre_pdf:full,
       area:detectarArea(empleadoId,short),
-      dias_sueldo:diasSueldo,
+      dias_sueldo:diasPagados || diasSueldoConcepto,
+      dias_sueldo_concepto:diasSueldoConcepto,
       faltante_alerta:faltanteAlerta,
       sueldo:totalPerc,
+      total_deducciones:totalDeducciones,
+      deducciones_detalle,
       extra,
       prestamo_ant:p.prestamo_ant||0,
       prestamo_sem:p.prestamo_sem||0,
@@ -926,7 +1186,8 @@ function procesarTexto(text){
 function calcular(r){
   r.total_ingreso=round(num(r.sueldo)+num(r.extra));
   r.saldo_actual=round(Math.max(0,num(r.prestamo_ant)+num(r.prestamo_sem)-num(r.acta)));
-  r.subtotal=round(r.total_ingreso-num(r.infonavit)-num(r.imss)-num(r.impuestos)-num(r.acta)-num(r.faltante));
+  r.total_deducciones=num(r.total_deducciones);
+  r.subtotal=round(r.total_ingreso-num(r.total_deducciones)-num(r.acta)-num(r.faltante));
 
   const sinDeposito=['BENJAMIN JR','VICTOR'];
 
@@ -967,7 +1228,7 @@ function crearTablaArea(titulo, items, esCarniceria){
             <th>No.</th>
             <th>Área</th>
             <th>Nombre</th>
-            <th>Días sueldo</th>
+            <th>Días pagados</th>
             <th>Sueldo PDF</th>
             <th>Extra</th>
             <th>Total ingreso</th>
@@ -976,9 +1237,8 @@ function crearTablaArea(titulo, items, esCarniceria){
             <th>Saldo actual</th>
             <th>Acta</th>
             <th>Faltante</th>
-            <th>Infonavit</th>
-            <th>IMSS</th>
-            <th>Impuestos/Ajuste</th>
+            <th>Desglose deducciones PDF</th>
+            <th>Total deducciones PDF</th>
             <th>Subtotal</th>
             <th>Depósito/Neto PDF</th>
             <th>Sueldo total</th>
@@ -1005,7 +1265,7 @@ function crearTablaArea(titulo, items, esCarniceria){
         </select>
       </td>
       <td class="name"><input value="${escapeHTML(r.nombre)}" onchange="edit(${i},'nombre',this.value)"></td>
-      <td class="${r.faltante_alerta?'badTxt':'money'}" title="${r.faltante_alerta?'Trabajó menos de 6 días según PDF':''}">${r.dias_sueldo?Number(r.dias_sueldo).toFixed(2):'—'}</td>
+      <td class="${r.faltante_alerta?'badTxt':'money'}" title="${r.faltante_alerta?'Tiene menos de 7 días pagados según PDF':''}">${r.dias_sueldo?Number(r.dias_sueldo).toFixed(2):'—'}</td>
       ${inp(i,'sueldo',r.sueldo)}
       ${inp(i,'extra',r.extra)}
       <td class="money">${money(r.total_ingreso)}</td>
@@ -1014,9 +1274,8 @@ function crearTablaArea(titulo, items, esCarniceria){
       <td class="money">${money(r.saldo_actual)}</td>
       ${inp(i,'acta',r.acta)}
       ${inp(i,'faltante',r.faltante)}
-      ${inp(i,'infonavit',r.infonavit)}
-      ${inp(i,'imss',r.imss)}
-      ${inp(i,'impuestos',r.impuestos)}
+      <td>${renderDeduccionesDetalle(r.deducciones_detalle)}</td>
+      ${inp(i,'total_deducciones',r.total_deducciones)}
       <td class="money">${money(r.subtotal)}</td>
       ${inp(i,'deposito',r.deposito)}
       <td class="${r.sueldo_total<0?'badTxt':'ok'}">${money(r.sueldo_total)}</td>
@@ -1068,6 +1327,8 @@ function agregarEmpleado(){
     dias_sueldo:0,
     faltante_alerta:false,
     sueldo:0,
+    total_deducciones:0,
+    deducciones_detalle:[],
     extra:0,
     prestamo_ant:0,
     prestamo_sem:0,
@@ -1111,7 +1372,7 @@ function totales(){
   document.getElementById('kAlertasFaltante').textContent=rows.filter(r=>r.faltante_alerta).length;
 }
 
-function guardarConstantes(){
+async function guardarConstantes(){
   const e={},p={},a={};
 
   rows.forEach(r=>{
@@ -1127,12 +1388,37 @@ function guardarConstantes(){
     a[k]=r.area||'General';
   });
 
+  constantesGlobales={extras:e,prestamos:p,areas:a};
+
+  // Respaldo local por si un navegador abre sin internet.
   localStorage.setItem(KEY_EXTRAS,JSON.stringify(e));
   localStorage.setItem(KEY_PREST,JSON.stringify(p));
   localStorage.setItem(KEY_AREAS,JSON.stringify(a));
 
-  guardarNominaLive();
-  alert('Constantes y áreas guardadas en este navegador.');
+  if(!sb){
+    alert('Constantes guardadas solo en este navegador porque Supabase no está conectado.');
+    return;
+  }
+
+  try{
+    const {error}=await sb
+      .from('nomina_constantes')
+      .upsert({
+        id:'global',
+        data:constantesGlobales,
+        updated_at:new Date().toISOString()
+      },{onConflict:'id'});
+
+    if(error) throw error;
+
+    await guardarNominaLive();
+    setLiveStatus('Constantes globales guardadas · '+new Date().toLocaleTimeString('es-MX'));
+    alert('Constantes guardadas en Supabase. Ahora se cargan en cualquier navegador.');
+  }catch(err){
+    console.error(err);
+    setLiveStatus('Error guardando constantes globales');
+    alert('No se pudieron guardar en Supabase. Se dejó respaldo local. Detalle: '+err.message);
+  }
 }
 
 function pasarPrestamosSiguienteSemana(){
@@ -1213,9 +1499,8 @@ function paqueteTicketsNomina(){
         SUELDO:round(num(r.sueldo)),
         EXT:round(num(r.extra)),
         TOTAL:round(num(r.total_ingreso)),
-        IMSS:round(num(r.imss)),
-        ISR:round(num(r.impuestos)),
-        INFONAVIT:round(num(r.infonavit)),
+        DEDUCCIONES:round(num(r.total_deducciones)),
+        DETALLE_DEDUCCIONES:Array.isArray(r.deducciones_detalle)?r.deducciones_detalle:[],
         'A CTA':round(num(r.acta)),
         FALTA:round(num(r.faltante)),
         NETO:round(num(r.subtotal)),
@@ -1250,9 +1535,9 @@ function exportCSV(){
   rows.forEach(calcular);
 
   const headers=[
-    'No','Area','Nombre','Dias sueldo','Alerta faltante','Sueldo','Extra','Total ingreso',
-    'Prestamo ant','Prestamo sem','Saldo actual','Acta','Faltante','Infonavit','IMSS',
-    'Impuestos','Subtotal','Deposito','Sueldo total','Extra 2'
+    'No','Area','Nombre','Dias pagados','Alerta faltante','Sueldo','Extra','Total ingreso',
+    'Prestamo ant','Prestamo sem','Saldo actual','Acta','Faltante','Total deducciones PDF',
+    'Desglose deducciones PDF','Subtotal','Deposito','Sueldo total','Extra 2'
   ];
 
   const lines=[headers.join(',')];
@@ -1266,7 +1551,8 @@ function exportCSV(){
     lines.push([
       i+1,r.area,r.nombre,r.dias_sueldo,r.faltante_alerta?'SI':'NO',
       r.sueldo,r.extra,r.total_ingreso,r.prestamo_ant,r.prestamo_sem,
-      r.saldo_actual,r.acta,r.faltante,r.infonavit,r.imss,r.impuestos,
+      r.saldo_actual,r.acta,r.faltante,r.total_deducciones,
+      (Array.isArray(r.deducciones_detalle)?r.deducciones_detalle.map(d=>`${d.codigo} ${d.concepto}: ${money(d.importe)}`).join(' | '):''),
       r.subtotal,r.deposito,r.sueldo_total,r.extra2
     ].map(x=>`"${x}"`).join(','));
   });
@@ -1378,7 +1664,7 @@ function ticketNominaHTML(emp){
     <div class="bold">${escapeHTML(emp.name)}</div>
     <div>Área: ${escapeHTML(emp.area||'General')}</div>
     <div>Periodo: ${escapeHTML(periodo||'')}</div>
-    <div>Días sueldo: ${Number(emp.dias_sueldo||0).toFixed(2)}</div>
+    <div>Días pagados: ${Number(emp.dias_sueldo||0).toFixed(2)}</div>
 
     <div class="line"></div>
 
@@ -1388,9 +1674,8 @@ function ticketNominaHTML(emp){
 
     <div class="line"></div>
 
-    <div class="row"><span>IMSS</span><b>${money(v.IMSS)}</b></div>
-    <div class="row"><span>ISR/Ajuste</span><b>${money(v.ISR)}</b></div>
-    <div class="row"><span>Infonavit</span><b>${money(v.INFONAVIT)}</b></div>
+    <div class="row"><span>Total deducciones PDF</span><b>${money(v.DEDUCCIONES)}</b></div>
+    ${(Array.isArray(v.DETALLE_DEDUCCIONES)?v.DETALLE_DEDUCCIONES:[]).map(d=>`<div class="row small"><span>${escapeHTML(d.codigo+' '+d.concepto)}</span><b>${money(d.importe)}</b></div>`).join('')}
     <div class="row"><span>A CTA</span><b>${money(v['A CTA'])}</b></div>
     <div class="row"><span>Faltante</span><b>${money(v.FALTA)}</b></div>
 
@@ -1467,14 +1752,19 @@ async function imprimirTodasNominas(){
    INICIO
 ====================================================== */
 
-render();
+async function iniciarApp(){
+  await cargarConstantesGlobales();
+  render();
 
-if(sb){
-  cargarNominaLive();
-  escucharNominaLive();
-}else{
-  setLiveStatus('Configura Supabase');
+  if(sb){
+    await cargarNominaLive();
+    escucharNominaLive();
+  }else{
+    setLiveStatus('Configura Supabase');
+  }
 }
+
+iniciarApp();
 </script>
 </body>
 </html>
