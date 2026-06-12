@@ -1189,7 +1189,7 @@ function calcular(r){
   r.total_deducciones=num(r.total_deducciones);
   r.subtotal=round(r.total_ingreso-num(r.total_deducciones)-num(r.acta)-num(r.faltante));
 
-  const sinDeposito=['BENJAMIN JR','VICTOR'];
+  const sinDeposito=['BENJAMIN JR','VICTOR','PABLO'];
 
   if(sinDeposito.includes(r.nombre)){
     r.deposito=0;
@@ -1197,6 +1197,18 @@ function calcular(r){
   }else{
     r.sueldo_total=round(r.subtotal-num(r.deposito));
   }
+}
+
+function renderSinMoverPantalla(){
+  const scrollX=window.scrollX;
+  const scrollY=window.scrollY;
+
+  render();
+
+  // Al editar una variable se reconstruye la tabla completa.
+  // Esto evita que el navegador mande la pantalla hasta arriba.
+  window.scrollTo(scrollX, scrollY);
+  requestAnimationFrame(()=>window.scrollTo(scrollX, scrollY));
 }
 
 function render(){
@@ -1306,7 +1318,7 @@ function edit(i,k,v){
   }
 
   listoParaImprimir=false;
-  render();
+  renderSinMoverPantalla();
   setReadyStatus('No lista',false);
   guardarNominaLive();
 }
@@ -1488,7 +1500,7 @@ function paqueteTicketsNomina(){
   ];
 
   return orden.map(r=>{
-    const sinDeposito=['BENJAMIN JR','VICTOR'].includes(r.nombre);
+    const sinDeposito=['BENJAMIN JR','VICTOR','PABLO'].includes(r.nombre);
 
     return {
       name:normalizarTicketNombre(r.nombre),
