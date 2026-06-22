@@ -1169,7 +1169,8 @@ function procesarTexto(text){
       prestamo_ant:p.prestamo_ant||0,
       prestamo_sem:p.prestamo_sem||0,
       acta:p.acta||0,
-      faltante:p.faltante||0,
+      // Faltante siempre inicia en 0. No se arrastra de nóminas anteriores.
+      faltante:0,
       infonavit,
       imss,
       impuestos:round(isr+ajuste),
@@ -1394,7 +1395,8 @@ async function guardarConstantes(){
       prestamo_ant:num(r.prestamo_ant),
       prestamo_sem:num(r.prestamo_sem),
       acta:num(r.acta),
-      faltante:num(r.faltante),
+      // Faltante no se guarda ni se pasa a la siguiente semana; siempre debe volver a 0.
+      faltante:0,
       extra2:num(r.extra2)
     };
     a[k]=r.area||'General';
@@ -1449,7 +1451,8 @@ function pasarPrestamosSiguienteSemana(){
       prestamo_ant:num(r.saldo_actual),
       prestamo_sem:0,
       acta:num(r.saldo_actual)>0?num(r.acta):0,
-      faltante:num(r.faltante),
+      // Faltante no se guarda ni se pasa a la siguiente semana; siempre debe volver a 0.
+      faltante:0,
       extra2:num(r.extra2)
     };
 
