@@ -932,7 +932,7 @@ function escucharNominaLive(){
         rows=nueva.data.rows || [];
         listoParaImprimir=!!nueva.listo_para_imprimir;
 
-        render();
+        renderSinMoverPantalla();
 
         setLiveStatus('Actualizado desde oficina · '+new Date().toLocaleTimeString('es-MX'));
         setReadyStatus(listoParaImprimir?'Lista para imprimir':'No lista', listoParaImprimir);
@@ -1200,16 +1200,69 @@ function calcular(r){
   }
 }
 
+function capturarEstadoPantalla(){
+  const activo=document.activeElement;
+  const estado={
+    scrollX:window.scrollX,
+    scrollY:window.scrollY,
+    tablaScrolls:[...document.querySelectorAll('.tableBox')].map(box=>({
+      top:box.scrollTop,
+      left:box.scrollLeft
+    })),
+    activoId:activo?.dataset?.focusId || '',
+    activoStart:null,
+    activoEnd:null
+  };
+
+  try{
+    if(activo && typeof activo.selectionStart==='number'){
+      estado.activoStart=activo.selectionStart;
+      estado.activoEnd=activo.selectionEnd;
+    }
+  }catch(e){}
+
+  return estado;
+}
+
+function restaurarEstadoPantalla(estado){
+  if(!estado) return;
+
+  const aplicar=()=>{
+    document.querySelectorAll('.tableBox').forEach((box,idx)=>{
+      const s=estado.tablaScrolls[idx];
+      if(!s) return;
+      box.scrollTop=s.top;
+      box.scrollLeft=s.left;
+    });
+
+    window.scrollTo(estado.scrollX, estado.scrollY);
+
+    if(estado.activoId){
+      const el=document.querySelector(`[data-focus-id="${CSS.escape(estado.activoId)}"]`);
+      if(el){
+        el.focus({preventScroll:true});
+        try{
+          if(estado.activoStart!==null && typeof el.setSelectionRange==='function'){
+            el.setSelectionRange(estado.activoStart, estado.activoEnd);
+          }
+        }catch(e){}
+      }
+    }
+  };
+
+  aplicar();
+  requestAnimationFrame(aplicar);
+  setTimeout(aplicar,0);
+}
+
 function renderSinMoverPantalla(){
-  const scrollX=window.scrollX;
-  const scrollY=window.scrollY;
+  const estado=capturarEstadoPantalla();
 
   render();
 
-  // Al editar una variable se reconstruye la tabla completa.
-  // Esto evita que el navegador mande la pantalla hasta arriba.
-  window.scrollTo(scrollX, scrollY);
-  requestAnimationFrame(()=>window.scrollTo(scrollX, scrollY));
+  // Al editar una variable o recibir el live de Supabase se reconstruye la tabla completa.
+  // Esto conserva la posición de la página, la posición dentro de la tabla y el campo activo.
+  restaurarEstadoPantalla(estado);
 }
 
 function render(){
@@ -1272,12 +1325,12 @@ function crearTablaArea(titulo, items, esCarniceria){
     tr.innerHTML=`
       <td>${idx+1}</td>
       <td class="area">
-        <select onchange="edit(${i},'area',this.value)">
+        <select data-focus-id="row-${i}-area" onchange="edit(${i},'area',this.value)">
           <option ${r.area==='General'?'selected':''}>General</option>
           <option ${r.area==='Carnicería'?'selected':''}>Carnicería</option>
         </select>
       </td>
-      <td class="name"><input value="${escapeHTML(r.nombre)}" onchange="edit(${i},'nombre',this.value)"></td>
+      <td class="name"><input data-focus-id="row-${i}-nombre" value="${escapeHTML(r.nombre)}" onchange="edit(${i},'nombre',this.value)"></td>
       <td class="${r.faltante_alerta?'badTxt':'money'}" title="${r.faltante_alerta?'Tiene menos de 7 días pagados según PDF':''}">${r.dias_sueldo?Number(r.dias_sueldo).toFixed(2):'—'}</td>
       ${inp(i,'sueldo',r.sueldo)}
       ${inp(i,'extra',r.extra)}
@@ -1308,7 +1361,7 @@ function inp(i,k,v){
   const clase=alertaFaltante?'inputFaltante':'';
   const titulo=alertaFaltante?`Alerta: ${r.nombre} trabajó ${Number(r.dias_sueldo||0).toFixed(2)} días. Revisar faltante.`:'';
 
-  return `<td><input class="${clase}" type="text" inputmode="decimal" title="${titulo}" value="${moneyInput(v)}" onfocus="this.value=String(num(this.value)||'')" onchange="edit(${i},'${k}',this.value)" onblur="this.value=moneyInput(this.value)"></td>`;
+  return `<td><input data-focus-id="row-${i}-${k}" class="${clase}" type="text" inputmode="decimal" title="${titulo}" value="${moneyInput(v)}" onfocus="this.value=String(num(this.value)||'')" onchange="edit(${i},'${k}',this.value)" onblur="this.value=moneyInput(this.value)"></td>`;
 }
 
 function edit(i,k,v){
