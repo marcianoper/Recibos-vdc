@@ -386,6 +386,9 @@
       <input id="pdfFile" type="file" accept="application/pdf" />
       <button class="btn" onclick="leerPDF()">Leer PDF</button>
       <button class="btn live" onclick="guardarNominaLive()">Guardar live</button>
+      <button class="btn" onclick="registrarPrestamoUI()">+ Nuevo préstamo</button>
+      <button class="btn secondary" onclick="registrarAbonoUI()">Registrar abono</button>
+      <button class="btn secondary" onclick="verHistorialPrestamos()">Historial préstamos</button>
       <button class="btn carn" onclick="marcarListaParaImprimir()">Lista para imprimir</button>
       <button class="btn carn" onclick="enviarATickets()">Mandar a tickets</button>
       <button class="btn warn" onclick="imprimirTodasNominas()">Imprimir todas</button>
@@ -396,7 +399,7 @@
     <div>
       <strong>Modo live Supabase</strong>
       <p>
-        Todos los cambios se guardan en la tabla <b>nomina_live</b>. Abre esta misma página en oficina y en tu equipo para ver la misma nómina.
+        La nómina se guarda en <b>nomina_live</b>, pero los préstamos viven por separado en <b>prestamos_empleados</b>. Cargar otro PDF nunca modifica sus saldos. Cada sábado Supabase aplica el descuento automáticamente.
       </p>
     </div>
     <button class="btn secondary" onclick="cargarNominaLive()">Recargar live</button>
@@ -440,7 +443,7 @@
       <div class="row">
         <button class="btn secondary" onclick="agregarEmpleado()">+ Agregar empleado</button>
         <button class="btn warn" onclick="guardarConstantes()">Guardar constantes</button>
-        <button class="btn secondary" onclick="pasarPrestamosSiguienteSemana()">Pasar préstamos a sig. semana</button>
+        <button class="btn secondary" onclick="cargarPrestamosControl(true)">Actualizar préstamos</button>
         <button class="btn secondary" onclick="exportCSV()">Exportar CSV</button>
         <button class="btn danger" onclick="limpiarTodo()">Limpiar</button>
       </div>
@@ -489,6 +492,7 @@ let guardandoLive=false;
 let aplicandoCambioRemoto=false;
 let liveChannel=null;
 let listoParaImprimir=false;
+let prestamosControlGlobal={};
 
 // Constantes globales: se cargan desde Supabase para que sirvan en cualquier navegador.
 // También se guarda una copia local como respaldo si no hay internet.
@@ -522,6 +526,7 @@ const TOTAL_OBJETIVO={
   'JOSE':2990,
   'JOSE LUIS RDZ':3710,
   'PABLO':3280,
+  'PABLO SEBASTIAN':0,
   'TOÑITO':5500,
   'RODOLFO':3380,
   'MARIO V':3410,
@@ -566,6 +571,7 @@ const EXTRAS_DEFAULT={
   'JOSE':750,
   'JOSE LUIS RDZ':1020,
   'PABLO':970,
+  'PABLO SEBASTIAN':0,
   'TOÑITO':3190,
   'RODOLFO':790,
   'MARIO V':820,
@@ -609,8 +615,16 @@ const EXTRAS_DEFAULT_ID={
 };
 
 const PRESTAMOS_DEFAULT={
-  'MARTIN PITAYO':{prestamo_ant:0,prestamo_sem:0,acta:0},'JUAN ALDACO':{prestamo_ant:0,prestamo_sem:0,acta:0},'OTERO':{prestamo_ant:0,prestamo_sem:0,acta:0},'VICTOR':{prestamo_ant:0,prestamo_sem:0,acta:0},'FERNANDO':{prestamo_ant:0,prestamo_sem:4000,acta:200},'ISMAEL':{prestamo_ant:0,prestamo_sem:0,acta:0},'BENJAMIN JR':{prestamo_ant:6000,prestamo_sem:0,acta:200},'JOSE':{prestamo_ant:3600,prestamo_sem:0,acta:200},'TOÑO':{prestamo_ant:0,prestamo_sem:0,acta:0},'TOÑITO':{prestamo_ant:0,prestamo_sem:0,acta:0},'JORGE ARTURO':{prestamo_ant:1100,prestamo_sem:0,acta:100},'JOSE LUIS RDZ':{prestamo_ant:1200,prestamo_sem:0,acta:100},'PABLO':{prestamo_ant:2400,prestamo_sem:0,acta:200},'RODOLFO':{prestamo_ant:5238,prestamo_sem:0,acta:200},'JOSE MARTINEZ':{prestamo_ant:0,prestamo_sem:0,acta:0},'MARIO V':{prestamo_ant:0,prestamo_sem:0,acta:0},'MARCO ANTONI':{prestamo_ant:4200,prestamo_sem:0,acta:200},'RAUL':{prestamo_ant:0,prestamo_sem:0,acta:0},'DIEGO':{prestamo_ant:2000,prestamo_sem:0,acta:100},'GERMAN':{prestamo_ant:0,prestamo_sem:0,acta:0},'EYVYN':{prestamo_ant:0,prestamo_sem:0,acta:0},'ALEX':{prestamo_ant:0,prestamo_sem:0,acta:0},'JESUS':{prestamo_ant:0,prestamo_sem:0,acta:0},'ALISON':{prestamo_ant:0,prestamo_sem:0,acta:0},'EMILIO KURO':{prestamo_ant:0,prestamo_sem:0,acta:0},'TATAN':{prestamo_ant:0,prestamo_sem:0,acta:0},
-  'PAULA PEREZ':{prestamo_ant:0,prestamo_sem:0,acta:0},'CARLOS REYES':{prestamo_ant:0,prestamo_sem:0,acta:0},'HERIBERTO':{prestamo_ant:0,prestamo_sem:0,acta:0},'JORGE MARTINEZ':{prestamo_ant:0,prestamo_sem:0,acta:0},'GUSTAVO ANGEL':{prestamo_ant:0,prestamo_sem:0,acta:0}
+  'JORGE ARTURO':{prestamo_ant:4900,prestamo_sem:0,acta:100},
+  'FERNANDO':{prestamo_ant:5600,prestamo_sem:0,acta:200},
+  'BENJAMIN JR':{prestamo_ant:3600,prestamo_sem:0,acta:200},
+  'JOSE':{prestamo_ant:1200,prestamo_sem:0,acta:200},
+  'JOSE LUIS RDZ':{prestamo_ant:100,prestamo_sem:0,acta:100},
+  'PABLO':{prestamo_ant:0,prestamo_sem:0,acta:200},
+  'PABLO SEBASTIAN':{prestamo_ant:0,prestamo_sem:0,acta:0},
+  'RODOLFO':{prestamo_ant:2838,prestamo_sem:0,acta:200},
+  'MARCO ANTONI':{prestamo_ant:1800,prestamo_sem:0,acta:200},
+  'DIEGO':{prestamo_ant:800,prestamo_sem:0,acta:100}
 };
 
 const AREAS_DEFAULT={
@@ -659,7 +673,8 @@ const NAME_MAP=[
   [/OWEN|TOÑITO/,'TOÑITO'],
   [/CAMPOS GONZALEZ JORGE ARTURO|JORGE ARTURO/,'JORGE ARTURO'],
   [/RODRIGUEZ RODRIGUEZ JOSE LUIS|JOSE LUIS/,'JOSE LUIS RDZ'],
-  [/RODRIGUEZ HERNANDEZ PABLO FERNANDO|PABLO FERNANDO|PABLO/,'PABLO'],
+  [/PABLO.*SEBASTIAN|SEBASTIAN.*PABLO/,'PABLO SEBASTIAN'],
+  [/RODRIGUEZ HERNANDEZ PABLO FERNANDO|PABLO FERNANDO|^PABLO$/,'PABLO'],
   [/VAZQUEZ PEÑA JUAN RODOLFO|JUAN RODOLFO/,'RODOLFO'],
   [/VAZQUEZ GUZMAN EYVYN RODOLFO|EYVYN RODOLFO|EYVYN/,'EYVYN'],
   [/MARTINEZ FLORES JOSE|JOSE MARTINEZ/,'JOSE MARTINEZ'],
@@ -715,15 +730,17 @@ function extrasMap(){
 }
 
 function prestamosMap(){
-  const saved={
-    ...safeJSON(KEY_PREST,{}),
-    ...(constantesGlobales.prestamos||{})
-  };
-
   const merged={...PRESTAMOS_DEFAULT};
 
-  Object.keys(saved).forEach(k=>{
-    merged[k]={...(merged[k]||{}),...saved[k]};
+  // Fuente principal: tabla prestamos_empleados de Supabase.
+  // No se toma el saldo desde el PDF ni desde nomina_live.
+  Object.entries(prestamosControlGlobal||{}).forEach(([nombre,p])=>{
+    merged[nombre]={
+      prestamo_ant:num(p.saldo_actual),
+      prestamo_sem:0,
+      acta:num(p.descuento_semanal),
+      extra2:0
+    };
   });
 
   return merged;
@@ -792,6 +809,115 @@ function detectarArea(id,nombre){
   if(id && areas[id]) return areas[id];
   if(areas[nombre]) return areas[nombre];
   return CARNICERIA_NOMBRES.includes(normalizeName(nombre))?'Carnicería':'General';
+}
+
+
+/* ======================================================
+   CONTROL GLOBAL DE PRÉSTAMOS
+   Requiere ejecutar el archivo SQL incluido una sola vez.
+====================================================== */
+
+async function cargarPrestamosControl(mostrarAviso=false){
+  if(!sb) return;
+  try{
+    const {data,error}=await sb
+      .from('prestamos_empleados')
+      .select('empleado,saldo_actual,descuento_semanal,activo,fecha_ultimo_descuento')
+      .eq('activo',true)
+      .order('empleado');
+    if(error) throw error;
+
+    prestamosControlGlobal={};
+    (data||[]).forEach(p=>{
+      prestamosControlGlobal[normalizeName(p.empleado)]=p;
+    });
+
+    // Actualiza cualquier nómina ya visible sin tocar sueldo, PDF ni otros campos.
+    rows.forEach(r=>{
+      const p=prestamosControlGlobal[normalizeName(r.nombre)];
+      if(!p) return;
+      r.prestamo_ant=num(p.saldo_actual);
+      r.prestamo_sem=0;
+      r.acta=num(p.descuento_semanal);
+    });
+    renderSinMoverPantalla();
+    if(mostrarAviso) alert('Préstamos actualizados desde Supabase.');
+  }catch(err){
+    console.error('Error cargando préstamos',err);
+    if(mostrarAviso) alert('No se pudieron cargar los préstamos: '+err.message);
+  }
+}
+
+async function registrarMovimientoPrestamo(empleado,tipo,monto,nota=''){
+  if(!sb) throw new Error('Supabase no está conectado.');
+  const nombre=normalizeName(empleado);
+  const cantidad=round(num(monto));
+  if(!nombre) throw new Error('Selecciona un empleado.');
+  if(cantidad<=0) throw new Error('El monto debe ser mayor que cero.');
+
+  const {data,error}=await sb.rpc('registrar_movimiento_prestamo',{
+    p_empleado:nombre,
+    p_tipo:tipo,
+    p_monto:cantidad,
+    p_nota:nota||null
+  });
+  if(error) throw error;
+  await cargarPrestamosControl(false);
+  await guardarNominaLive();
+  return data;
+}
+
+function nombresPrestamoDisponibles(){
+  const nombres=new Set([
+    ...Object.keys(prestamosControlGlobal||{}),
+    ...rows.map(r=>normalizeName(r.nombre)).filter(Boolean)
+  ]);
+  return [...nombres].sort();
+}
+
+async function registrarPrestamoUI(){
+  try{
+    const empleado=prompt('Empleado que recibe el préstamo:\n\n'+nombresPrestamoDisponibles().join('\n'));
+    if(!empleado) return;
+    const monto=prompt('Monto del nuevo préstamo:');
+    if(monto===null) return;
+    const nota=prompt('Nota opcional:','Préstamo nuevo')||'';
+    await registrarMovimientoPrestamo(empleado,'PRESTAMO',monto,nota);
+    alert('Préstamo registrado y sincronizado en todos los dispositivos.');
+  }catch(err){
+    alert('No se pudo registrar: '+err.message);
+  }
+}
+
+async function registrarAbonoUI(){
+  try{
+    const empleado=prompt('Empleado que realiza el abono:\n\n'+nombresPrestamoDisponibles().join('\n'));
+    if(!empleado) return;
+    const monto=prompt('Monto del abono:');
+    if(monto===null) return;
+    const nota=prompt('Nota opcional:','Abono extraordinario')||'';
+    await registrarMovimientoPrestamo(empleado,'ABONO',monto,nota);
+    alert('Abono registrado y saldo actualizado.');
+  }catch(err){
+    alert('No se pudo registrar: '+err.message);
+  }
+}
+
+async function verHistorialPrestamos(){
+  if(!sb){alert('Supabase no está conectado.');return;}
+  const empleado=prompt('Empleado para consultar (vacío = todos):','')||'';
+  let q=sb.from('prestamos_movimientos')
+    .select('empleado,tipo,monto,saldo_anterior,saldo_nuevo,fecha,nota')
+    .order('fecha',{ascending:false})
+    .limit(150);
+  if(empleado.trim()) q=q.eq('empleado',normalizeName(empleado));
+  const {data,error}=await q;
+  if(error){alert('Error consultando historial: '+error.message);return;}
+  const texto=(data||[]).map(m=>{
+    const fecha=new Date(m.fecha).toLocaleString('es-MX');
+    return `${fecha} | ${m.empleado} | ${m.tipo} | ${money(m.monto)} | ${money(m.saldo_anterior)} → ${money(m.saldo_nuevo)}${m.nota?' | '+m.nota:''}`;
+  }).join('\n');
+  alert(texto||'No hay movimientos registrados.');
 }
 
 /* ======================================================
@@ -1335,10 +1461,10 @@ function crearTablaArea(titulo, items, esCarniceria){
       ${inp(i,'sueldo',r.sueldo)}
       ${inp(i,'extra',r.extra)}
       <td class="money">${money(r.total_ingreso)}</td>
-      ${inp(i,'prestamo_ant',r.prestamo_ant)}
-      ${inp(i,'prestamo_sem',r.prestamo_sem)}
+      <td class="money">${money(r.prestamo_ant)}</td>
+      <td class="money">${money(r.prestamo_sem)}</td>
       <td class="money">${money(r.saldo_actual)}</td>
-      ${inp(i,'acta',r.acta)}
+      <td class="money">${money(r.acta)}</td>
       ${inp(i,'faltante',r.faltante)}
       <td>${renderDeduccionesDetalle(r.deducciones_detalle)}</td>
       ${inp(i,'total_deducciones',r.total_deducciones)}
@@ -1439,27 +1565,19 @@ function totales(){
 }
 
 async function guardarConstantes(){
-  const e={},p={},a={};
+  const e={},a={};
 
   rows.forEach(r=>{
     const k=constKey(r);
     e[k]=num(r.extra);
-    p[k]={
-      prestamo_ant:num(r.prestamo_ant),
-      prestamo_sem:num(r.prestamo_sem),
-      acta:num(r.acta),
-      // Faltante no se guarda ni se pasa a la siguiente semana; siempre debe volver a 0.
-      faltante:0,
-      extra2:num(r.extra2)
-    };
     a[k]=r.area||'General';
   });
 
-  constantesGlobales={extras:e,prestamos:p,areas:a};
+  constantesGlobales={extras:e,prestamos:{},areas:a};
 
   // Respaldo local por si un navegador abre sin internet.
   localStorage.setItem(KEY_EXTRAS,JSON.stringify(e));
-  localStorage.setItem(KEY_PREST,JSON.stringify(p));
+  // Los préstamos ya no se guardan aquí; viven en prestamos_empleados.
   localStorage.setItem(KEY_AREAS,JSON.stringify(a));
 
   if(!sb){
@@ -1488,45 +1606,10 @@ async function guardarConstantes(){
   }
 }
 
-function pasarPrestamosSiguienteSemana(){
-  if(!confirm('Esto guardará para la siguiente semana: Préstamo ant. = Préstamo ant. + Préstamo sem. - Acta, y Préstamo sem. = $0. ¿Continuar?')) return;
-
-  const e={},p={},a={};
-
-  rows.forEach(r=>{
-    calcular(r);
-
-    const k=constKey(r);
-
-    e[k]=num(r.extra);
-
-    p[k]={
-      prestamo_ant:num(r.saldo_actual),
-      prestamo_sem:0,
-      acta:num(r.saldo_actual)>0?num(r.acta):0,
-      // Faltante no se guarda ni se pasa a la siguiente semana; siempre debe volver a 0.
-      faltante:0,
-      extra2:num(r.extra2)
-    };
-
-    a[k]=r.area||'General';
-  });
-
-  localStorage.setItem(KEY_EXTRAS,JSON.stringify(e));
-  localStorage.setItem(KEY_PREST,JSON.stringify(p));
-  localStorage.setItem(KEY_AREAS,JSON.stringify(a));
-
-  rows.forEach(r=>{
-    r.prestamo_ant=num(r.saldo_actual);
-    r.prestamo_sem=0;
-    if(num(r.saldo_actual)<=0) r.acta=0;
-  });
-
-  listoParaImprimir=false;
-  render();
-  setReadyStatus('No lista',false);
-  guardarNominaLive();
-  alert('Listo. Los préstamos quedaron preparados para la siguiente semana.');
+async function pasarPrestamosSiguienteSemana(){
+  // Se conserva por compatibilidad, pero ya no realiza descuentos manuales.
+  // El descuento real lo ejecuta Supabase cada sábado y queda en historial.
+  await cargarPrestamosControl(true);
 }
 
 /* ======================================================
@@ -1822,10 +1905,12 @@ async function imprimirTodasNominas(){
 
 async function iniciarApp(){
   await cargarConstantesGlobales();
+  await cargarPrestamosControl(false);
   render();
 
   if(sb){
     await cargarNominaLive();
+    await cargarPrestamosControl(false);
     escucharNominaLive();
   }else{
     setLiveStatus('Configura Supabase');
