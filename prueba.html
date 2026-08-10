@@ -1248,8 +1248,22 @@ function separarBloquesEmpleados(textoLimpio){
   });
 }
 
+function detectarPeriodoNomina(text){
+  const t=String(text||'').replace(/\s+/g,' ').trim();
+
+  // Formato esperado de CONTPAQi: 03/Ago/2026 al 09/Ago/2026
+  const rango=t.match(/Lista de Raya del\s+(\d{1,2}\/[A-Za-zÁÉÍÓÚÑáéíóúñ]{3,12}\/\d{4}\s+al\s+\d{1,2}\/[A-Za-zÁÉÍÓÚÑáéíóúñ]{3,12}\/\d{4})/i);
+  if(rango?.[1]) return rango[1].trim();
+
+  // Respaldo para PDFs donde el encabezado cambie ligeramente.
+  const rangoSimple=t.match(/(\d{1,2}\/[A-Za-zÁÉÍÓÚÑáéíóúñ]{3,12}\/\d{4}\s+al\s+\d{1,2}\/[A-Za-zÁÉÍÓÚÑáéíóúñ]{3,12}\/\d{4})/i);
+  if(rangoSimple?.[1]) return rangoSimple[1].trim();
+
+  return '';
+}
+
 function procesarTexto(text){
-  periodo=(text.match(/Lista de Raya del\s+(.+?)\s+Fecha:/i)||[])[1]||'';
+  periodo=detectarPeriodoNomina(text);
   const extras=extrasMap(), prest=prestamosMap();
 
   rows=[];
@@ -1681,6 +1695,11 @@ function fechaLocalISO(){
   return `${y}-${m}-${day}`;
 }
 
+function periodoReporteSeguro(){
+  const limpio=detectarPeriodoNomina(periodo) || String(periodo||'').trim();
+  return limpio.length>45 ? limpio.slice(0,45)+'…' : limpio;
+}
+
 function descargarReporteNominaPDF(){
   if(!rows.length) return false;
 
@@ -1714,7 +1733,7 @@ function descargarReporteNominaPDF(){
   doc.setFont('helvetica','normal');
   doc.setFontSize(9);
   doc.text(`Fecha de generación: ${new Date().toLocaleString('es-MX')}`,14,20);
-  doc.text(`Periodo: ${periodo || 'Sin periodo'}`,14,25);
+  doc.text(`Periodo: ${periodoReporteSeguro() || 'Sin periodo'}`,14,25);
   doc.text(`Semana: ${NOMINA_SEMANA_ID || semanaActualKey()}`,14,30);
   doc.text(`Empleados: ${orden.length}`,14,35);
 
@@ -1744,7 +1763,7 @@ function descargarReporteNominaPDF(){
   ]);
 
   doc.autoTable({
-    startY:42,
+    startY:44,
     head:[["#","Área","Empleado","Días","Sueldo PDF","Extra","Total ingreso","Deducciones","A CTA","Faltante","Subtotal","Depósito","Efectivo"]],
     body,
     theme:'grid',
@@ -1769,7 +1788,7 @@ function descargarReporteNominaPDF(){
   });
 
   const sem=textoArchivoSeguro(NOMINA_SEMANA_ID || semanaActualKey());
-  const per=textoArchivoSeguro(periodo);
+  const per=textoArchivoSeguro(periodoReporteSeguro());
   const nombre=`Nomina_VDC360_${fechaLocalISO()}_${sem}${per?'_'+per:''}.pdf`;
   doc.save(nombre);
 
