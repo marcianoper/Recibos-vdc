@@ -10,6 +10,10 @@
     if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
   </script>
 
+  <!-- PDF histórico de nómina -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
   <!-- SUPABASE LIVE -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -1661,11 +1665,139 @@ function paqueteTicketsNomina(){
   });
 }
 
+function textoArchivoSeguro(v){
+  return String(v||'')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-zA-Z0-9_-]+/g,'_')
+    .replace(/^_+|_+$/g,'')
+    .slice(0,80);
+}
+
+function fechaLocalISO(){
+  const d=new Date();
+  const y=d.getFullYear();
+  const m=String(d.getMonth()+1).padStart(2,'0');
+  const day=String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+
+function descargarReporteNominaPDF(){
+  if(!rows.length) return false;
+
+  if(!window.jspdf?.jsPDF){
+    console.warn('jsPDF no está disponible.');
+    alert('No se pudo generar el PDF histórico. Revisa tu conexión a internet y vuelve a intentar.');
+    return false;
+  }
+
+  rows.forEach(calcular);
+
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+  const orden=[
+    ...rows.filter(r=>r.area==='Carnicería'),
+    ...rows.filter(r=>r.area!=='Carnicería')
+  ];
+
+  const totalIngreso=orden.reduce((a,r)=>a+num(r.total_ingreso),0);
+  const totalDeducciones=orden.reduce((a,r)=>a+num(r.total_deducciones),0);
+  const totalActa=orden.reduce((a,r)=>a+num(r.acta),0);
+  const totalFaltante=orden.reduce((a,r)=>a+num(r.faltante),0);
+  const totalSubtotal=orden.reduce((a,r)=>a+num(r.subtotal),0);
+  const totalDeposito=orden.reduce((a,r)=>a+num(r.deposito),0);
+  const totalEfectivo=orden.reduce((a,r)=>a+num(r.sueldo_total),0);
+
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(16);
+  doc.text('VDC360 - REPORTE SEMANAL DE SUELDOS',14,14);
+
+  doc.setFont('helvetica','normal');
+  doc.setFontSize(9);
+  doc.text(`Fecha de generación: ${new Date().toLocaleString('es-MX')}`,14,20);
+  doc.text(`Periodo: ${periodo || 'Sin periodo'}`,14,25);
+  doc.text(`Semana: ${NOMINA_SEMANA_ID || semanaActualKey()}`,14,30);
+  doc.text(`Empleados: ${orden.length}`,14,35);
+
+  doc.setFont('helvetica','bold');
+  doc.text(`Total ingreso: ${money(totalIngreso)}`,85,20);
+  doc.text(`Deducciones PDF: ${money(totalDeducciones)}`,85,25);
+  doc.text(`A CTA: ${money(totalActa)}`,85,30);
+  doc.text(`Faltantes: ${money(totalFaltante)}`,85,35);
+  doc.text(`Subtotal: ${money(totalSubtotal)}`,170,20);
+  doc.text(`Depósitos: ${money(totalDeposito)}`,170,25);
+  doc.text(`Efectivo / sueldo total: ${money(totalEfectivo)}`,170,30);
+
+  const body=orden.map((r,i)=>[
+    i+1,
+    r.area||'General',
+    r.nombre||'',
+    Number(num(r.dias_sueldo)).toFixed(2),
+    money(r.sueldo),
+    money(r.extra),
+    money(r.total_ingreso),
+    money(r.total_deducciones),
+    money(r.acta),
+    money(r.faltante),
+    money(r.subtotal),
+    money(r.deposito),
+    money(r.sueldo_total)
+  ]);
+
+  doc.autoTable({
+    startY:42,
+    head:[["#","Área","Empleado","Días","Sueldo PDF","Extra","Total ingreso","Deducciones","A CTA","Faltante","Subtotal","Depósito","Efectivo"]],
+    body,
+    theme:'grid',
+    styles:{fontSize:6.6,cellPadding:1.5,overflow:'linebreak'},
+    headStyles:{fontStyle:'bold'},
+    columnStyles:{
+      0:{halign:'center',cellWidth:7},
+      1:{cellWidth:19},
+      2:{cellWidth:33},
+      3:{halign:'right',cellWidth:11},
+      4:{halign:'right'},5:{halign:'right'},6:{halign:'right'},7:{halign:'right'},
+      8:{halign:'right'},9:{halign:'right'},10:{halign:'right'},11:{halign:'right'},12:{halign:'right'}
+    },
+    didDrawPage:()=>{
+      const page=doc.internal.getNumberOfPages();
+      const width=doc.internal.pageSize.getWidth();
+      const height=doc.internal.pageSize.getHeight();
+      doc.setFontSize(7);
+      doc.setFont('helvetica','normal');
+      doc.text(`VDC360 - ${NOMINA_SEMANA_ID || semanaActualKey()} - Página ${page}`,width-14,height-6,{align:'right'});
+    }
+  });
+
+  const sem=textoArchivoSeguro(NOMINA_SEMANA_ID || semanaActualKey());
+  const per=textoArchivoSeguro(periodo);
+  const nombre=`Nomina_VDC360_${fechaLocalISO()}_${sem}${per?'_'+per:''}.pdf`;
+  doc.save(nombre);
+
+  // Marca local para saber que esta semana ya tuvo respaldo generado.
+  try{
+    localStorage.setItem('vdc360:nomina:ultimoRespaldo',JSON.stringify({
+      semana:NOMINA_SEMANA_ID || semanaActualKey(),
+      periodo:periodo||'',
+      fecha:new Date().toISOString(),
+      archivo:nombre,
+      empleados:orden.length,
+      total_ingreso:round(totalIngreso),
+      subtotal:round(totalSubtotal)
+    }));
+  }catch(e){}
+
+  return true;
+}
+
 function enviarATickets(){
   if(!rows.length){
     alert('Primero lee el PDF o agrega empleados a la nómina.');
     return;
   }
+
+  // Antes de mandar los tickets, genera automáticamente el respaldo semanal en PDF.
+  const respaldoOk=descargarReporteNominaPDF();
+  if(!respaldoOk) return;
 
   const data={
     origen:'VDC360_NOMINA',
@@ -1678,7 +1810,7 @@ function enviarATickets(){
 
   localStorage.setItem('vdc360:nomina:tickets:data',JSON.stringify(data));
 
-  alert('Datos enviados a la página de tickets. Se abrirá la página para imprimir.');
+  alert('Respaldo semanal guardado en PDF. Ahora se abrirá la página de tickets para imprimir.');
   window.open(URL_TICKETS,'_blank');
 }
 
