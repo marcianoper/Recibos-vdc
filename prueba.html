@@ -530,7 +530,9 @@ const TOTAL_OBJETIVO={
   'JOSE':2990,
   'JOSE LUIS RDZ':3710,
   'PABLO':3280,
-  'PABLO SEBASTIAN':0,
+  'PABLO SEBASTIAN':3200,
+  'SEBASTIAN':3200,
+  'SERGIO':3200,
   'TOÑITO':5500,
   'RODOLFO':3380,
   'MARIO V':3410,
@@ -576,6 +578,8 @@ const EXTRAS_DEFAULT={
   'JOSE LUIS RDZ':1020,
   'PABLO':970,
   'PABLO SEBASTIAN':0,
+  'SEBASTIAN':0,
+  'SERGIO':0,
   'TOÑITO':3190,
   'RODOLFO':790,
   'MARIO V':820,
@@ -624,7 +628,7 @@ const PRESTAMOS_DEFAULT={
   'BENJAMIN JR':{prestamo_ant:3600,prestamo_sem:0,acta:200},
   'JOSE':{prestamo_ant:1200,prestamo_sem:0,acta:200},
   'JOSE LUIS RDZ':{prestamo_ant:100,prestamo_sem:0,acta:100},
-  'PABLO':{prestamo_ant:0,prestamo_sem:0,acta:0},
+  'PABLO':{prestamo_ant:0,prestamo_sem:0,acta:200},
   'PABLO SEBASTIAN':{prestamo_ant:0,prestamo_sem:0,acta:0},
   'RODOLFO':{prestamo_ant:2838,prestamo_sem:0,acta:200},
   'MARCO ANTONI':{prestamo_ant:1800,prestamo_sem:0,acta:200},
@@ -678,6 +682,8 @@ const NAME_MAP=[
   [/CAMPOS GONZALEZ JORGE ARTURO|JORGE ARTURO/,'JORGE ARTURO'],
   [/RODRIGUEZ RODRIGUEZ JOSE LUIS|JOSE LUIS/,'JOSE LUIS RDZ'],
   [/PABLO.*SEBASTIAN|SEBASTIAN.*PABLO/,'PABLO SEBASTIAN'],
+  [/SERGIO/,'SERGIO'],
+  [/SEBASTIAN/,'SEBASTIAN'],
   [/RODRIGUEZ HERNANDEZ PABLO FERNANDO|PABLO FERNANDO|^PABLO$/,'PABLO'],
   [/VAZQUEZ PEÑA JUAN RODOLFO|JUAN RODOLFO/,'RODOLFO'],
   [/VAZQUEZ GUZMAN EYVYN RODOLFO|EYVYN RODOLFO|EYVYN/,'EYVYN'],
@@ -699,6 +705,16 @@ function num(v){if(v===null||v===undefined)return 0;return Number(String(v).repl
 function round(n){return Math.round((Number(n)||0)*100)/100;}
 function moneyInput(v){return money(v).replace('MXN','').trim();}
 function normalizeName(n){return (n||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().trim().replace(/\s+/g,' ');}
+
+// Regla especial: Sebastián y Sergio siempre deben terminar con Total ingreso = $3,200.
+// El Extra se calcula automáticamente como 3,200 - Sueldo PDF (mínimo 0).
+function esObjetivo3200(nombre){
+  const n=normalizeName(nombre);
+  return n.includes('SEBASTIAN') || n.includes('SERGIO');
+}
+function extraParaObjetivo3200(sueldo){
+  return round(Math.max(0, 3200 - num(sueldo)));
+}
 function constKey(r){return r.empleado_id || r.nombre;}
 function pickConst(map,id,name){return (id && map[id]!==undefined)?map[id]:(map[name]!==undefined?map[name]:undefined);}
 function setStatus(t){document.getElementById('status').textContent=t;}
@@ -1295,7 +1311,9 @@ function procesarTexto(text){
     // Si el empleado tiene TOTAL_OBJETIVO, el extra se recalcula cada vez desde el sueldo PDF.
     // Si el empleado no tiene TOTAL_OBJETIVO, usa el extra guardado/manual.
     const extraAuto=calcularExtraAutomatico(short, totalPerc);
-    const extra=extraAuto!==null ? extraAuto : (pickConst(extras, empleadoId, short) ?? 0);
+    const extra=esObjetivo3200(short)
+      ? extraParaObjetivo3200(totalPerc)
+      : (extraAuto!==null ? extraAuto : (pickConst(extras, empleadoId, short) ?? 0));
     const p=pickConst(prest, empleadoId, short) || {};
 
     rows.push({
@@ -1329,6 +1347,8 @@ function procesarTexto(text){
 ====================================================== */
 
 function calcular(r){
+  // Sebastián y Sergio: el Extra se recalcula para que Total ingreso sea siempre $3,200.
+  if(esObjetivo3200(r.nombre)) r.extra=extraParaObjetivo3200(r.sueldo);
   r.total_ingreso=round(num(r.sueldo)+num(r.extra));
   r.saldo_actual=round(Math.max(0,num(r.prestamo_ant)+num(r.prestamo_sem)-num(r.acta)));
   r.total_deducciones=num(r.total_deducciones);
@@ -1482,7 +1502,7 @@ function crearTablaArea(titulo, items, esCarniceria){
       <td class="money">${money(r.prestamo_ant)}</td>
       <td class="money">${money(r.prestamo_sem)}</td>
       <td class="money">${money(r.saldo_actual)}</td>
-      <td class="money">${money(r.acta)}</td>
+      ${inp(i,'acta',r.acta)}
       ${inp(i,'faltante',r.faltante)}
       <td>${renderDeduccionesDetalle(r.deducciones_detalle)}</td>
       ${inp(i,'total_deducciones',r.total_deducciones)}
@@ -1502,14 +1522,26 @@ function crearTablaArea(titulo, items, esCarniceria){
 function inp(i,k,v){
   const r=rows[i]||{};
   const alertaFaltante=k==='faltante' && r.faltante_alerta;
+  const extraObjetivo=k==='extra' && esObjetivo3200(r.nombre);
   const clase=alertaFaltante?'inputFaltante':'';
-  const titulo=alertaFaltante?`Alerta: ${r.nombre} trabajó ${Number(r.dias_sueldo||0).toFixed(2)} días. Revisar faltante.`:'';
+  const titulo=extraObjetivo
+    ? 'Extra automático para que Total ingreso sea $3,200.00'
+    : (alertaFaltante?`Alerta: ${r.nombre} trabajó ${Number(r.dias_sueldo||0).toFixed(2)} días. Revisar faltante.`:'');
+
+  if(extraObjetivo){
+    return `<td><input data-focus-id="row-${i}-${k}" type="text" title="${titulo}" value="${moneyInput(r.extra)}" readonly></td>`;
+  }
 
   return `<td><input data-focus-id="row-${i}-${k}" class="${clase}" type="text" inputmode="decimal" title="${titulo}" value="${moneyInput(v)}" onfocus="this.value=String(num(this.value)||'')" onchange="edit(${i},'${k}',this.value)" onblur="this.value=moneyInput(this.value)"></td>`;
 }
 
 function edit(i,k,v){
   rows[i][k]=(k==='nombre'||k==='area')?v:num(v);
+
+  // Si se cambia el nombre/sueldo de Sebastián o Sergio, recalcula el Extra para llegar a $3,200 de Total ingreso.
+  if((k==='nombre' || k==='sueldo' || k==='extra') && esObjetivo3200(rows[i].nombre)){
+    rows[i].extra=extraParaObjetivo3200(rows[i].sueldo);
+  }
 
   if(k==='nombre' && CARNICERIA_NOMBRES.includes(normalizeName(v))){
     rows[i].area='Carnicería';
@@ -1587,7 +1619,7 @@ async function guardarConstantes(){
 
   rows.forEach(r=>{
     const k=constKey(r);
-    e[k]=num(r.extra);
+    e[k]=esObjetivo3200(r.nombre) ? extraParaObjetivo3200(r.sueldo) : num(r.extra);
     a[k]=r.area||'General';
   });
 
