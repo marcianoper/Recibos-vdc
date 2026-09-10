@@ -497,7 +497,6 @@ let aplicandoCambioRemoto=false;
 let liveChannel=null;
 let listoParaImprimir=false;
 let prestamosControlGlobal={};
-let prestamosControlCargado=false;
 
 // Constantes globales: se cargan desde Supabase para que sirvan en cualquier navegador.
 // También se guarda una copia local como respaldo si no hay internet.
@@ -753,13 +752,14 @@ function extrasMap(){
 }
 
 function prestamosMap(){
-  const merged=prestamosControlCargado ? {} : {...PRESTAMOS_DEFAULT};
+  const merged={...PRESTAMOS_DEFAULT};
 
   // Fuente principal: tabla prestamos_empleados de Supabase.
   // No se toma el saldo desde el PDF ni desde nomina_live.
   Object.entries(prestamosControlGlobal||{}).forEach(([nombre,p])=>{
+    if(p.saldo_actual===null || p.saldo_actual===undefined) return;
     merged[nombre]={
-      prestamo_ant:p.activo===false ? 0 : Math.max(0,num(p.saldo_actual)),
+      prestamo_ant:Math.max(0,num(p.saldo_actual)),
       prestamo_sem:0,
       acta:p.activo===false ? 0 : Math.min(Math.max(0,num(p.saldo_actual)),Math.max(0,num(p.descuento_semanal))),
       extra2:0
@@ -849,7 +849,6 @@ async function cargarPrestamosControl(mostrarAviso=false){
       .order('empleado');
     if(error) throw error;
 
-    prestamosControlCargado=true;
     prestamosControlGlobal={};
     (data||[]).forEach(p=>{
       prestamosControlGlobal[normalizeName(p.empleado)]=p;
@@ -858,9 +857,12 @@ async function cargarPrestamosControl(mostrarAviso=false){
     // Actualiza cualquier nómina ya visible sin tocar sueldo, PDF ni otros campos.
     rows.forEach(r=>{
       const p=prestamosControlGlobal[normalizeName(r.nombre)];
-      r.prestamo_ant=p && p.activo!==false ? Math.max(0,num(p.saldo_actual)) : 0;
+      // No encontrar un registro no significa que el empleado no deba.
+      // Conserva los datos de la nómina si no hay un saldo confirmado.
+      if(!p || p.saldo_actual===null || p.saldo_actual===undefined) return;
+      r.prestamo_ant=Math.max(0,num(p.saldo_actual));
       r.prestamo_sem=0;
-      r.acta=p ? Math.min(r.prestamo_ant,Math.max(0,num(p.descuento_semanal))) : 0;
+      r.acta=p.activo===false ? 0 : Math.min(r.prestamo_ant,Math.max(0,num(p.descuento_semanal)));
     });
     renderSinMoverPantalla();
     if(mostrarAviso) alert('Préstamos actualizados desde Supabase.');
@@ -1351,12 +1353,7 @@ function calcular(r){
   const extraAuto=extraObjetivoEspecial(r.nombre,r.sueldo);
   if(extraAuto!==null && !r.extra_manual) r.extra=extraAuto;
   r.total_ingreso=round(num(r.sueldo)+num(r.extra));
-  // Sin préstamo vigente no se descuenta A CTA, incluso en nóminas guardadas.
-  const prestamo=prestamosControlGlobal[normalizeName(r.nombre)];
-  if(prestamosControlCargado && (!prestamo || prestamo.activo===false || num(prestamo.saldo_actual)<=0)){
-    r.prestamo_ant=0;
-    r.prestamo_sem=0;
-  }
+  // Limita únicamente el abono: nunca borra los préstamos al recalcular.
   const saldoAntesAbono=round(Math.max(0,num(r.prestamo_ant)+num(r.prestamo_sem)));
   r.acta=round(Math.min(saldoAntesAbono,Math.max(0,num(r.acta))));
   r.saldo_actual=round(saldoAntesAbono-r.acta);
