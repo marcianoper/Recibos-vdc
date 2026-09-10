@@ -453,7 +453,7 @@
       </div>
 
       <p class="small" style="margin-top:12px">
-        <b>Regla de deducciones PDF:</b> se muestra el desglose completo, pero el descuento real se toma del campo Total Deducciones. <br><b>Regla de préstamo:</b> préstamo anterior + préstamo semanal - ACTA = saldo actual. En nómina solo se descuenta ACTA.
+        <b>Regla de deducciones PDF:</b> se muestra el desglose completo, pero el descuento real se toma del campo Total Deducciones. <br><b>Regla de préstamo:</b> préstamo anterior + préstamo semanal - ACTA = saldo actual. En nómina solo se descuenta ACTA. Sin saldo de préstamo, ACTA es $0; el abono nunca supera el saldo pendiente.
         <br><b>Regla especial:</b> Benjamin Jr y Victor no tienen depósito; su sueldo total queda completo.
       </p>
     </div>
@@ -497,6 +497,7 @@ let aplicandoCambioRemoto=false;
 let liveChannel=null;
 let listoParaImprimir=false;
 let prestamosControlGlobal={};
+let prestamosControlCargado=false;
 
 // Constantes globales: se cargan desde Supabase para que sirvan en cualquier navegador.
 // También se guarda una copia local como respaldo si no hay internet.
@@ -546,7 +547,7 @@ const TOTAL_OBJETIVO={
 
 function calcularExtraAutomatico(nombre, sueldoPDF){
   const nombreNormalizado=normalizeName(nombre);
-  const objetivo=TOTAL_OBJETIVO[nombreNormalizado];
+  const objetivo=objetivoEspecial(nombre) ?? TOTAL_OBJETIVO[nombreNormalizado];
   const sueldo=num(sueldoPDF);
 
   if(objetivo===undefined || objetivo===null){
@@ -706,14 +707,16 @@ function round(n){return Math.round((Number(n)||0)*100)/100;}
 function moneyInput(v){return money(v).replace('MXN','').trim();}
 function normalizeName(n){return (n||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().trim().replace(/\s+/g,' ');}
 
-// Regla especial: Sebastián y Sergio siempre deben terminar con Total ingreso = $3,200.
-// El Extra se calcula automáticamente como 3,200 - Sueldo PDF (mínimo 0).
-function esObjetivo3200(nombre){
+// Pablo Sebastián tiene un objetivo distinto de Sebastián y Sergio.
+function objetivoEspecial(nombre){
   const n=normalizeName(nombre);
-  return n.includes('SEBASTIAN') || n.includes('SERGIO');
+  if(/\bPABLO\b/.test(n) && /\bSEBASTIAN\b/.test(n)) return 2600;
+  if(/\bSEBASTIAN\b|\bSERGIO\b/.test(n)) return 3200;
+  return null;
 }
-function extraParaObjetivo3200(sueldo){
-  return round(Math.max(0, 3200 - num(sueldo)));
+function extraObjetivoEspecial(nombre,sueldo){
+  const objetivo=objetivoEspecial(nombre);
+  return objetivo===null ? null : round(Math.max(0,objetivo-num(sueldo)));
 }
 function constKey(r){return r.empleado_id || r.nombre;}
 function pickConst(map,id,name){return (id && map[id]!==undefined)?map[id]:(map[name]!==undefined?map[name]:undefined);}
@@ -750,15 +753,15 @@ function extrasMap(){
 }
 
 function prestamosMap(){
-  const merged={...PRESTAMOS_DEFAULT};
+  const merged=prestamosControlCargado ? {} : {...PRESTAMOS_DEFAULT};
 
   // Fuente principal: tabla prestamos_empleados de Supabase.
   // No se toma el saldo desde el PDF ni desde nomina_live.
   Object.entries(prestamosControlGlobal||{}).forEach(([nombre,p])=>{
     merged[nombre]={
-      prestamo_ant:num(p.saldo_actual),
+      prestamo_ant:p.activo===false ? 0 : Math.max(0,num(p.saldo_actual)),
       prestamo_sem:0,
-      acta:num(p.descuento_semanal),
+      acta:p.activo===false ? 0 : Math.min(Math.max(0,num(p.saldo_actual)),Math.max(0,num(p.descuento_semanal))),
       extra2:0
     };
   });
@@ -843,10 +846,10 @@ async function cargarPrestamosControl(mostrarAviso=false){
     const {data,error}=await sb
       .from('prestamos_empleados')
       .select('empleado,saldo_actual,descuento_semanal,activo,fecha_ultimo_descuento')
-      .eq('activo',true)
       .order('empleado');
     if(error) throw error;
 
+    prestamosControlCargado=true;
     prestamosControlGlobal={};
     (data||[]).forEach(p=>{
       prestamosControlGlobal[normalizeName(p.empleado)]=p;
@@ -855,10 +858,9 @@ async function cargarPrestamosControl(mostrarAviso=false){
     // Actualiza cualquier nómina ya visible sin tocar sueldo, PDF ni otros campos.
     rows.forEach(r=>{
       const p=prestamosControlGlobal[normalizeName(r.nombre)];
-      if(!p) return;
-      r.prestamo_ant=num(p.saldo_actual);
+      r.prestamo_ant=p && p.activo!==false ? Math.max(0,num(p.saldo_actual)) : 0;
       r.prestamo_sem=0;
-      r.acta=num(p.descuento_semanal);
+      r.acta=p ? Math.min(r.prestamo_ant,Math.max(0,num(p.descuento_semanal))) : 0;
     });
     renderSinMoverPantalla();
     if(mostrarAviso) alert('Préstamos actualizados desde Supabase.');
@@ -1311,9 +1313,7 @@ function procesarTexto(text){
     // Si el empleado tiene TOTAL_OBJETIVO, el extra se recalcula cada vez desde el sueldo PDF.
     // Si el empleado no tiene TOTAL_OBJETIVO, usa el extra guardado/manual.
     const extraAuto=calcularExtraAutomatico(short, totalPerc);
-    const extra=esObjetivo3200(short)
-      ? extraParaObjetivo3200(totalPerc)
-      : (extraAuto!==null ? extraAuto : (pickConst(extras, empleadoId, short) ?? 0));
+    const extra=extraAuto!==null ? extraAuto : (pickConst(extras, empleadoId, short) ?? 0);
     const p=pickConst(prest, empleadoId, short) || {};
 
     rows.push({
@@ -1347,10 +1347,19 @@ function procesarTexto(text){
 ====================================================== */
 
 function calcular(r){
-  // Sebastián y Sergio: el Extra se recalcula para que Total ingreso sea siempre $3,200.
-  if(esObjetivo3200(r.nombre)) r.extra=extraParaObjetivo3200(r.sueldo);
+  // Respeta el extra manual incluso al guardar, recargar e imprimir.
+  const extraAuto=extraObjetivoEspecial(r.nombre,r.sueldo);
+  if(extraAuto!==null && !r.extra_manual) r.extra=extraAuto;
   r.total_ingreso=round(num(r.sueldo)+num(r.extra));
-  r.saldo_actual=round(Math.max(0,num(r.prestamo_ant)+num(r.prestamo_sem)-num(r.acta)));
+  // Sin préstamo vigente no se descuenta A CTA, incluso en nóminas guardadas.
+  const prestamo=prestamosControlGlobal[normalizeName(r.nombre)];
+  if(prestamosControlCargado && (!prestamo || prestamo.activo===false || num(prestamo.saldo_actual)<=0)){
+    r.prestamo_ant=0;
+    r.prestamo_sem=0;
+  }
+  const saldoAntesAbono=round(Math.max(0,num(r.prestamo_ant)+num(r.prestamo_sem)));
+  r.acta=round(Math.min(saldoAntesAbono,Math.max(0,num(r.acta))));
+  r.saldo_actual=round(saldoAntesAbono-r.acta);
   r.total_deducciones=num(r.total_deducciones);
   r.subtotal=round(r.total_ingreso-num(r.total_deducciones)-num(r.acta)-num(r.faltante));
 
@@ -1522,15 +1531,14 @@ function crearTablaArea(titulo, items, esCarniceria){
 function inp(i,k,v){
   const r=rows[i]||{};
   const alertaFaltante=k==='faltante' && r.faltante_alerta;
-  const extraObjetivo=k==='extra' && esObjetivo3200(r.nombre);
+  const objetivo=objetivoEspecial(r.nombre);
+  const extraObjetivo=k==='extra' && objetivo!==null;
   const clase=alertaFaltante?'inputFaltante':'';
   const titulo=extraObjetivo
-    ? 'Extra automático para que Total ingreso sea $3,200.00'
+    ? `Extra editable. Se calcula para completar ${money(objetivo)} al cargar el PDF o cambiar el sueldo.`
     : (alertaFaltante?`Alerta: ${r.nombre} trabajó ${Number(r.dias_sueldo||0).toFixed(2)} días. Revisar faltante.`:'');
 
-  if(extraObjetivo){
-    return `<td><input data-focus-id="row-${i}-${k}" type="text" title="${titulo}" value="${moneyInput(r.extra)}" readonly></td>`;
-  }
+
 
   return `<td><input data-focus-id="row-${i}-${k}" class="${clase}" type="text" inputmode="decimal" title="${titulo}" value="${moneyInput(v)}" onfocus="this.value=String(num(this.value)||'')" onchange="edit(${i},'${k}',this.value)" onblur="this.value=moneyInput(this.value)"></td>`;
 }
@@ -1538,9 +1546,12 @@ function inp(i,k,v){
 function edit(i,k,v){
   rows[i][k]=(k==='nombre'||k==='area')?v:num(v);
 
-  // Si se cambia el nombre/sueldo de Sebastián o Sergio, recalcula el Extra para llegar a $3,200 de Total ingreso.
-  if((k==='nombre' || k==='sueldo' || k==='extra') && esObjetivo3200(rows[i].nombre)){
-    rows[i].extra=extraParaObjetivo3200(rows[i].sueldo);
+  if(k==='extra') rows[i].extra_manual=true;
+  // Un sueldo o nombre nuevo vuelve a calcular el complemento automático.
+  if(k==='nombre' || k==='sueldo'){
+    const extraAuto=calcularExtraAutomatico(rows[i].nombre,rows[i].sueldo);
+    rows[i].extra_manual=false;
+    if(extraAuto!==null) rows[i].extra=extraAuto;
   }
 
   if(k==='nombre' && CARNICERIA_NOMBRES.includes(normalizeName(v))){
@@ -1619,7 +1630,7 @@ async function guardarConstantes(){
 
   rows.forEach(r=>{
     const k=constKey(r);
-    e[k]=esObjetivo3200(r.nombre) ? extraParaObjetivo3200(r.sueldo) : num(r.extra);
+    e[k]=num(r.extra);
     a[k]=r.area||'General';
   });
 
